@@ -1,0 +1,272 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* WYSHKIT Design System - Custom brand design with DLS tokens
+All colors MUST be HSL. Visual-first approach with warm, gift-focused palette.
+*/
+
+@layer base {
+  :root {
+    /* Brand Colors - WYSHKIT Red as primary */
+    --background: 0 0% 99%;
+    --foreground: 220 13% 9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 9%;
+    --card-elevated: 0 10% 98%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 9%;
+
+    /* WYSHKIT Color System - Complete Palette */
+    --primary: 7 79% 45%;             /* #CD1C18 - Wyshkit brand red */
+    --primary-foreground: 0 0% 100%;  /* White text on primary */
+    --primary-light: 15 85% 92%;      /* Lighter primary variant */
+    --primary-glow: 7 79% 87%;        /* Primary with glow effect */
+    --primary-container: 7 75% 95%;   /* Primary container M3 */
+    --on-primary-container: 7 75% 10%; /* Text on primary container */
+    
+    /* WYSHKIT Dynamic Secondary Colors */
+    --secondary: 220 14% 91%;         /* Dynamic secondary from primary seed */
+    --secondary-foreground: 220 14% 11%;
+    --secondary-container: 220 14% 96%;
+    --on-secondary-container: 220 14% 10%;
+    
+    /* WYSHKIT Tertiary Colors */
+    --tertiary: 49 100% 50%;          /* Complementary tertiary */
+    --tertiary-foreground: 0 0% 100%;
+    --tertiary-container: 49 100% 95%;
+    --on-tertiary-container: 49 100% 10%;
+    
+    /* WYSHKIT Error Colors */
+    --error: 0 84% 60%;               /* Standard error color */
+    --error-foreground: 0 0% 100%;
+    --error-container: 0 100% 95%;
+    --on-error-container: 0 84% 20%;
+    
+    /* WYSHKIT Additional Status Colors */
+    --warning: 45 100% 60%;
+    --warning-foreground: 45 30% 10%;
+    --warning-container: 45 100% 95%;
+    --on-warning-container: 45 100% 10%;
+    
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 98%;
+    --success-container: 120 60% 95%;
+    --on-success-container: 120 60% 10%;
+    
+    --info: 200 80% 60%;
+    --info-foreground: 0 0% 98%;
+    --info-container: 200 80% 95%;
+    --on-info-container: 200 80% 10%;
+    
+    /* WYSHKIT Surface Colors */
+    --surface: 0 0% 100%;             /* Pure white surface */
+    --surface-dim: 0 0% 87%;          /* Dimmed surface */
+    --surface-bright: 0 0% 98%;       /* Bright surface */
+    --surface-container-lowest: 0 0% 100%;
+    --surface-container-low: 0 0% 96%;
+    --surface-container: 0 0% 94%;    /* Primary container surface */
+    --surface-container-high: 0 0% 92%;
+    --surface-container-highest: 0 0% 90%;
+    --surface-variant: 220 14% 94%;   /* Surface variant with secondary tint */
+    --on-surface: 0 0% 11%;           /* High contrast on surface */
+    --on-surface-variant: 220 9% 42%; /* Medium contrast on surface variant */
+    
+    /* WYSHKIT Outline Colors */
+    --outline: 220 9% 72%;            /* Standard outline */
+    --outline-variant: 220 14% 84%;   /* Subtle outline variant */
+
+    --muted: 25 20% 95%;
+    --muted-foreground: 25 8% 45%;
+
+    --accent: 35 100% 96%;
+    --accent-foreground: 35 40% 20%;
+    --accent-warm: 35 60% 90%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Success and status colors */
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 98%;
+    --warning: 45 100% 60%;
+    --warning-foreground: 45 30% 10%;
+    --info: 200 80% 60%;
+    --info-foreground: 0 0% 98%;
+
+    --border: 25 20% 88%;
+    --input: 25 20% 88%;
+    --ring: 2 76% 45%;
+
+    /* Modern radius for visual appeal */
+    --radius: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+
+    /* Gradients for visual appeal */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
+    --gradient-warm: linear-gradient(45deg, hsl(var(--accent)), hsl(var(--secondary-accent)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-light)) 100%);
+    
+    /* Shadows for depth */
+    --shadow-sm: 0 1px 3px 0 hsl(var(--primary) / 0.1);
+    --shadow-md: 0 4px 12px 0 hsl(var(--primary) / 0.15);
+    --shadow-lg: 0 8px 25px 0 hsl(var(--primary) / 0.2);
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.3);
+
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Z-Index Hierarchy - Production PWA Standards */
+    --z-dropdown: 1000;
+    --z-fixed: 1020;
+    --z-modal-backdrop: 1040;
+    --z-offcanvas: 1050;
+    --z-modal: 1060;
+    --z-popover: 1070;
+    --z-tooltip: 1080;
+    --z-toast: 1090;
+
+    /* Update NotFound page to use design system */
+    --background: 0 0% 99%;
+    --foreground: 220 13% 9%;
+
+    /* Sidebar colors removed - use card colors instead */
+  }
+}
+
+  .dark {
+    --background: 220 20% 8%;
+    --foreground: 25 10% 95%;
+
+    --card: 220 20% 10%;
+    --card-foreground: 25 10% 95%;
+    --card-elevated: 220 15% 12%;
+
+    --popover: 220 20% 10%;
+    --popover-foreground: 25 10% 95%;
+
+    --primary: 2 76% 55%;
+    --primary-foreground: 0 0% 98%;
+    --primary-light: 2 76% 65%;
+    --primary-dark: 2 76% 45%;
+
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 25 10% 90%;
+    --secondary-accent: 220 10% 18%;
+
+    --muted: 220 15% 15%;
+    --muted-foreground: 25 5% 65%;
+
+    --accent: 220 10% 18%;
+    --accent-foreground: 25 10% 90%;
+    --accent-warm: 220 8% 22%;
+
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 120 60% 55%;
+    --success-foreground: 0 0% 98%;
+    --warning: 45 100% 65%;
+    --warning-foreground: 45 30% 10%;
+    --info: 200 80% 65%;
+    --info-foreground: 0 0% 98%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 2 76% 55%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary-dark)), hsl(var(--primary)));
+    --gradient-warm: linear-gradient(45deg, hsl(var(--accent-warm)), hsl(var(--secondary-accent)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary-dark)) 0%, hsl(var(--primary)) 100%);
+    
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 12px 0 hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 8px 25px 0 hsl(0 0% 0% / 0.5);
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.4);
+  }
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/30;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Hide scrollbar for horizontal scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mobile PWA Container Constraints - Fix Bleeding */
+  .mobile-container-fix {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  
+  /* Z-Index Utility Classes */
+  .z-app-bar { z-index: 50; }
+  .z-bottom-bar { z-index: 40; } 
+  .z-floating-cart { z-index: 35; }
+  .z-live-chat { z-index: 30; }
+  .z-modal { z-index: var(--z-modal); }
+  .z-popover { z-index: var(--z-popover); }
+  .z-tooltip { z-index: var(--z-tooltip); }
+  .z-toast { z-index: var(--z-toast); }
+  
+  /* WYSHKIT elevation system */
+  .elevation-1 {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .elevation-2 {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .elevation-3 {
+    box-shadow: var(--shadow-lg);
+  }
+}

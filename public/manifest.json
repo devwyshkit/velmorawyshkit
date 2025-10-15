@@ -1,0 +1,27 @@
+{
+  "name": "Wyshkit - Corporate Gifting Platform",
+  "short_name": "Wyshkit",
+  "description": "Corporate gifting made simple with custom designs and trusted vendors",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#CD1C18",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/wyshkit-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/wyshkit-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "shopping"],
+  "lang": "en",
+  "dir": "ltr"
+}
