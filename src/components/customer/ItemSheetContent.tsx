@@ -158,12 +158,12 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {/* Image Carousel - Swiggy/Zomato standard: 224px for product prominence */}
+        {/* Image Carousel - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
         <Carousel className="w-full">
           <CarouselContent>
             {item.images?.map((image: string, index: number) => (
               <CarouselItem key={index}>
-                <div className="relative h-56 rounded-lg overflow-hidden bg-muted">
+                <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                   <img
                     src={image}
                     alt={`${item.name} ${index + 1}`}
