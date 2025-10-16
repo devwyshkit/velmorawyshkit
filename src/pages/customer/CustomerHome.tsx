@@ -250,7 +250,7 @@ export const CustomerHome = () => {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold px-4">What's the occasion?</h2>
           {/* Swiggy/Zomato pattern: Mobile = 2 rows horizontal scroll | Desktop = 1 row */}
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[85px] gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 pl-4 lg:grid-rows-1 lg:overflow-visible lg:pl-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[95px] gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 pl-4 lg:grid-rows-1 lg:overflow-visible lg:pl-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
@@ -258,9 +258,9 @@ export const CustomerHome = () => {
                 className="snap-start flex flex-col items-center gap-2 min-w-[80px] shrink-0 md:min-w-0"
                 aria-label={`Browse ${occasion.name} gifts`}
               >
-                {/* ROUND circular image - Swiggy/Zomato pattern */}
+                {/* ROUND circular image - Swiggy pattern (80px optimal) */}
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border/50 hover:border-primary transition-colors">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border/50 hover:border-primary transition-colors">
                     <div className="w-full h-full bg-primary/10 flex items-center justify-center text-3xl">
                       {occasion.icon}
                     </div>
