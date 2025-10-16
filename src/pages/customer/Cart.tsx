@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, ShoppingBag } from "lucide-react";
+import { Trash2, ShoppingBag, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ import {
   fetchCartItems,
   updateCartItemSupabase,
   removeCartItemSupabase,
+  fetchPartnerById,
 } from "@/lib/integrations/supabase-data";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
 
@@ -32,6 +33,7 @@ interface CartItem {
   quantity: number;
   image?: string;
   addOns?: any[];
+  partner_id?: string;
 }
 
 export const Cart = () => {
@@ -41,6 +43,7 @@ export const Cart = () => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [gstin, setGstin] = useState("");
   const [loading, setLoading] = useState(false);
+  const [partnerName, setPartnerName] = useState<string>("");
 
   useEffect(() => {
     loadCart();
@@ -55,10 +58,22 @@ export const Cart = () => {
         // Load from localStorage
         const guestCart = getGuestCart();
         setItems(guestCart);
+        
+        // Load partner name if items exist
+        if (guestCart.length > 0 && guestCart[0].partner_id) {
+          const partner = await fetchPartnerById(guestCart[0].partner_id);
+          setPartnerName(partner?.name || "");
+        }
       } else {
         // Load from Supabase
         const cartData = await fetchCartItems();
         setItems(cartData);
+        
+        // Load partner name
+        if (cartData.length > 0 && cartData[0].partner_id) {
+          const partner = await fetchPartnerById(cartData[0].partner_id);
+          setPartnerName(partner?.name || "");
+        }
       }
     } catch (error) {
       console.error('Failed to load cart:', error);
@@ -237,6 +252,16 @@ HSN Code: 9985
       <CustomerMobileHeader showBackButton title="My Cart" />
       
       <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-4">
+        {/* Partner Info */}
+        {partnerName && (
+          <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+            <Store className="h-5 w-5 text-primary flex-shrink-0" />
+            <span className="text-sm">
+              Items from <span className="font-semibold text-foreground">{partnerName}</span>
+            </span>
+          </div>
+        )}
+
         {/* Items List */}
         {items.map((item) => (
           <div key={item.id} className="flex gap-3 bg-card rounded-lg p-3 border border-border">

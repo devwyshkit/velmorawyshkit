@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/carousel";
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
+import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
-import { addToCartSupabase, getMockItems } from "@/lib/integrations/supabase-data";
+import { addToCartSupabase, getMockItems, fetchPartnerById } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 
@@ -39,11 +40,14 @@ interface AddOn {
 export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { refreshCartCount } = useCart();
+  const { refreshCartCount, currentPartnerId, clearCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [item, setItem] = useState<any>(null);
+  const [showCartReplacementModal, setShowCartReplacementModal] = useState(false);
+  const [currentPartnerName, setCurrentPartnerName] = useState<string>("");
+  const [newPartnerName, setNewPartnerName] = useState<string>("");
 
   // Load item data from centralized mock data
   useEffect(() => {
@@ -86,6 +90,23 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
   };
 
   const handleAddToCart = async () => {
+    // Check if adding item from different partner
+    if (currentPartnerId && currentPartnerId !== item.partner_id) {
+      // Fetch partner names for modal
+      const currentPartner = await fetchPartnerById(currentPartnerId);
+      const newPartner = await fetchPartnerById(item.partner_id);
+      
+      setCurrentPartnerName(currentPartner?.name || "Current Partner");
+      setNewPartnerName(newPartner?.name || "New Partner");
+      setShowCartReplacementModal(true);
+      return;
+    }
+
+    // Same partner or empty cart - proceed normally
+    await proceedWithAddToCart();
+  };
+
+  const proceedWithAddToCart = async () => {
     const authenticated = await isAuthenticated();
 
     if (!authenticated) {
@@ -96,6 +117,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         name: item.name,
         price: item.price,
         quantity,
+        partner_id: item.partner_id,
         addOns: selectedAddOns.map(id => addOns.find(a => a.id === id)).filter(Boolean),
         total: calculateTotal(),
       };
@@ -114,6 +136,15 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
       }, 500);
     } else {
       // Authenticated: save to Supabase
+      const cartItem = {
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity,
+        partner_id: item.partner_id,
+        addOns: selectedAddOns.map(id => addOns.find(a => a.id === id)).filter(Boolean),
+      };
+      
       const success = await addToCartSupabase(cartItem);
       
       if (success) {
@@ -132,6 +163,15 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
 
       onClose();
     }
+  };
+
+  const handleReplaceCart = async () => {
+    // Clear existing cart
+    clearCart();
+    setShowCartReplacementModal(false);
+    
+    // Proceed with adding new item
+    await proceedWithAddToCart();
   };
 
   if (!item) {
@@ -303,6 +343,15 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
       <LoginPromptSheet
         isOpen={showLoginPrompt}
         onClose={() => setShowLoginPrompt(false)}
+      />
+
+      {/* Cart Replacement Modal - Swiggy Pattern */}
+      <CartReplacementModal
+        isOpen={showCartReplacementModal}
+        currentPartner={currentPartnerName}
+        newPartner={newPartnerName}
+        onConfirm={handleReplaceCart}
+        onCancel={() => setShowCartReplacementModal(false)}
       />
     </div>
   );

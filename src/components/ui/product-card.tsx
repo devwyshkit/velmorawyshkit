@@ -284,14 +284,6 @@ export const ProductCard = ({
               <span className="text-xs text-muted-foreground">({product.reviewCount})</span>
             </div>
           </div>
-
-          {/* MOQ Notice - DLS Compliant Colors */}
-          {product.minQuantity && product.minQuantity > 1 && (
-            <div className="flex items-center gap-1 text-xs text-warning-foreground bg-warning/10 px-2 py-1 rounded">
-              <Zap className="h-3 w-3" />
-              <span>Min {product.minQuantity} for customization • Singles available</span>
-            </div>
-          )}
           
           {/* Vendor + Delivery Info */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">

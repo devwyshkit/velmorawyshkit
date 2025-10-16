@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Trash2, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import {
   setGuestCart,
 } from "@/lib/integrations/supabase-client";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
+import { fetchPartnerById } from "@/lib/integrations/supabase-data";
 
 interface CartSheetProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ interface CartItem {
   quantity: number;
   image?: string;
   addOns?: any[];
+  partner_id?: string;
 }
 
 export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
@@ -36,6 +38,7 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [gstin, setGstin] = useState("");
   const [loading, setLoading] = useState(false);
+  const [partnerName, setPartnerName] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
@@ -50,6 +53,12 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
       // Load from localStorage
       const guestCart = getGuestCart();
       setItems(guestCart);
+      
+      // Load partner name if items exist
+      if (guestCart.length > 0 && guestCart[0].partner_id) {
+        const partner = await fetchPartnerById(guestCart[0].partner_id);
+        setPartnerName(partner?.name || "");
+      }
     } else {
       // Load from Supabase
       // Implementation would go here
@@ -60,6 +69,7 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
           price: 2499,
           quantity: 2,
           image: '/placeholder.svg',
+          partner_id: '1',
         },
         {
           id: '2',
@@ -67,9 +77,16 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
           price: 1299,
           quantity: 1,
           image: '/placeholder.svg',
+          partner_id: '1',
         },
       ];
       setItems(mockItems);
+      
+      // Load partner name
+      if (mockItems.length > 0 && mockItems[0].partner_id) {
+        const partner = await fetchPartnerById(mockItems[0].partner_id);
+        setPartnerName(partner?.name || "");
+      }
     }
   };
 
@@ -200,6 +217,12 @@ HSN Code: 9985
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
           <h2 className="text-lg font-semibold">My Cart ({items.length})</h2>
+          {partnerName && (
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+              <Store className="h-4 w-4" />
+              <span>Items from <span className="font-medium text-foreground">{partnerName}</span></span>
+            </div>
+          )}
         </div>
 
         {/* Items List */}

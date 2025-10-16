@@ -1,20 +1,36 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getGuestCart } from "@/lib/integrations/supabase-client";
+import { getGuestCart, clearGuestCart } from "@/lib/integrations/supabase-client";
 
 interface CartContextType {
   cartCount: number;
+  currentPartnerId: string | null;
   refreshCartCount: () => void;
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartCount, setCartCount] = useState(0);
+  const [currentPartnerId, setCurrentPartnerId] = useState<string | null>(null);
 
   const refreshCartCount = () => {
     const cart = getGuestCart();
     const count = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
     setCartCount(count);
+    
+    // Track current partner from cart
+    if (cart.length > 0 && cart[0].partner_id) {
+      setCurrentPartnerId(cart[0].partner_id);
+    } else {
+      setCurrentPartnerId(null);
+    }
+  };
+
+  const clearCart = () => {
+    clearGuestCart();
+    setCartCount(0);
+    setCurrentPartnerId(null);
   };
 
   useEffect(() => {
@@ -32,7 +48,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <CartContext.Provider value={{ cartCount, refreshCartCount }}>
+    <CartContext.Provider value={{ cartCount, currentPartnerId, refreshCartCount, clearCart }}>
       {children}
     </CartContext.Provider>
   );

@@ -261,11 +261,6 @@ export const VendorCard = ({
                   );
                 })}
               </div>
-              
-            {/* MOQ B2C Message - Fixed overflow */}
-            <div className="mt-2 px-2 py-1 bg-primary/5 rounded text-xs text-primary break-words">
-              Individual units available • MOQ only for customization
-            </div>
             </div>
           )}
 

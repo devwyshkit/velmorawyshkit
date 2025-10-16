@@ -246,11 +246,6 @@ export const VendorCarousel = ({
                         </div>
                       ))}
                     </div>
-                    
-                    {/* B2C MOQ Clarification */}
-                    <div className="mt-2 px-2 py-1 bg-primary/5 rounded text-xs text-primary">
-                      Individual units available • MOQ only for customization
-                    </div>
                   </div>
                 )}
 
