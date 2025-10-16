@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -161,11 +161,8 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
           <h2 className="text-lg font-semibold">Checkout</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
         </div>
 
         {/* Content */}

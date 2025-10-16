@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { MapPin, User, ShoppingBag, Heart, ArrowLeft, X, Search } from "lucide-react";
+import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -162,11 +162,8 @@ export const CustomerMobileHeader = ({
           </div>
 
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3 flex items-center justify-between">
+          <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
             <h2 className="text-lg font-semibold">Select Location</h2>
-            <Button variant="ghost" size="icon" onClick={() => setIsLocationSheetOpen(false)}>
-              <X className="h-5 w-5" />
-            </Button>
           </div>
 
           {/* Content */}

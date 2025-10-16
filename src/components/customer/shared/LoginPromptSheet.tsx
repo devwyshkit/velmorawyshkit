@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
@@ -33,11 +32,8 @@ export const LoginPromptSheet = ({ isOpen, onClose }: LoginPromptSheetProps) => 
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pb-4">
+        <div className="px-4 pb-4">
           <h2 className="text-xl font-semibold">Sign in to continue</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
         </div>
 
         {/* Content */}

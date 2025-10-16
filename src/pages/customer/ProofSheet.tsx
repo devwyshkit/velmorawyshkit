@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { X, AlertCircle, FileImage } from "lucide-react";
+import { AlertCircle, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -123,11 +123,8 @@ export const ProofSheet = ({ isOpen, onClose, orderId }: ProofSheetProps) => {
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
           <h2 className="text-lg font-semibold">Review Proof</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
         </div>
 
         {/* Content */}
