@@ -232,7 +232,7 @@ export const ItemDetails = () => {
           {/* Add-ons */}
           {addOns.length > 0 && (
             <div>
-              <Label className="text-base font-semibold mb-3 block">Customize Your Gift</Label>
+              <Label className="text-base font-semibold mb-3 block">Add-Ons</Label>
               <div className="space-y-3">
                 {addOns.map((addOn) => (
                   <div key={addOn.id} className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">

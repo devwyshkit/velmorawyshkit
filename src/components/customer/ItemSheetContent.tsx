@@ -211,7 +211,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         {/* Add-ons */}
         {addOns.length > 0 && (
           <div>
-            <Label className="text-sm font-medium mb-3 block">Customize Your Gift</Label>
+            <Label className="text-sm font-medium mb-3 block">Add-Ons</Label>
             <div className="space-y-3">
               {addOns.map((addOn) => (
                 <div key={addOn.id} className="flex items-center space-x-2">
