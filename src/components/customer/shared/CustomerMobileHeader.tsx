@@ -104,8 +104,16 @@ export const CustomerMobileHeader = ({
           )}
         </div>
         
-        {/* Desktop Only: Cart, Wishlist, Account icons (mobile uses bottom nav) */}
+        {/* Desktop Only: Search, Cart, Wishlist, Account icons (mobile uses bottom nav) */}
         <div className="hidden md:flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/customer/search")}
+            aria-label="Search"
+          >
+            <Search className="h-6 w-6" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
