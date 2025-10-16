@@ -279,7 +279,7 @@ export const CustomerHome = () => {
         {/* Partners - Responsive Grid: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
         <section className="space-y-3">
           <div className="flex items-center justify-between px-4">
-            <h2 className="text-lg font-semibold">Vendors near you</h2>
+            <h2 className="text-lg font-semibold">Partners near you</h2>
             <Button
               variant="link"
               className="text-primary p-0 h-auto"

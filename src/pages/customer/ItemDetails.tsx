@@ -232,7 +232,7 @@ export const ItemDetails = () => {
           {/* Add-ons */}
           {addOns.length > 0 && (
             <div>
-              <Label className="text-base font-semibold mb-3 block">Add-Ons</Label>
+              <Label className="text-base font-semibold mb-3 block">Customize Your Gift</Label>
               <div className="space-y-3">
                 {addOns.map((addOn) => (
                   <div key={addOn.id} className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
@@ -285,27 +285,12 @@ export const ItemDetails = () => {
                 </div>
               </AccordionContent>
             </AccordionItem>
-            <AccordionItem value="compliance">
-              <AccordionTrigger className="text-base font-semibold">
-                Tax & Compliance
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground space-y-3 pt-4">
-                <div>
-                  <p className="font-medium text-foreground">HSN Code: 9985</p>
-                  <p className="text-xs">(Business Support Services)</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">GST Rate: 18%</p>
-                  <p className="text-xs">GST is included in the displayed price</p>
-                </div>
-                <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-destructive">
-                    <strong>Note:</strong> Custom items are non-refundable after proof approval
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
           </Accordion>
+
+          {/* Important Notice */}
+          <p className="text-xs text-muted-foreground">
+            Note: Custom items are non-refundable after proof approval
+          </p>
 
           {/* Add to Cart Section */}
           <div className="sticky bottom-20 md:bottom-4 bg-white border border-border rounded-lg p-4 shadow-lg space-y-3">

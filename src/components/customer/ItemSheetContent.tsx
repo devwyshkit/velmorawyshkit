@@ -211,7 +211,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         {/* Add-ons */}
         {addOns.length > 0 && (
           <div>
-            <Label className="text-sm font-medium mb-3 block">Add-Ons</Label>
+            <Label className="text-sm font-medium mb-3 block">Customize Your Gift</Label>
             <div className="space-y-3">
               {addOns.map((addOn) => (
                 <div key={addOn.id} className="flex items-center space-x-2">
@@ -232,7 +232,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
           </div>
         )}
 
-        {/* Specifications & Compliance */}
+        {/* Product Specifications */}
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="specs">
             <AccordionTrigger className="text-sm font-medium">
@@ -249,21 +249,12 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
               </div>
             </AccordionContent>
           </AccordionItem>
-          <AccordionItem value="compliance">
-            <AccordionTrigger className="text-sm font-medium">
-              Tax & Compliance
-            </AccordionTrigger>
-            <AccordionContent className="text-sm text-muted-foreground space-y-2">
-              <div className="space-y-1">
-                <p><strong>HSN Code:</strong> 9985 (Business Support Services)</p>
-                <p><strong>GST Rate:</strong> 18% (included in final price)</p>
-                <p className="text-xs text-destructive mt-2">
-                  Note: Custom items are non-refundable after proof approval
-                </p>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
         </Accordion>
+
+        {/* Important Notice */}
+        <p className="text-xs text-muted-foreground">
+          Note: Custom items are non-refundable after proof approval
+        </p>
 
         {/* Customers Also Bought - Upsell Section (15% AOV increase per research) */}
         <div className="space-y-3 pt-2">
