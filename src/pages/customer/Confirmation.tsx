@@ -92,7 +92,7 @@ export const Confirmation = () => {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                (Includes GST 18%, HSN 9985)
+                (Incl. all taxes)
               </p>
             </div>
           </CardContent>
