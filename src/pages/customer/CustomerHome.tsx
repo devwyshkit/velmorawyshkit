@@ -349,6 +349,19 @@ export const CustomerHome = () => {
                       <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
                     )}
                   </div>
+                  
+                  {/* Product Thumbnails Preview - Uber Eats pattern for discovery */}
+                  <div className="flex gap-1 mt-2 -mx-1">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="w-12 h-12 rounded bg-muted/50 flex-shrink-0">
+                        <img 
+                          src="/placeholder.svg" 
+                          alt={`Product ${i}`}
+                          className="w-full h-full object-cover rounded"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             ))}
