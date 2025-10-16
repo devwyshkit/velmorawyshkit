@@ -247,8 +247,8 @@ export const CustomerHome = () => {
         {/* Occasions - ROUND cards like Swiggy: Horizontal scroll mobile, Grid desktop */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold px-4">What's the occasion?</h2>
-          {/* Mobile: Horizontal scroll | Desktop: Grid (single row, wraps to 2 if needed) */}
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:grid md:grid-cols-8 md:overflow-visible md:mx-0 md:gap-6">
+          {/* Swiggy/Zomato pattern: Mobile = 2 rows horizontal scroll | Desktop = 1 row */}
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[85px] gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 lg:grid-rows-1 lg:overflow-visible lg:mx-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
