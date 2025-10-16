@@ -1,27 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Trash2 } from "lucide-react";
+import { Trash2, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Stepper } from "@/components/customer/shared/Stepper";
+import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
+import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/contexts/CartContext";
 import {
   supabase,
   isAuthenticated,
-  getGuestBasket,
-  setGuestBasket,
+  getGuestCart,
+  setGuestCart,
 } from "@/lib/integrations/supabase-client";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
 
-interface BasketSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-interface BasketItem {
+interface CartItem {
   id: string;
   name: string;
   price: number;
@@ -30,30 +28,29 @@ interface BasketItem {
   addOns?: any[];
 }
 
-export const BasketSheet = ({ isOpen, onClose }: BasketSheetProps) => {
+export const Cart = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [items, setItems] = useState<BasketItem[]>([]);
+  const { refreshCartCount } = useCart();
+  const [items, setItems] = useState<CartItem[]>([]);
   const [gstin, setGstin] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      loadBasket();
-    }
-  }, [isOpen]);
+    loadCart();
+  }, []);
 
-  const loadBasket = async () => {
+  const loadCart = async () => {
     const authenticated = await isAuthenticated();
 
     if (!authenticated) {
       // Load from localStorage
-      const guestBasket = getGuestBasket();
-      setItems(guestBasket);
+      const guestCart = getGuestCart();
+      setItems(guestCart);
     } else {
       // Load from Supabase
       // Implementation would go here
-      const mockItems: BasketItem[] = [
+      const mockItems: CartItem[] = [
         {
           id: '1',
           name: 'Premium Gift Hamper',
@@ -81,9 +78,11 @@ export const BasketSheet = ({ isOpen, onClose }: BasketSheetProps) => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      setGuestBasket(updatedItems);
+      setGuestCart(updatedItems);
+      refreshCartCount();
     } else {
       // Update in Supabase
+      refreshCartCount();
     }
   };
 
@@ -93,21 +92,22 @@ export const BasketSheet = ({ isOpen, onClose }: BasketSheetProps) => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      setGuestBasket(updatedItems);
+      setGuestCart(updatedItems);
+      refreshCartCount();
     } else {
       // Remove from Supabase
+      refreshCartCount();
     }
 
     toast({
       title: "Item removed",
-      description: "Item removed from basket",
+      description: "Item removed from cart",
     });
   };
 
   const handleDownloadEstimate = () => {
     const estimate = generateEstimate(items, gstin);
     
-    // Create a simple text estimate
     const estimateText = `
 WYSHKIT - Tax Estimate
 ${gstin ? `GSTIN: ${gstin}` : ''}
@@ -139,7 +139,7 @@ HSN Code: 9985
   const handleProceedToCheckout = async () => {
     if (items.length === 0) {
       toast({
-        title: "Basket is empty",
+        title: "Cart is empty",
         description: "Add items to proceed",
         variant: "destructive",
       });
@@ -156,8 +156,7 @@ HSN Code: 9985
       return;
     }
 
-    onClose();
-    // Open checkout sheet
+    // Navigate to checkout page
     navigate("/customer/checkout");
   };
 
@@ -165,104 +164,97 @@ HSN Code: 9985
   const gst = calculateGST(subtotal);
   const total = calculateTotalWithGST(subtotal);
 
-  if (items.length === 0 && isOpen) {
+  if (items.length === 0) {
     return (
-      <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent
-          side="bottom"
-          className="h-[60vh] rounded-t-xl"
-        >
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="text-center space-y-4">
-              <p className="text-lg text-muted-foreground">Your basket is empty</p>
-              <Button onClick={onClose}>Continue Shopping</Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <div className="min-h-screen bg-background pb-20">
+        <CustomerMobileHeader showBackButton title="My Cart" />
+        
+        <div className="flex flex-col items-center justify-center h-[70vh] px-4">
+          <ShoppingBag className="h-20 w-20 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
+          <p className="text-sm text-muted-foreground mb-6 text-center">
+            Add items from our partners to get started
+          </p>
+          <Button onClick={() => navigate("/customer/home")} className="w-full max-w-sm">
+            Browse Partners
+          </Button>
+        </div>
+
+        <CustomerBottomNav />
+      </div>
     );
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent
-        side="bottom"
-        className="h-[85vh] rounded-t-xl p-0 overflow-hidden flex flex-col"
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">My Basket ({items.length})</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-
+    <div className="min-h-screen bg-background pb-20">
+      <CustomerMobileHeader showBackButton title="My Cart" />
+      
+      <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-4">
         {/* Items List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {items.map((item) => (
-            <div key={item.id} className="flex gap-3 bg-card rounded-lg p-3 border border-border">
-              {item.image && (
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-20 h-20 rounded-lg object-cover"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold mb-1 line-clamp-2">{item.name}</h3>
-                <p className="text-sm font-bold text-primary mb-2">
-                  ₹{item.price.toLocaleString('en-IN')}
-                </p>
-                <div className="flex items-center justify-between">
-                  <Stepper
-                    value={item.quantity}
-                    onChange={(newQuantity) => handleUpdateQuantity(item.id, newQuantity)}
-                    min={1}
-                    max={99}
-                    className="scale-90 origin-left"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleRemoveItem(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <Separator className="my-4" />
-
-          {/* GSTIN Input */}
-          <div className="space-y-2">
-            <Label htmlFor="gstin" className="text-sm">
-              GSTIN (Optional - for business purchases)
-            </Label>
-            <Input
-              id="gstin"
-              placeholder="Enter GSTIN"
-              value={gstin}
-              onChange={(e) => setGstin(e.target.value)}
-              className="text-sm"
-            />
-            {gstin && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadEstimate}
-                className="w-full"
-              >
-                Download Tax Estimate
-              </Button>
+        {items.map((item) => (
+          <div key={item.id} className="flex gap-3 bg-card rounded-lg p-3 border border-border">
+            {item.image && (
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-20 h-20 rounded-lg object-cover"
+              />
             )}
-          </div>
-        </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold mb-1 line-clamp-2">{item.name}</h3>
+              <p className="text-sm font-bold text-primary mb-2">
+                ₹{item.price.toLocaleString('en-IN')}
+              </p>
+                    <div className="flex items-center justify-between">
+                <Stepper
+                  value={item.quantity}
+                  onChange={(newQuantity) => handleUpdateQuantity(item.id, newQuantity)}
+                  min={1}
+                  max={99}
+                  className="scale-90 origin-left"
+                />
+                            <Button 
+                              variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8 text-destructive"
+                              onClick={() => handleRemoveItem(item.id)}
+                            >
+                  <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
 
-        {/* Footer with Total and Checkout */}
-        <div className="sticky bottom-0 bg-white border-t border-border p-4 space-y-3">
+        <Separator className="my-4" />
+
+        {/* GSTIN Input */}
+        <div className="space-y-2">
+          <Label htmlFor="gstin" className="text-sm">
+            GSTIN (Optional - for business purchases)
+          </Label>
+          <Input
+            id="gstin"
+            placeholder="Enter GSTIN"
+            value={gstin}
+            onChange={(e) => setGstin(e.target.value)}
+            className="text-sm"
+          />
+          {gstin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadEstimate}
+              className="w-full"
+            >
+              Download Tax Estimate
+                      </Button>
+                    )}
+              </div>
+
+        {/* Total Summary */}
+        <div className="bg-card rounded-lg p-4 border border-border space-y-3">
+          <h3 className="font-semibold">Bill Summary</h3>
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Subtotal</span>
@@ -278,18 +270,23 @@ HSN Code: 9985
               <span className="text-xl font-bold text-primary">
                 ₹{total.toLocaleString('en-IN')}
               </span>
-            </div>
           </div>
-          <Button
-            onClick={handleProceedToCheckout}
-            className="w-full h-12 text-base"
-            size="lg"
-          >
-            Proceed to Checkout
-          </Button>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+        
+        {/* Checkout Button */}
+        <Button 
+          onClick={handleProceedToCheckout}
+          className="w-full h-12 text-base sticky bottom-20 md:bottom-4"
+          size="lg"
+        >
+          Proceed to Checkout
+        </Button>
+      </main>
+
+      <ComplianceFooter />
+      <CustomerBottomNav />
+    </div>
   );
 };
 

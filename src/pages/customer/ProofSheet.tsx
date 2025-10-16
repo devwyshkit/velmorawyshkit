@@ -116,8 +116,12 @@ export const ProofSheet = ({ isOpen, onClose, orderId }: ProofSheetProps) => {
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
         side="bottom"
-        className="h-[85vh] rounded-t-xl p-0 overflow-hidden flex flex-col"
+        className="h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
       >
+        {/* Grabber */}
+        <div className="flex justify-center pt-2">
+          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Review Proof</h2>

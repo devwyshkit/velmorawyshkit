@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 
 // Lazy Loaded Pages - Code Splitting
 import * as LazyPages from "./components/LazyRoutes";
@@ -13,10 +14,11 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <CartProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             {/* Root redirect to customer home */}
             <Route path="/" element={<Navigate to="/customer/home" replace />} />
@@ -29,8 +31,8 @@ const App = () => (
               <Route path="home" element={<LazyPages.Home />} />
               <Route path="search" element={<LazyPages.Search />} />
               <Route path="partners/:id" element={<LazyPages.Partner />} />
-              <Route path="cart" element={<div className="p-4">Cart (Coming Soon)</div>} />
-              <Route path="wishlist" element={<div className="p-4">Wishlist (Coming Soon)</div>} />
+              <Route path="cart" element={<LazyPages.Cart />} />
+              <Route path="wishlist" element={<LazyPages.Wishlist />} />
               <Route path="confirmation" element={<LazyPages.Confirmation />} />
               <Route path="track/:orderId?" element={<LazyPages.Track />} />
               <Route path="profile" element={<LazyPages.Profile />} />
@@ -42,7 +44,8 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </AuthProvider>
+    </CartProvider>
+  </AuthProvider>
   </QueryClientProvider>
 );
 

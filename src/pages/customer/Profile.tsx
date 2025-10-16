@@ -148,7 +148,7 @@ export const Profile = () => {
           <Button
             variant="outline"
             className="h-20 flex flex-col gap-2"
-            onClick={() => navigate("/customer/orders")}
+            onClick={() => toast({ title: "Coming Soon", description: "Order management feature will be available soon" })}
           >
             <Package className="h-5 w-5" />
             <span className="text-xs">Orders</span>
@@ -164,7 +164,7 @@ export const Profile = () => {
           <Button
             variant="outline"
             className="h-20 flex flex-col gap-2"
-            onClick={() => navigate("/customer/addresses")}
+            onClick={() => toast({ title: "Coming Soon", description: "Address management feature will be available soon" })}
           >
             <MapPin className="h-5 w-5" />
             <span className="text-xs">Addresses</span>
@@ -202,7 +202,7 @@ export const Profile = () => {
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto text-sm"
-                onClick={() => navigate("/customer/orders")}
+                onClick={() => toast({ title: "Coming Soon", description: "Full order history will be available soon" })}
               >
                 See all
               </Button>
@@ -212,7 +212,7 @@ export const Profile = () => {
                 <div
                   key={order.id}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => navigate(`/customer/track?orderId=${order.id}`)}
+                  onClick={() => navigate(`/customer/track/${order.id}`)}
                 >
                   <div className="flex-1">
                     <p className="text-sm font-medium mb-1">{order.id}</p>
@@ -244,7 +244,7 @@ export const Profile = () => {
               <Button
                 variant="ghost"
                 className="w-full justify-start"
-                onClick={() => navigate("/customer/settings")}
+                onClick={() => toast({ title: "Coming Soon", description: "Account settings will be available soon" })}
               >
                 <Settings className="h-5 w-5 mr-3" />
                 Settings
@@ -252,7 +252,7 @@ export const Profile = () => {
               <Button
                 variant="ghost"
                 className="w-full justify-start"
-                onClick={() => navigate("/customer/help")}
+                onClick={() => toast({ title: "Coming Soon", description: "Help & support center will be available soon" })}
               >
                 <HelpCircle className="h-5 w-5 mr-3" />
                 Help & Support

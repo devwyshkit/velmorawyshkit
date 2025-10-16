@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/carousel";
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, isAuthenticated, getGuestBasket, setGuestBasket } from "@/lib/integrations/supabase-client";
+import { supabase, isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
+import { useCart } from "@/contexts/CartContext";
 
 interface ItemSheetContentProps {
   itemId: string;
@@ -35,6 +36,7 @@ interface AddOn {
 export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refreshCartCount } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
@@ -80,13 +82,13 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
     return basePrice + addOnsPrice;
   };
 
-  const handleAddToBasket = async () => {
+  const handleAddToCart = async () => {
     const authenticated = await isAuthenticated();
 
     if (!authenticated) {
       // Guest mode: save to localStorage
-      const guestBasket = getGuestBasket();
-      const basketItem = {
+      const guestCart = getGuestCart();
+      const cartItem = {
         id: item.id,
         name: item.name,
         price: item.price,
@@ -94,11 +96,12 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         addOns: selectedAddOns.map(id => addOns.find(a => a.id === id)).filter(Boolean),
         total: calculateTotal(),
       };
-      guestBasket.push(basketItem);
-      setGuestBasket(guestBasket);
+      guestCart.push(cartItem);
+      setGuestCart(guestCart);
+      refreshCartCount();
 
       toast({
-        title: "Added to basket",
+        title: "Added to cart",
         description: "Sign in to checkout",
       });
 
@@ -111,8 +114,10 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
     } else {
       // Authenticated: save to Supabase
       // Implementation would go here
+      refreshCartCount();
+      
       toast({
-        title: "Added to basket",
+        title: "Added to cart",
         description: `${quantity}x ${item.name}`,
       });
 
@@ -122,6 +127,10 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
 
   return (
     <div className="flex flex-col h-full">
+      {/* Grabber */}
+      <div className="flex justify-center pt-2">
+        <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+      </div>
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Item Details</h2>
@@ -241,11 +250,11 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
           </span>
         </div>
         <Button
-          onClick={handleAddToBasket}
+          onClick={handleAddToCart}
           className="w-full h-12 text-base"
           size="lg"
         >
-          Add to Basket
+          Add to Cart
         </Button>
       </div>
     </div>

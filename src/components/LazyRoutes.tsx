@@ -3,6 +3,8 @@ export { CustomerMobileLogin as Login } from '../pages/customer/Login';
 export { CustomerMobileSignup as Signup } from '../pages/customer/Signup';
 export { CustomerHome as Home } from '../pages/customer/CustomerHome';
 export { Partner } from '../pages/customer/Partner';
+export { Cart } from '../pages/customer/Cart';
+export { Wishlist } from '../pages/customer/Wishlist';
 export { Confirmation } from '../pages/customer/Confirmation';
 export { Track } from '../pages/customer/Track';
 export { Profile } from '../pages/customer/Profile';

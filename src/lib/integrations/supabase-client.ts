@@ -15,18 +15,18 @@ export const supabase = hasRealCredentials
       },
     });
 
-// Guest mode: Store basket in localStorage
-export const getGuestBasket = () => {
-  const basket = localStorage.getItem('wyshkit_guest_basket');
-  return basket ? JSON.parse(basket) : [];
+// Guest mode: Store cart in localStorage
+export const getGuestCart = () => {
+  const cart = localStorage.getItem('wyshkit_guest_cart');
+  return cart ? JSON.parse(cart) : [];
 };
 
-export const setGuestBasket = (items: any[]) => {
-  localStorage.setItem('wyshkit_guest_basket', JSON.stringify(items));
+export const setGuestCart = (items: any[]) => {
+  localStorage.setItem('wyshkit_guest_cart', JSON.stringify(items));
 };
 
-export const clearGuestBasket = () => {
-  localStorage.removeItem('wyshkit_guest_basket');
+export const clearGuestCart = () => {
+  localStorage.removeItem('wyshkit_guest_cart');
 };
 
 // Check if user is authenticated

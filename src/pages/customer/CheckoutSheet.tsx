@@ -21,7 +21,7 @@ import {
   formatAmountForRazorpay,
   generateEstimate,
 } from "@/lib/integrations/razorpay";
-import { getGuestBasket } from "@/lib/integrations/supabase-client";
+import { getGuestCart } from "@/lib/integrations/supabase-client";
 
 interface CheckoutSheetProps {
   isOpen: boolean;
@@ -54,23 +54,23 @@ export const CheckoutSheet = ({ isOpen, onClose }: CheckoutSheetProps) => {
     }
   }, [isOpen, savedAddress]);
 
-  // Mock basket data
-  const basketItems = getGuestBasket();
-  const subtotal = basketItems.reduce(
+  // Mock cart data
+  const cartItems = getGuestCart();
+  const subtotal = cartItems.reduce(
     (sum: number, item: any) => sum + item.price * item.quantity,
     0
   );
   const total = calculateTotalWithGST(subtotal);
 
   const handleDownloadEstimate = () => {
-    const estimate = generateEstimate(basketItems, gstin);
+    const estimate = generateEstimate(cartItems, gstin);
     
     const estimateText = `
 WYSHKIT - Tax Estimate
 ${gstin ? `GSTIN: ${gstin}` : ''}
 ${'-'.repeat(40)}
 Items:
-${basketItems.map((item: any) => `${item.name} x${item.quantity}: ₹${(item.price * item.quantity).toLocaleString('en-IN')}`).join('\n')}
+${cartItems.map((item: any) => `${item.name} x${item.quantity}: ₹${(item.price * item.quantity).toLocaleString('en-IN')}`).join('\n')}
 ${'-'.repeat(40)}
 Subtotal: ₹${estimate.subtotal.toLocaleString('en-IN')}
 GST (18%): ₹${estimate.gst.toLocaleString('en-IN')}
@@ -154,8 +154,12 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
         side="bottom"
-        className="h-[85vh] rounded-t-xl p-0 overflow-hidden flex flex-col"
+        className="h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
       >
+        {/* Grabber */}
+        <div className="flex justify-center pt-2">
+          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Checkout</h2>

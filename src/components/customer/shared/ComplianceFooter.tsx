@@ -35,7 +35,7 @@ export const ComplianceFooter = () => {
               className="hover:text-primary transition-colors"
               aria-label="Instagram"
             >
-              <Instagram className="h-4 w-4" />
+              <Instagram className="h-6 w-6" />
             </a>
             <a 
               href="https://twitter.com/wyshkit" 
@@ -44,7 +44,7 @@ export const ComplianceFooter = () => {
               className="hover:text-primary transition-colors"
               aria-label="Twitter"
             >
-              <Twitter className="h-4 w-4" />
+              <Twitter className="h-6 w-6" />
             </a>
             <a 
               href="https://facebook.com/wyshkit" 
@@ -53,7 +53,7 @@ export const ComplianceFooter = () => {
               className="hover:text-primary transition-colors"
               aria-label="Facebook"
             >
-              <Facebook className="h-4 w-4" />
+              <Facebook className="h-6 w-6" />
             </a>
             <a 
               href="https://linkedin.com/company/wyshkit" 
@@ -62,7 +62,7 @@ export const ComplianceFooter = () => {
               className="hover:text-primary transition-colors"
               aria-label="LinkedIn"
             >
-              <Linkedin className="h-4 w-4" />
+              <Linkedin className="h-6 w-6" />
             </a>
           </div>
           <div className="flex justify-center gap-3">
@@ -124,7 +124,7 @@ export const ComplianceFooter = () => {
                 className="hover:text-primary transition-colors"
                 aria-label="Instagram"
               >
-                <Instagram className="h-4 w-4" />
+                <Instagram className="h-6 w-6" />
               </a>
               <a 
                 href="https://twitter.com/wyshkit" 
@@ -133,7 +133,7 @@ export const ComplianceFooter = () => {
                 className="hover:text-primary transition-colors"
                 aria-label="Twitter"
               >
-                <Twitter className="h-4 w-4" />
+                <Twitter className="h-6 w-6" />
               </a>
               <a 
                 href="https://facebook.com/wyshkit" 
@@ -142,7 +142,7 @@ export const ComplianceFooter = () => {
                 className="hover:text-primary transition-colors"
                 aria-label="Facebook"
               >
-                <Facebook className="h-4 w-4" />
+                <Facebook className="h-6 w-6" />
               </a>
               <a 
                 href="https://linkedin.com/company/wyshkit" 
@@ -151,7 +151,7 @@ export const ComplianceFooter = () => {
                 className="hover:text-primary transition-colors"
                 aria-label="LinkedIn"
               >
-                <Linkedin className="h-4 w-4" />
+                <Linkedin className="h-6 w-6" />
               </a>
             </div>
           </div>

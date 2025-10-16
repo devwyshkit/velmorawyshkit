@@ -275,8 +275,7 @@ export const CustomerHome = () => {
                     />
                     {partner.badge && (
                       <Badge
-                        className="absolute top-2 left-2 gap-1 text-xs"
-                        variant={partner.badge === 'bestseller' ? 'default' : 'secondary'}
+                        className="absolute top-2 left-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
                       >
                         {partner.badge === 'bestseller' ? (
                           <>

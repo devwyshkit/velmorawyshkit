@@ -154,7 +154,7 @@ export const Partner = () => {
       <Sheet open={isItemSheetOpen} onOpenChange={setIsItemSheetOpen}>
         <SheetContent
           side="bottom"
-          className="h-[85vh] rounded-t-xl p-0 overflow-y-auto"
+          className="h-[75vh] rounded-t-xl p-0 overflow-y-auto sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
         >
           {selectedItemId && (
             <ItemSheetContent

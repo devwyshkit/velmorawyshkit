@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { MapPin, User, ShoppingBag, Heart, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useCart } from "@/contexts/CartContext";
 
 interface CustomerMobileHeaderProps {
   showBackButton?: boolean;
@@ -14,6 +16,7 @@ export const CustomerMobileHeader = ({
   onBackClick,
 }: CustomerMobileHeaderProps) => {
   const navigate = useNavigate();
+  const { cartCount } = useCart();
 
   const handleBackClick = () => {
     if (onBackClick) {
@@ -54,23 +57,35 @@ export const CustomerMobileHeader = ({
           <Button
             variant="ghost"
             size="icon"
+            className="relative"
             onClick={() => navigate("/customer/cart")}
+            aria-label={`Shopping cart with ${cartCount} items`}
           >
-            <ShoppingBag className="h-5 w-5" />
+            <ShoppingBag className="h-6 w-6" />
+            {cartCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              >
+                {cartCount > 9 ? '9+' : cartCount}
+              </Badge>
+            )}
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate("/customer/wishlist")}
+            aria-label="Wishlist"
           >
-            <Heart className="h-5 w-5" />
+            <Heart className="h-6 w-6" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate("/customer/profile")}
+            aria-label="Account"
           >
-            <User className="h-5 w-5" />
+            <User className="h-6 w-6" />
           </Button>
         </div>
       </div>
