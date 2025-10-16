@@ -9,20 +9,12 @@ import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { isAuthenticated } from "@/lib/integrations/supabase-client";
-
-interface WishlistItem {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-  rating: number;
-  badge?: 'bestseller' | 'trending';
-}
+import { fetchWishlistItems, removeFromWishlistSupabase, type WishlistItemData } from "@/lib/integrations/supabase-data";
 
 export const Wishlist = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [items, setItems] = useState<WishlistItem[]>([]);
+  const [items, setItems] = useState<WishlistItemData[]>([]);
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -31,51 +23,52 @@ export const Wishlist = () => {
   }, []);
 
   const checkAuthAndLoadWishlist = async () => {
-    const isAuth = await isAuthenticated();
-    setAuthenticated(isAuth);
+    setLoading(true);
+    try {
+      const isAuth = await isAuthenticated();
+      setAuthenticated(isAuth);
 
-    if (!isAuth) {
+      if (!isAuth) {
+        setLoading(false);
+        return;
+      }
+
+      // Load wishlist from Supabase
+      const wishlistData = await fetchWishlistItems();
+      setItems(wishlistData);
+    } catch (error) {
+      console.error('Failed to load wishlist:', error);
+      toast({
+        title: "Loading error",
+        description: "Failed to load wishlist",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Load wishlist from Supabase
-    // For now, using mock data
-    const mockItems: WishlistItem[] = [
-      {
-        id: '1',
-        name: 'Premium Gift Hamper',
-        image: '/placeholder.svg',
-        price: 2499,
-        rating: 4.6,
-        badge: 'bestseller',
-      },
-      {
-        id: '2',
-        name: 'Artisan Chocolate Box',
-        image: '/placeholder.svg',
-        price: 1299,
-        rating: 4.8,
-        badge: 'trending',
-      },
-      {
-        id: '3',
-        name: 'Custom Photo Frame',
-        image: '/placeholder.svg',
-        price: 899,
-        rating: 4.5,
-      },
-    ];
-    setItems(mockItems);
-    setLoading(false);
   };
 
-  const handleRemoveFromWishlist = (itemId: string) => {
+  const handleRemoveFromWishlist = async (itemId: string) => {
+    // Optimistic update
     setItems(items.filter(item => item.id !== itemId));
-    toast({
-      title: "Removed from wishlist",
-      description: "Item removed from your wishlist",
-    });
+    
+    // Remove from Supabase
+    const success = await removeFromWishlistSupabase(itemId);
+    
+    if (success) {
+      toast({
+        title: "Removed from wishlist",
+        description: "Item removed from your wishlist",
+      });
+    } else {
+      // Revert on failure
+      await checkAuthAndLoadWishlist();
+      toast({
+        title: "Error",
+        description: "Failed to remove item",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleItemClick = (itemId: string) => {

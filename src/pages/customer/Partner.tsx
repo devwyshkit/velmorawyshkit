@@ -7,89 +7,51 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
 import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ItemSheetContent } from "@/components/customer/ItemSheetContent";
-
-interface Item {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-  rating: number;
-  badge?: 'bestseller' | 'trending';
-}
-
-interface PartnerInfo {
-  id: string;
-  name: string;
-  rating: number;
-  delivery: string;
-  image: string;
-}
+import { fetchPartnerById, fetchItemsByPartner, type Item as ItemType, type Partner as PartnerType } from "@/lib/integrations/supabase-data";
+import { useToast } from "@/hooks/use-toast";
 
 export const Partner = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [partner, setPartner] = useState<PartnerType | null>(null);
+  const [items, setItems] = useState<ItemType[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isItemSheetOpen, setIsItemSheetOpen] = useState(false);
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
+  const [filteredItems, setFilteredItems] = useState<ItemType[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual Supabase query
-  const partner: PartnerInfo = {
-    id: id || '1',
-    name: 'Premium Gifts Co',
-    rating: 4.5,
-    delivery: '30-45 mins',
-    image: '/placeholder.svg',
-  };
+  useEffect(() => {
+    const loadPartnerData = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      try {
+        // Load partner details
+        const partnerData = await fetchPartnerById(id);
+        setPartner(partnerData);
 
-  const items: Item[] = [
-    {
-      id: '1',
-      name: 'Premium Gift Hamper',
-      image: '/placeholder.svg',
-      price: 2499,
-      rating: 4.6,
-      badge: 'bestseller',
-    },
-    {
-      id: '2',
-      name: 'Artisan Chocolate Box',
-      image: '/placeholder.svg',
-      price: 1299,
-      rating: 4.8,
-      badge: 'trending',
-    },
-    {
-      id: '3',
-      name: 'Luxury Spa Set',
-      image: '/placeholder.svg',
-      price: 3499,
-      rating: 4.5,
-    },
-    {
-      id: '4',
-      name: 'Gourmet Coffee Collection',
-      image: '/placeholder.svg',
-      price: 1899,
-      rating: 4.7,
-    },
-    {
-      id: '5',
-      name: 'Personalized Photo Frame',
-      image: '/placeholder.svg',
-      price: 899,
-      rating: 4.4,
-    },
-    {
-      id: '6',
-      name: 'Wireless Earbuds',
-      image: '/placeholder.svg',
-      price: 4999,
-      rating: 4.9,
-      badge: 'bestseller',
-    },
-  ];
+        // Load partner items
+        const itemsData = await fetchItemsByPartner(id);
+        setItems(itemsData);
+        setFilteredItems(itemsData);
+      } catch (error) {
+        console.error('Failed to load partner data:', error);
+        toast({
+          title: "Loading error",
+          description: "Failed to load partner information",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPartnerData();
+  }, [id, toast]);
 
   const handleItemClick = (itemId: string) => {
     setSelectedItemId(itemId);
@@ -100,11 +62,6 @@ export const Partner = () => {
     setIsItemSheetOpen(false);
     setSelectedItemId(null);
   };
-
-  // Initialize filtered items
-  useEffect(() => {
-    setFilteredItems(items);
-  }, []);
 
   const handleFilterChange = (activeFilters: Filter[]) => {
     if (activeFilters.length === 0) {
@@ -126,10 +83,42 @@ export const Partner = () => {
     setFilteredItems(filtered);
   };
 
+  if (loading || !partner) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <CustomerMobileHeader showBackButton title="Loading..." />
+        
+        <main className="max-w-screen-xl mx-auto px-4 py-6">
+          {/* Partner Info Skeleton */}
+          <div className="flex gap-3 mb-6">
+            <Skeleton className="w-16 h-16 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-4 w-1/3" />
+            </div>
+          </div>
+
+          {/* Items Skeleton */}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="aspect-square rounded-xl" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        </main>
+
+        <CustomerBottomNav />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader showBackButton title={partner.name} />
+        <CustomerMobileHeader showBackButton title={partner?.name || 'Partner'} />
 
         {/* Partner Info */}
         <section className="px-4 py-4 bg-card border-b border-border">

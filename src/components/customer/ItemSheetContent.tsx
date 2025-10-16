@@ -21,6 +21,7 @@ import { Stepper } from "@/components/customer/shared/Stepper";
 import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
+import { addToCartSupabase } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
 
 interface ItemSheetContentProps {
@@ -113,13 +114,21 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
       }, 500);
     } else {
       // Authenticated: save to Supabase
-      // Implementation would go here
-      refreshCartCount();
+      const success = await addToCartSupabase(cartItem);
       
-      toast({
-        title: "Added to cart",
-        description: `${quantity}x ${item.name}`,
-      });
+      if (success) {
+        refreshCartCount();
+        toast({
+          title: "Added to cart",
+          description: `${quantity}x ${item.name}`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add item to cart",
+          variant: "destructive",
+        });
+      }
 
       onClose();
     }

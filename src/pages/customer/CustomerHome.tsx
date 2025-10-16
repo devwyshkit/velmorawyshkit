@@ -18,17 +18,11 @@ import { FilterChips, type Filter } from "@/components/customer/shared/FilterChi
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRecommendations } from "@/lib/integrations/openai";
+import { fetchPartners, type Partner } from "@/lib/integrations/supabase-data";
+import { useLocation } from "@/contexts/LocationContext";
+import { useToast } from "@/hooks/use-toast";
 import Autoplay from "embla-carousel-autoplay";
 import { cn } from "@/lib/utils";
-
-interface Partner {
-  id: string;
-  name: string;
-  image: string;
-  rating: number;
-  delivery: string;
-  badge?: 'bestseller' | 'trending';
-}
 
 interface Occasion {
   id: string;
@@ -39,13 +33,16 @@ interface Occasion {
 
 export const CustomerHome = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { location } = useLocation();
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
 
-  // Mock data - replace with actual Supabase queries
+  // Static data
   const occasions: Occasion[] = [
     { id: '1', name: 'Birthday', image: '/placeholder.svg', icon: '🎂' },
     { id: '2', name: 'Anniversary', image: '/placeholder.svg', icon: '💑' },
@@ -57,73 +54,32 @@ export const CustomerHome = () => {
     { id: '8', name: 'Farewell', image: '/placeholder.svg', icon: '👋' },
   ];
 
-  const partners: Partner[] = [
-    {
-      id: '1',
-      name: 'Premium Gifts Co',
-      image: '/placeholder.svg',
-      rating: 4.5,
-      delivery: '30-45 mins',
-      badge: 'bestseller',
-    },
-    {
-      id: '2',
-      name: 'Artisan Crafts',
-      image: '/placeholder.svg',
-      rating: 4.7,
-      delivery: '45-60 mins',
-      badge: 'trending',
-    },
-    {
-      id: '3',
-      name: 'Gourmet Delights',
-      image: '/placeholder.svg',
-      rating: 4.3,
-      delivery: '40-50 mins',
-    },
-    {
-      id: '4',
-      name: 'Tech Accessories Hub',
-      image: '/placeholder.svg',
-      rating: 4.6,
-      delivery: '35-45 mins',
-    },
-    {
-      id: '5',
-      name: 'Floral Paradise',
-      image: '/placeholder.svg',
-      rating: 4.8,
-      delivery: '25-35 mins',
-      badge: 'bestseller',
-    },
-    {
-      id: '6',
-      name: 'Custom Creations',
-      image: '/placeholder.svg',
-      rating: 4.4,
-      delivery: '60-75 mins',
-    },
-  ];
-
   useEffect(() => {
-    const loadRecommendations = async () => {
+    const loadData = async () => {
+      setLoading(true);
       try {
+        // Load recommendations
         const recs = await getRecommendations();
         setRecommendations(recs);
+
+        // Load partners from Supabase (with fallback to mock data)
+        const partnersData = await fetchPartners(location);
+        setPartners(partnersData);
+        setFilteredPartners(partnersData);
       } catch (error) {
-        console.error('Failed to load recommendations:', error);
+        console.error('Failed to load data:', error);
+        toast({
+          title: "Loading error",
+          description: "Some content may not be available",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    loadRecommendations();
-  }, []);
-
-  // Initialize filtered partners
-  useEffect(() => {
-    setFilteredPartners(partners);
-  }, []);
+    loadData();
+  }, [location, toast]);
 
   useEffect(() => {
     if (!carouselApi) {

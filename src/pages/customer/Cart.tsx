@@ -18,6 +18,11 @@ import {
   getGuestCart,
   setGuestCart,
 } from "@/lib/integrations/supabase-client";
+import {
+  fetchCartItems,
+  updateCartItemSupabase,
+  removeCartItemSupabase,
+} from "@/lib/integrations/supabase-data";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
 
 interface CartItem {
@@ -42,32 +47,28 @@ export const Cart = () => {
   }, []);
 
   const loadCart = async () => {
-    const authenticated = await isAuthenticated();
+    setLoading(true);
+    try {
+      const authenticated = await isAuthenticated();
 
-    if (!authenticated) {
-      // Load from localStorage
-      const guestCart = getGuestCart();
-      setItems(guestCart);
-    } else {
-      // Load from Supabase
-      // Implementation would go here
-      const mockItems: CartItem[] = [
-        {
-          id: '1',
-          name: 'Premium Gift Hamper',
-          price: 2499,
-          quantity: 2,
-          image: '/placeholder.svg',
-        },
-        {
-          id: '2',
-          name: 'Artisan Chocolate Box',
-          price: 1299,
-          quantity: 1,
-          image: '/placeholder.svg',
-        },
-      ];
-      setItems(mockItems);
+      if (!authenticated) {
+        // Load from localStorage
+        const guestCart = getGuestCart();
+        setItems(guestCart);
+      } else {
+        // Load from Supabase
+        const cartData = await fetchCartItems();
+        setItems(cartData);
+      }
+    } catch (error) {
+      console.error('Failed to load cart:', error);
+      toast({
+        title: "Loading error",
+        description: "Failed to load cart items",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,11 +84,22 @@ export const Cart = () => {
       refreshCartCount();
     } else {
       // Update in Supabase
+      const success = await updateCartItemSupabase(itemId, newQuantity);
+      if (!success) {
+        // Revert on failure
+        await loadCart();
+        toast({
+          title: "Update failed",
+          description: "Failed to update quantity",
+          variant: "destructive",
+        });
+      }
       refreshCartCount();
     }
   };
 
   const handleRemoveItem = async (itemId: string) => {
+    // Optimistic update
     const updatedItems = items.filter(item => item.id !== itemId);
     setItems(updatedItems);
 
@@ -97,6 +109,17 @@ export const Cart = () => {
       refreshCartCount();
     } else {
       // Remove from Supabase
+      const success = await removeCartItemSupabase(itemId);
+      if (!success) {
+        // Revert on failure
+        await loadCart();
+        toast({
+          title: "Remove failed",
+          description: "Failed to remove item",
+          variant: "destructive",
+        });
+        return;
+      }
       refreshCartCount();
     }
 

@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
+import { fetchItemById, addToCartSupabase, type Item as ItemType } from "@/lib/integrations/supabase-data";
 
 interface AddOn {
   id: string;
@@ -42,33 +43,30 @@ export const ItemDetails = () => {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [item, setItem] = useState<ItemType | null>(null);
 
-  // Mock data - replace with actual Supabase query using id
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [id]);
+    const loadItemData = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      try {
+        const itemData = await fetchItemById(id);
+        setItem(itemData);
+      } catch (error) {
+        console.error('Failed to load item:', error);
+        toast({
+          title: "Loading error",
+          description: "Failed to load item details",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const item = {
-    id: id || '1',
-    name: 'Premium Gift Hamper',
-    description: 'Curated selection of premium items including gourmet treats, artisan chocolates, and luxury accessories. Perfect for any special occasion. Makes gifting effortless and memorable.',
-    price: 2499,
-    rating: 4.6,
-    images: [
-      '/placeholder.svg',
-      '/placeholder.svg',
-      '/placeholder.svg',
-    ],
-    specs: {
-      weight: '2.5 kg',
-      dimensions: '30cm x 20cm x 15cm',
-      materials: 'Premium packaging with satin finish',
-    },
-  };
+    loadItemData();
+  }, [id, toast]);
 
   const addOns: AddOn[] = [
     { id: '1', name: 'Greeting Card (+₹99)', price: 99 },
@@ -124,20 +122,27 @@ export const ItemDetails = () => {
       }, 500);
     } else {
       // Authenticated: save to Supabase
-      // Implementation would go here
-      refreshCartCount();
+      const success = await addToCartSupabase(cartItem);
       
-      toast({
-        title: "Added to cart",
-        description: `${quantity}x ${item.name}`,
-      });
-
-      // Navigate to cart
-      navigate("/customer/cart");
+      if (success) {
+        refreshCartCount();
+        toast({
+          title: "Added to cart",
+          description: `${quantity}x ${item.name}`,
+        });
+        // Navigate to cart
+        navigate("/customer/cart");
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add item to cart",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  if (loading) {
+  if (loading || !item) {
     return (
       <div className="min-h-screen bg-background pb-20">
         <CustomerMobileHeader showBackButton title="Item Details" />
@@ -166,7 +171,7 @@ export const ItemDetails = () => {
           {/* Image Carousel */}
           <Carousel className="w-full">
             <CarouselContent>
-              {item.images.map((image, index) => (
+              {(item?.images || [item?.image]).map((image, index) => (
                 <CarouselItem key={index}>
                   <div className="aspect-square rounded-xl overflow-hidden bg-muted">
                     <img
@@ -248,18 +253,27 @@ export const ItemDetails = () => {
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-2 pt-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="font-medium text-foreground">Weight</span>
-                    <p>{item.specs.weight}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">Dimensions</span>
-                    <p>{item.specs.dimensions}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="font-medium text-foreground">Materials</span>
-                    <p>{item.specs.materials}</p>
-                  </div>
+                  {item?.specs?.weight && (
+                    <div>
+                      <span className="font-medium text-foreground">Weight</span>
+                      <p>{item.specs.weight}</p>
+                    </div>
+                  )}
+                  {item?.specs?.dimensions && (
+                    <div>
+                      <span className="font-medium text-foreground">Dimensions</span>
+                      <p>{item.specs.dimensions}</p>
+                    </div>
+                  )}
+                  {item?.specs?.materials && (
+                    <div className="col-span-2">
+                      <span className="font-medium text-foreground">Materials</span>
+                      <p>{item.specs.materials}</p>
+                    </div>
+                  )}
+                  {!item?.specs && (
+                    <p className="col-span-2">Specifications will be provided upon request</p>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>
