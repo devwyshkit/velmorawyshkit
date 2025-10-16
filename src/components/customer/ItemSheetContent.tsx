@@ -193,7 +193,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
               <span className="font-medium">{item.rating}</span>
             </div>
-            <span className="text-muted-foreground">• 156 ratings</span>
+            <span className="text-muted-foreground">• {item.ratingCount || 156} ratings</span>
           </div>
         </div>
 
@@ -265,9 +265,9 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
           </AccordionItem>
         </Accordion>
 
-        {/* Others Bought - Upsell Section (15% AOV increase per research) */}
+        {/* Customers Also Bought - Upsell Section (15% AOV increase per research) */}
         <div className="space-y-3 pt-2">
-          <h3 className="text-sm font-semibold">Others Bought</h3>
+          <h3 className="text-sm font-semibold">Customers Also Bought</h3>
           <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4">
             {getMockItems()
               .filter(i => i.id !== itemId)
@@ -284,8 +284,8 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
                     badge={item.badge}
                     shortDesc={item.shortDesc}
                     onClick={() => {
-                      // Navigate to this item (could close current and open new)
-                      window.location.href = `/customer/items/${item.id}`;
+                      onClose(); // Close current sheet
+                      navigate(`/customer/items/${item.id}`);
                     }}
                   />
                 </div>
@@ -297,7 +297,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
       {/* Footer with Add Button */}
       <div className="sticky bottom-0 bg-white border-t border-border p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-muted-foreground">Total</span>
+          <span className="text-sm text-muted-foreground">Price</span>
           <span className="text-2xl font-bold text-primary">
             ₹{calculateTotal().toLocaleString('en-IN')}
           </span>
