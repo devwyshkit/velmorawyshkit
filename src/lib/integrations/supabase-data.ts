@@ -12,6 +12,7 @@ export interface Partner {
   category?: string;  // "Tech Gifts", "Gourmet", etc.
   tagline?: string;   // "Premium tech products"
   ratingCount?: number; // 156
+  sponsored?: boolean; // Promoted/sponsored partner
 }
 
 export interface Item {
@@ -27,7 +28,8 @@ export interface Item {
   specs?: Record<string, string>;
   add_ons?: Array<{ id: string; name: string; price: number }>;
   ratingCount?: number; // 156
-  shortDesc?: string; // 2-line benefits for card display
+  shortDesc?: string; // 3-line benefits for card display (emotional appeal)
+  sponsored?: boolean; // Promoted/sponsored item
 }
 
 export interface CartItemData {
@@ -37,6 +39,7 @@ export interface CartItemData {
   quantity: number;
   image?: string;
   addOns?: Array<{ id: string; name: string; price: number }>;
+  partner_id?: string;
 }
 
 export interface WishlistItemData {
@@ -60,6 +63,7 @@ const mockPartners: Partner[] = [
     category: 'Tech Gifts',
     tagline: 'Premium tech accessories',
     ratingCount: 234,
+    sponsored: true,
   },
   {
     id: '2',
@@ -129,6 +133,7 @@ const mockItems: Item[] = [
     ratingCount: 234,
     badge: 'bestseller',
     partner_id: '1',
+    sponsored: true,
     specs: {
       weight: '2.5 kg',
       dimensions: '30cm x 20cm x 15cm',
@@ -169,6 +174,7 @@ const mockItems: Item[] = [
     rating: 4.7,
     ratingCount: 167,
     partner_id: '1',
+    sponsored: true,
   },
   {
     id: '5',
@@ -300,6 +306,7 @@ export const fetchCartItems = async (): Promise<CartItemData[]> => {
         quantity: item.quantity || 1,
         image: item.image || '/placeholder.svg',
         addOns: item.add_ons || [],
+        partner_id: item.partner_id,
       }));
     }
   } catch (error) {
@@ -327,6 +334,7 @@ export const addToCartSupabase = async (item: CartItemData): Promise<boolean> =>
         quantity: item.quantity,
         image: item.image,
         add_ons: item.addOns,
+        partner_id: item.partner_id,
       });
 
     if (error) throw error;

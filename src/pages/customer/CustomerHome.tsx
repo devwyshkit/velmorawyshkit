@@ -181,7 +181,7 @@ export const CustomerHome = () => {
                       <CardContent className="p-0">
                         <div
                           className="relative h-40 bg-gradient-to-br from-primary via-primary-light to-primary"
-                          onClick={() => navigate(`/customer/items/${item.id}`)}
+                          onClick={() => navigate(`/customer/partners/${item.partner_id}`)}
                         >
                           {/* Background Pattern */}
                           <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-primary opacity-90" />

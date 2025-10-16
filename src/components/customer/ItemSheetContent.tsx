@@ -269,11 +269,11 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
           </div>
         )}
 
-        {/* Product Specifications */}
+        {/* Product Details & Order Information - Swiggy order notes pattern */}
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="specs">
+          <AccordionItem value="details">
             <AccordionTrigger className="text-sm font-medium">
-              Product Specifications
+              Product Details
             </AccordionTrigger>
             <AccordionContent className="text-sm text-muted-foreground space-y-2">
               <div className="grid grid-cols-2 gap-2">
@@ -286,12 +286,18 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
               </div>
             </AccordionContent>
           </AccordionItem>
+          
+          <AccordionItem value="compliance">
+            <AccordionTrigger className="text-sm font-medium">
+              Order Information
+            </AccordionTrigger>
+            <AccordionContent className="text-sm space-y-2">
+              <p>• GST (18%) included in total price</p>
+              <p>• Custom items are non-refundable after proof approval</p>
+              <p>• Standard delivery: 2-5 business days</p>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
-
-        {/* Important Notice */}
-        <p className="text-xs text-muted-foreground">
-          Note: Custom items are non-refundable after proof approval
-        </p>
 
         {/* Customers Also Bought - Upsell Section (15% AOV increase per research) */}
         <div className="space-y-3 pt-2">

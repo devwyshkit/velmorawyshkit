@@ -12,6 +12,7 @@ interface CustomerItemCardProps {
   ratingCount?: number;
   badge?: 'bestseller' | 'trending';
   shortDesc?: string;
+  sponsored?: boolean;
   onClick?: () => void;
   className?: string;
 }
@@ -25,6 +26,7 @@ export const CustomerItemCard = ({
   ratingCount,
   badge,
   shortDesc,
+  sponsored,
   onClick,
   className,
 }: CustomerItemCardProps) => {
@@ -53,9 +55,16 @@ export const CustomerItemCard = ({
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
             <Gift className="w-12 h-12" />
           </div>
+          {/* Sponsored Badge - Top Left (Zomato pattern) */}
+          {sponsored && (
+            <Badge className="absolute top-2 left-2 bg-amber-100 text-amber-900 text-xs border-amber-200">
+              Sponsored
+            </Badge>
+          )}
+          {/* Bestseller/Trending Badge - Top Right */}
           {badge && (
             <Badge
-              className="absolute top-2 left-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
+              className="absolute top-2 right-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
             >
               {badge === 'bestseller' ? (
                 <>
@@ -79,9 +88,9 @@ export const CustomerItemCard = ({
             {name}
           </h3>
           
-          {/* Short Description - 2 lines, 12px gray per spec */}
+          {/* Short Description - 3 lines, 12px gray per spec (emotional appeal for gifting) */}
           {shortDesc && (
-            <p className="text-xs text-muted-foreground line-clamp-2 leading-snug">
+            <p className="text-xs text-muted-foreground line-clamp-3 leading-snug">
               {shortDesc}
             </p>
           )}

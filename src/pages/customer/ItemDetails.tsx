@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/carousel";
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
+import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
@@ -26,7 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
-import { fetchItemById, addToCartSupabase, type Item as ItemType } from "@/lib/integrations/supabase-data";
+import { fetchItemById, addToCartSupabase, fetchPartnerById, type Item as ItemType } from "@/lib/integrations/supabase-data";
 
 interface AddOn {
   id: string;
@@ -38,10 +39,13 @@ export const ItemDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { refreshCartCount } = useCart();
+  const { refreshCartCount, currentPartnerId, clearCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showCartReplacementModal, setShowCartReplacementModal] = useState(false);
+  const [currentPartnerName, setCurrentPartnerName] = useState("");
+  const [newPartnerName, setNewPartnerName] = useState("");
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<ItemType | null>(null);
 
@@ -92,6 +96,23 @@ export const ItemDetails = () => {
   };
 
   const handleAddToCart = async () => {
+    // Check if adding item from different partner
+    if (currentPartnerId && currentPartnerId !== item.partner_id) {
+      // Fetch partner names for modal
+      const currentPartner = await fetchPartnerById(currentPartnerId);
+      const newPartner = await fetchPartnerById(item.partner_id);
+      
+      setCurrentPartnerName(currentPartner?.name || "Current Partner");
+      setNewPartnerName(newPartner?.name || "New Partner");
+      setShowCartReplacementModal(true);
+      return;
+    }
+
+    // Same partner or empty cart - proceed normally
+    await proceedWithAddToCart();
+  };
+
+  const proceedWithAddToCart = async () => {
     const authenticated = await isAuthenticated();
 
     const cartItem = {
@@ -100,6 +121,7 @@ export const ItemDetails = () => {
       price: item.price,
       quantity,
       image: item.images[0],
+      partner_id: item.partner_id,
       addOns: selectedAddOns.map(id => addOns.find(a => a.id === id)).filter(Boolean),
       total: calculateTotal(),
     };
@@ -140,6 +162,15 @@ export const ItemDetails = () => {
         });
       }
     }
+  };
+
+  const handleReplaceCart = async () => {
+    // Clear existing cart
+    clearCart();
+    setShowCartReplacementModal(false);
+    
+    // Proceed with adding new item
+    await proceedWithAddToCart();
   };
 
   if (loading || !item) {
@@ -318,6 +349,15 @@ export const ItemDetails = () => {
       <LoginPromptSheet
         isOpen={showLoginPrompt}
         onClose={() => setShowLoginPrompt(false)}
+      />
+
+      {/* Cart Replacement Modal - Swiggy Pattern */}
+      <CartReplacementModal
+        isOpen={showCartReplacementModal}
+        currentPartner={currentPartnerName}
+        newPartner={newPartnerName}
+        onConfirm={handleReplaceCart}
+        onCancel={() => setShowCartReplacementModal(false)}
       />
     </div>
   );
