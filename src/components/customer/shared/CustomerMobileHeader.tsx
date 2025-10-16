@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { MapPin, User, ShoppingBag, Heart, ArrowLeft, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,7 +88,9 @@ export const CustomerMobileHeader = ({
             </>
           ) : (
             <>
-              <img src="/wyshkit-customer-logo.png" alt="Wyshkit" className="h-8" />
+              <Link to="/customer/home" className="flex-shrink-0" aria-label="Go to home">
+                <img src="/wyshkit-customer-logo.png" alt="Wyshkit" className="h-8 hover:opacity-80 transition-opacity" />
+              </Link>
               {/* Location with city name - Swiggy pattern */}
               <button 
                 onClick={handleLocationClick}

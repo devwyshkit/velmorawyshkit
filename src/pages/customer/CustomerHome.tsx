@@ -244,15 +244,16 @@ export const CustomerHome = () => {
           </div>
         </section>
 
-        {/* Occasions - ROUND cards like Swiggy (horizontal scroll) */}
+        {/* Occasions - ROUND cards like Swiggy: Horizontal scroll mobile, Grid desktop */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold px-4">What's the occasion?</h2>
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
+          {/* Mobile: Horizontal scroll | Desktop: Grid (single row, wraps to 2 if needed) */}
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:grid md:grid-cols-8 md:overflow-visible md:mx-0 md:gap-6">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
                 onClick={() => navigate(`/customer/occasions/${occasion.id}`)}
-                className="flex flex-col items-center gap-2 min-w-[80px] shrink-0"
+                className="flex flex-col items-center gap-2 min-w-[80px] shrink-0 md:min-w-0"
               >
                 {/* ROUND circular image - Swiggy/Zomato pattern */}
                 <div className="relative">
