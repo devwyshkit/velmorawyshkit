@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,11 +76,13 @@ export const CustomerMobileLogin = () => {
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <img
-                src="/wyshkit-customer-logo.png"
-                alt="Wyshkit"
-                className="h-12"
-              />
+              <Link to="/customer/home">
+                <img
+                  src="/wyshkit-customer-logo.png"
+                  alt="Wyshkit - Go to home"
+                  className="h-12 hover:opacity-80 transition-opacity cursor-pointer"
+                />
+              </Link>
             </div>
             <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
             <CardDescription className="text-center">
