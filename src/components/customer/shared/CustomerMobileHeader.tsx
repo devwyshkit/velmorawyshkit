@@ -1,8 +1,13 @@
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, User, ShoppingBag, Heart, ArrowLeft } from "lucide-react";
+import { MapPin, User, ShoppingBag, Heart, ArrowLeft, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useCart } from "@/contexts/CartContext";
+import { useLocation } from "@/contexts/LocationContext";
+import { loadGooglePlaces, initAutocomplete, formatAddress } from "@/lib/integrations/google-places";
 
 interface CustomerMobileHeaderProps {
   showBackButton?: boolean;
@@ -17,6 +22,26 @@ export const CustomerMobileHeader = ({
 }: CustomerMobileHeaderProps) => {
   const navigate = useNavigate();
   const { cartCount } = useCart();
+  const { location, setLocation } = useLocation();
+  const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
+  const [locationInput, setLocationInput] = useState("");
+  const addressInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isLocationSheetOpen && addressInputRef.current) {
+      loadGooglePlaces().then(() => {
+        if (addressInputRef.current) {
+          initAutocomplete(addressInputRef.current, (place) => {
+            const formattedAddress = formatAddress(place);
+            // Extract city name from formatted address
+            const cityMatch = formattedAddress.match(/([^,]+),/);
+            const cityName = cityMatch ? cityMatch[1].trim() : formattedAddress.split(',')[0].trim();
+            setLocationInput(cityName);
+          });
+        }
+      });
+    }
+  }, [isLocationSheetOpen]);
 
   const handleBackClick = () => {
     if (onBackClick) {
@@ -25,6 +50,30 @@ export const CustomerMobileHeader = ({
       navigate(-1);
     }
   };
+
+  const handleLocationClick = () => {
+    setLocationInput(location);
+    setIsLocationSheetOpen(true);
+  };
+
+  const handleSaveLocation = () => {
+    if (locationInput.trim()) {
+      setLocation(locationInput);
+      setIsLocationSheetOpen(false);
+    }
+  };
+
+  // Popular cities for quick selection
+  const popularCities = [
+    "Bangalore",
+    "Mumbai",
+    "Delhi",
+    "Hyderabad",
+    "Chennai",
+    "Pune",
+    "Kolkata",
+    "Ahmedabad",
+  ];
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-card border-b border-border">
@@ -42,11 +91,12 @@ export const CustomerMobileHeader = ({
               <img src="/wyshkit-customer-logo.png" alt="Wyshkit" className="h-8" />
               {/* Location with city name - Swiggy pattern */}
               <button 
-                onClick={() => {}}
+                onClick={handleLocationClick}
                 className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
+                aria-label="Change location"
               >
                 <MapPin className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium max-w-[120px] truncate">Bangalore</span>
+                <span className="text-sm font-medium max-w-[120px] truncate">{location}</span>
               </button>
             </>
           )}
@@ -89,6 +139,89 @@ export const CustomerMobileHeader = ({
           </Button>
         </div>
       </div>
+
+      {/* Location Selection Sheet */}
+      <Sheet open={isLocationSheetOpen} onOpenChange={setIsLocationSheetOpen}>
+        <SheetContent
+          side="bottom"
+          className="h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+        >
+          {/* Grabber */}
+          <div className="flex justify-center pt-2">
+            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+          </div>
+
+          {/* Header */}
+          <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Select Location</h2>
+            <Button variant="ghost" size="icon" onClick={() => setIsLocationSheetOpen(false)}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Search Input with Google Places */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Search for your location</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={addressInputRef}
+                  type="text"
+                  placeholder="Enter city or area"
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            {/* Popular Cities */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold">Popular Cities</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {popularCities.map((city) => (
+                  <button
+                    key={city}
+                    onClick={() => {
+                      setLocationInput(city);
+                    }}
+                    className="flex items-center gap-2 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors text-left"
+                  >
+                    <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-sm">{city}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Current Location */}
+            <button
+              onClick={() => {
+                // In a real app, use browser geolocation API
+                setLocationInput("Current Location");
+              }}
+              className="flex items-center gap-2 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors text-left w-full"
+            >
+              <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="text-sm font-medium text-primary">Use Current Location</span>
+            </button>
+          </div>
+
+          {/* Footer with Save Button */}
+          <div className="sticky bottom-0 bg-white border-t border-border p-4">
+            <Button
+              onClick={handleSaveLocation}
+              className="w-full h-12 text-base"
+              size="lg"
+              disabled={!locationInput.trim()}
+            >
+              Save Location
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </header>
   );
 };

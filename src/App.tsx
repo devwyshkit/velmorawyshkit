@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { LocationProvider } from "@/contexts/LocationContext";
 
 // Lazy Loaded Pages - Code Splitting
 import * as LazyPages from "./components/LazyRoutes";
@@ -15,7 +16,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <CartProvider>
-        <TooltipProvider>
+        <LocationProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -46,7 +48,8 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </CartProvider>
+    </LocationProvider>
+  </CartProvider>
   </AuthProvider>
   </QueryClientProvider>
 );
