@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Flame } from "lucide-react";
+import { Trophy, Flame, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CustomerItemCardProps {
@@ -44,7 +44,15 @@ export const CustomerItemCard = ({
             alt={name}
             className="w-full h-full object-cover"
             loading="lazy"
+            onError={(e) => {
+              // Hide broken image if it fails to load
+              e.currentTarget.style.display = 'none';
+            }}
           />
+          {/* Fallback icon - shows if image fails */}
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
+            <Gift className="w-12 h-12" />
+          </div>
           {badge && (
             <Badge
               className="absolute top-2 left-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
