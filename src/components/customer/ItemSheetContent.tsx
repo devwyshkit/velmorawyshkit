@@ -256,12 +256,12 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         {/* Customers Also Bought - Upsell Section (15% AOV increase per research) */}
         <div className="space-y-3 pt-2">
           <h3 className="text-sm font-semibold">Customers Also Bought</h3>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth -mx-4 px-4">
             {getMockItems()
               .filter(i => i.id !== itemId)
               .slice(0, 4)
               .map((item) => (
-                <div key={item.id} className="min-w-[140px] max-w-[140px]">
+                <div key={item.id} className="snap-start shrink-0 min-w-[140px] max-w-[140px]">
                   <CustomerItemCard
                     id={item.id}
                     name={item.name}

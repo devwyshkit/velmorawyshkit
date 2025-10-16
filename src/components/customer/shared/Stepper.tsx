@@ -42,9 +42,10 @@ export const Stepper = ({
         type="button"
         variant="outline"
         size="icon"
-        className="h-10 w-10 rounded-full"
+        className="h-11 w-11 rounded-full"
         onClick={handleDecrement}
         disabled={value <= min}
+        aria-label="Decrease quantity"
       >
         <Minus className="h-4 w-4" />
       </Button>
@@ -55,14 +56,16 @@ export const Stepper = ({
         className="w-16 h-10 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         min={min}
         max={max}
+        aria-label="Quantity"
       />
       <Button
         type="button"
         variant="outline"
         size="icon"
-        className="h-10 w-10 rounded-full"
+        className="h-11 w-11 rounded-full"
         onClick={handleIncrement}
         disabled={value >= max}
+        aria-label="Increase quantity"
       >
         <Plus className="h-4 w-4" />
       </Button>

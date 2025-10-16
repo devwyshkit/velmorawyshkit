@@ -92,7 +92,7 @@ export const FilterChips = ({ onFilterChange, className }: FilterChipsProps) => 
       )}
 
       {/* Filter Chips - Horizontal Scroll */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory scroll-smooth">
         {filters.map(filter => {
           const isActive = activeFilters.some(f => f.id === filter.id);
           
@@ -101,11 +101,12 @@ export const FilterChips = ({ onFilterChange, className }: FilterChipsProps) => 
               key={filter.id}
               onClick={() => handleFilterToggle(filter)}
               className={cn(
-                "flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors whitespace-nowrap",
+                "snap-start flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors whitespace-nowrap",
                 isActive
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-background border-border hover:bg-muted"
               )}
+              aria-label={`Filter by ${filter.label}${isActive ? ', active' : ''}`}
             >
               {filter.label}
             </button>

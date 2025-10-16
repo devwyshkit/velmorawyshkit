@@ -227,6 +227,7 @@ export const CustomerHome = () => {
                   className="h-6 w-6 rounded-full"
                   onClick={() => carouselApi?.scrollPrev()}
                   disabled={!carouselApi?.canScrollPrev()}
+                  aria-label="Previous recommendation"
                 >
                   <span className="text-sm">←</span>
                 </Button>
@@ -236,6 +237,7 @@ export const CustomerHome = () => {
                   className="h-6 w-6 rounded-full"
                   onClick={() => carouselApi?.scrollNext()}
                   disabled={!carouselApi?.canScrollNext()}
+                  aria-label="Next recommendation"
                 >
                   <span className="text-sm">→</span>
                 </Button>
@@ -248,12 +250,13 @@ export const CustomerHome = () => {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold px-4">What's the occasion?</h2>
           {/* Swiggy/Zomato pattern: Mobile = 2 rows horizontal scroll | Desktop = 1 row */}
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[85px] gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 lg:grid-rows-1 lg:overflow-visible lg:mx-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[85px] gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 -mx-4 px-4 lg:grid-rows-1 lg:overflow-visible lg:mx-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
                 onClick={() => navigate(`/customer/occasions/${occasion.id}`)}
-                className="flex flex-col items-center gap-2 min-w-[80px] shrink-0 md:min-w-0"
+                className="snap-start flex flex-col items-center gap-2 min-w-[80px] shrink-0 md:min-w-0"
+                aria-label={`Browse ${occasion.name} gifts`}
               >
                 {/* ROUND circular image - Swiggy/Zomato pattern */}
                 <div className="relative">
@@ -351,9 +354,9 @@ export const CustomerHome = () => {
                   </div>
                   
                   {/* Product Thumbnails Preview - Uber Eats pattern for discovery */}
-                  <div className="flex gap-1 mt-2 -mx-1">
+                  <div className="flex gap-1 mt-2 -mx-1 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="w-12 h-12 rounded bg-muted flex-shrink-0">
+                      <div key={i} className="snap-start w-12 h-12 rounded bg-muted flex-shrink-0">
                         <img 
                           src={`https://picsum.photos/seed/thumb-${partner.id}-${i}/100/100`}
                           alt={`Product ${i}`}
