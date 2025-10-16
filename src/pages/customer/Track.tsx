@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { ProofSheet } from "@/pages/customer/ProofSheet";
 import { useToast } from "@/hooks/use-toast";
 import { getETAEstimate } from "@/lib/integrations/openai";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,10 @@ export const Track = () => {
   const { toast } = useToast();
   const orderId = searchParams.get('orderId') || 'ORD-' + Date.now();
   const [eta, setEta] = useState<string>('');
+  const [isProofSheetOpen, setIsProofSheetOpen] = useState(false);
+  
+  // Mock: Determine if order has custom items requiring proof
+  const hasCustomItems = true; // In real app, fetch from order data
 
   // Mock order tracking data
   const timeline: TimelineStep[] = [
@@ -153,6 +158,29 @@ export const Track = () => {
           </CardContent>
         </Card>
 
+        {/* Review Proof - For Custom Items */}
+        {hasCustomItems && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold mb-1">Design Proof Ready</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Review and approve your custom item design
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setIsProofSheetOpen(true)}
+                  variant="default"
+                  size="sm"
+                >
+                  Review Proof
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Order Items */}
         <Card>
           <CardContent className="p-6">
@@ -219,6 +247,13 @@ export const Track = () => {
 
       <ComplianceFooter />
       <CustomerBottomNav />
+
+      {/* Proof Approval Sheet */}
+      <ProofSheet
+        isOpen={isProofSheetOpen}
+        onClose={() => setIsProofSheetOpen(false)}
+        orderId={orderId}
+      />
     </div>
   );
 };
