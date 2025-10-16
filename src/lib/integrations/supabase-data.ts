@@ -59,7 +59,6 @@ const mockPartners: Partner[] = [
     image: 'https://picsum.photos/seed/partner1/300/200',
     rating: 4.5,
     delivery: '1-2 days',
-    badge: 'bestseller',
     category: 'Tech Gifts',
     tagline: 'Premium tech accessories',
     ratingCount: 234,
@@ -131,7 +130,6 @@ const mockItems: Item[] = [
     price: 2499,
     rating: 4.6,
     ratingCount: 234,
-    badge: 'bestseller',
     partner_id: '1',
     sponsored: true,
     specs: {

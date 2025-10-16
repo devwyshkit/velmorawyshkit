@@ -317,6 +317,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
                     ratingCount={item.ratingCount}
                     badge={item.badge}
                     shortDesc={item.shortDesc}
+                    sponsored={item.sponsored}
                     onClick={() => {
                       onClose(); // Close current sheet
                       navigate(`/customer/items/${item.id}`);

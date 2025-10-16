@@ -250,7 +250,7 @@ export const CustomerHome = () => {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold px-4">What's the occasion?</h2>
           {/* Swiggy/Zomato pattern: Mobile = 2 rows horizontal scroll | Desktop = 1 row */}
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[85px] gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 -mx-4 px-4 lg:grid-rows-1 lg:overflow-visible lg:mx-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[85px] gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 pl-4 lg:grid-rows-1 lg:overflow-visible lg:pl-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
@@ -307,7 +307,13 @@ export const CustomerHome = () => {
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
-                    {/* Badge top-RIGHT per spec */}
+                    {/* Sponsored Badge - Top Left (Zomato pattern) */}
+                    {partner.sponsored && (
+                      <Badge className="absolute top-2 left-2 bg-amber-100 text-amber-900 text-xs border-amber-200">
+                        Sponsored
+                      </Badge>
+                    )}
+                    {/* Bestseller/Trending Badge - Top Right */}
                     {partner.badge && (
                       <Badge
                         className="absolute top-2 right-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
@@ -354,7 +360,7 @@ export const CustomerHome = () => {
                   </div>
                   
                   {/* Product Thumbnails Preview - Uber Eats pattern for discovery */}
-                  <div className="flex gap-1 mt-2 -mx-1 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
+                  <div className="flex gap-1 mt-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="snap-start w-12 h-12 rounded bg-muted flex-shrink-0">
                         <img 

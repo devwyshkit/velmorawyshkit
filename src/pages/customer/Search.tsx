@@ -19,6 +19,7 @@ interface SearchResult {
   badge?: 'bestseller' | 'trending';
   ratingCount?: number;
   shortDesc?: string;
+  sponsored?: boolean;
 }
 
 export const CustomerMobileSearch = () => {
@@ -56,6 +57,7 @@ export const CustomerMobileSearch = () => {
         type: 'item' as const,
         badge: item.badge,
         shortDesc: item.shortDesc,
+        sponsored: item.sponsored,
       }));
       
       setResults(searchResults);
@@ -137,6 +139,7 @@ export const CustomerMobileSearch = () => {
                   ratingCount={item.ratingCount}
                   badge={item.badge}
                   shortDesc={item.shortDesc}
+                  sponsored={item.sponsored}
                   onClick={() => handleItemClick(item)}
                 />
               ))}

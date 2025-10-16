@@ -171,6 +171,7 @@ export const Partner = () => {
                 ratingCount={item.ratingCount}
                 badge={item.badge}
                 shortDesc={item.shortDesc}
+                sponsored={item.sponsored}
                 onClick={() => handleItemClick(item.id)}
               />
             ))}
