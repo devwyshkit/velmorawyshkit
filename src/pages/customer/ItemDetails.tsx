@@ -203,7 +203,7 @@ export const ItemDetails = () => {
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                 <span className="font-semibold text-lg">{item.rating}</span>
               </div>
-              <span className="text-muted-foreground">• 156 ratings</span>
+              <span className="text-muted-foreground">• {item.ratingCount || 156} ratings</span>
             </div>
           </div>
 

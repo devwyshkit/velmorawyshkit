@@ -37,8 +37,8 @@ export const CustomerItemCard = ({
       onClick={onClick}
     >
       <CardContent className="p-2">
-        {/* Image - FIXED height per spec: h-120px (using h-32 = 128px) */}
-        <div className="relative w-full h-32 rounded-lg overflow-hidden bg-muted mb-2">
+        {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
+        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
           <img
             src={image}
             alt={name}

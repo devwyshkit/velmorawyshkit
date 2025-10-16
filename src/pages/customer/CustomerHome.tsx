@@ -296,8 +296,8 @@ export const CustomerHome = () => {
                 onClick={() => navigate(`/customer/partners/${partner.id}`)}
               >
                 <CardContent className="p-2">
-                  {/* Image - FIXED height per spec: h-100px (using h-28 = 112px) */}
-                  <div className="relative w-full h-28 rounded-lg overflow-hidden bg-muted mb-2">
+                  {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
+                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
                     <img
                       src={partner.image}
                       alt={partner.name}
