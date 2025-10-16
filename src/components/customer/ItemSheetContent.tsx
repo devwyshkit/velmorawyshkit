@@ -149,13 +149,13 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Image Carousel */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Image Carousel - Reduced height for less scrolling */}
         <Carousel className="w-full">
           <CarouselContent>
             {item.images.map((image, index) => (
               <CarouselItem key={index}>
-                <div className="aspect-square rounded-xl overflow-hidden bg-muted">
+                <div className="h-56 rounded-xl overflow-hidden bg-muted">
                   <img
                     src={image}
                     alt={`${item.name} ${index + 1}`}

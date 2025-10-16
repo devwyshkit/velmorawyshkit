@@ -170,7 +170,7 @@ HSN Code: 9985
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent
           side="bottom"
-          className="h-[75vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+          className="h-[85vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
         >
           {/* Grabber */}
           <div className="flex justify-center pt-2 pb-4">
@@ -191,7 +191,7 @@ HSN Code: 9985
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
         side="bottom"
-        className="h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+        className="h-[85vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
       >
         {/* Grabber */}
         <div className="flex justify-center pt-2">

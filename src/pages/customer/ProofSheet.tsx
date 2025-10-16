@@ -113,11 +113,11 @@ export const ProofSheet = ({ isOpen, onClose, orderId }: ProofSheetProps) => {
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent
-        side="bottom"
-        className="h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
-      >
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent
+          side="bottom"
+          className="h-[85vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+        >
         {/* Grabber */}
         <div className="flex justify-center pt-2">
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
