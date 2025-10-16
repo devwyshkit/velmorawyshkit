@@ -22,6 +22,7 @@ import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet"
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
@@ -40,8 +41,17 @@ export const ItemDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Mock data - replace with actual Supabase query using id
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [id]);
+
   const item = {
     id: id || '1',
     name: 'Premium Gift Hamper',
@@ -126,6 +136,26 @@ export const ItemDetails = () => {
       navigate("/customer/cart");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <CustomerMobileHeader showBackButton title="Item Details" />
+        
+        <main className="max-w-screen-xl mx-auto px-4 py-6">
+          <div className="max-w-2xl mx-auto space-y-6">
+            <Skeleton className="aspect-square rounded-xl" />
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </main>
+
+        <CustomerBottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">

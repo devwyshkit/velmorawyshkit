@@ -6,6 +6,7 @@ import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard"
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { isAuthenticated } from "@/lib/integrations/supabase-client";
 
@@ -80,6 +81,28 @@ export const Wishlist = () => {
   const handleItemClick = (itemId: string) => {
     navigate(`/customer/items/${itemId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <CustomerMobileHeader showBackButton title="Wishlist" />
+        
+        <main className="max-w-screen-xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="aspect-square rounded-xl" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        </main>
+
+        <CustomerBottomNav />
+      </div>
+    );
+  }
 
   if (!authenticated) {
     return (

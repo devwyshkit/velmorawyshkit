@@ -9,6 +9,7 @@ import { Stepper } from "@/components/customer/shared/Stepper";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import {
@@ -163,6 +164,29 @@ HSN Code: 9985
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const gst = calculateGST(subtotal);
   const total = calculateTotalWithGST(subtotal);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <CustomerMobileHeader showBackButton title="My Cart" />
+        
+        <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex gap-3 bg-card rounded-lg p-3 border border-border">
+              <Skeleton className="w-20 h-20 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-8 w-32" />
+              </div>
+            </div>
+          ))}
+        </main>
+
+        <CustomerBottomNav />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

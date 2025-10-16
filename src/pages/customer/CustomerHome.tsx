@@ -16,6 +16,7 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
 import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getRecommendations } from "@/lib/integrations/openai";
 import Autoplay from "embla-carousel-autoplay";
 import { cn } from "@/lib/utils";
@@ -160,6 +161,40 @@ export const CustomerHome = () => {
 
     setFilteredPartners(filtered);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <CustomerMobileHeader />
+        <main className="max-w-screen-xl mx-auto space-y-4 pt-4 px-4">
+          {/* Hero Skeleton */}
+          <Skeleton className="h-40 w-full rounded-xl" />
+          
+          {/* Occasions Skeleton */}
+          <div className="flex gap-4 overflow-hidden">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <Skeleton className="w-16 h-16 rounded-full" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+            ))}
+          </div>
+
+          {/* Partners Skeleton */}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="aspect-square rounded-xl" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        </main>
+        <CustomerBottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
