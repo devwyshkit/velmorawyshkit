@@ -21,8 +21,9 @@ import { Stepper } from "@/components/customer/shared/Stepper";
 import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
-import { addToCartSupabase } from "@/lib/integrations/supabase-data";
+import { addToCartSupabase, getMockItems } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
+import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 
 interface ItemSheetContentProps {
   itemId: string;
@@ -149,13 +150,13 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Image Carousel - Reduced height for less scrolling */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Image Carousel - Compact height per spec: ~100px (using h-24 = 96px) */}
         <Carousel className="w-full">
           <CarouselContent>
             {item.images.map((image, index) => (
               <CarouselItem key={index}>
-                <div className="h-56 rounded-xl overflow-hidden bg-muted">
+                <div className="h-24 rounded-lg overflow-hidden bg-muted">
                   <img
                     src={image}
                     alt={`${item.name} ${index + 1}`}
@@ -248,6 +249,34 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
             </AccordionContent>
           </AccordionItem>
         </Accordion>
+
+        {/* Others Bought - Upsell Section (15% AOV increase per research) */}
+        <div className="space-y-3 pt-2">
+          <h3 className="text-sm font-semibold">Others Bought</h3>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4">
+            {getMockItems()
+              .filter(i => i.id !== itemId)
+              .slice(0, 4)
+              .map((item) => (
+                <div key={item.id} className="min-w-[140px] max-w-[140px]">
+                  <CustomerItemCard
+                    id={item.id}
+                    name={item.name}
+                    image={item.image}
+                    price={item.price}
+                    rating={item.rating}
+                    ratingCount={item.ratingCount}
+                    badge={item.badge}
+                    shortDesc={item.shortDesc}
+                    onClick={() => {
+                      // Navigate to this item (could close current and open new)
+                      window.location.href = `/customer/items/${item.id}`;
+                    }}
+                  />
+                </div>
+              ))}
+          </div>
+        </div>
       </div>
 
       {/* Footer with Add Button */}
