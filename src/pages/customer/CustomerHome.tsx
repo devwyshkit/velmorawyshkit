@@ -14,6 +14,7 @@ import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard"
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
+import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { getRecommendations } from "@/lib/integrations/openai";
 import Autoplay from "embla-carousel-autoplay";
@@ -41,6 +42,7 @@ export const CustomerHome = () => {
   const [loading, setLoading] = useState(true);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
 
   // Mock data - replace with actual Supabase queries
   const occasions: Occasion[] = [
@@ -117,6 +119,11 @@ export const CustomerHome = () => {
     loadRecommendations();
   }, []);
 
+  // Initialize filtered partners
+  useEffect(() => {
+    setFilteredPartners(partners);
+  }, []);
+
   useEffect(() => {
     if (!carouselApi) {
       return;
@@ -128,6 +135,31 @@ export const CustomerHome = () => {
       setCurrentSlide(carouselApi.selectedScrollSnap());
     });
   }, [carouselApi]);
+
+  const handleFilterChange = (activeFilters: Filter[]) => {
+    if (activeFilters.length === 0) {
+      setFilteredPartners(partners);
+      return;
+    }
+
+    // Filter partners based on active filters
+    let filtered = [...partners];
+
+    activeFilters.forEach(filter => {
+      if (filter.category === 'price') {
+        // Price filtering would need actual price data from partners
+        // For now, just showing all
+      } else if (filter.category === 'occasion') {
+        // Filter by occasion tag
+        // For now, just showing all
+      } else if (filter.category === 'category') {
+        // Filter by category tag
+        // For now, just showing all
+      }
+    });
+
+    setFilteredPartners(filtered);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -247,6 +279,11 @@ export const CustomerHome = () => {
           </div>
         </section>
 
+        {/* Filter Chips */}
+        <section className="px-4">
+          <FilterChips onFilterChange={handleFilterChange} />
+        </section>
+
         {/* Partners - Responsive Grid: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
         <section className="space-y-3">
           <div className="flex items-center justify-between px-4">
@@ -260,7 +297,7 @@ export const CustomerHome = () => {
             </Button>
           </div>
           <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
-            {partners.slice(0, 6).map((partner) => (
+            {filteredPartners.slice(0, 6).map((partner) => (
               <Card
                 key={partner.id}
                 className="cursor-pointer overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow"

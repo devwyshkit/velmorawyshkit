@@ -5,6 +5,7 @@ import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard"
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
+import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ItemSheetContent } from "@/components/customer/ItemSheetContent";
@@ -31,6 +32,7 @@ export const Partner = () => {
   const navigate = useNavigate();
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isItemSheetOpen, setIsItemSheetOpen] = useState(false);
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
 
   // Mock data - replace with actual Supabase query
   const partner: PartnerInfo = {
@@ -99,6 +101,31 @@ export const Partner = () => {
     setSelectedItemId(null);
   };
 
+  // Initialize filtered items
+  useEffect(() => {
+    setFilteredItems(items);
+  }, []);
+
+  const handleFilterChange = (activeFilters: Filter[]) => {
+    if (activeFilters.length === 0) {
+      setFilteredItems(items);
+      return;
+    }
+
+    // Filter items based on active filters
+    let filtered = [...items];
+
+    activeFilters.forEach(filter => {
+      if (filter.category === 'price') {
+        const [min, max] = filter.value.split('-').map(Number);
+        filtered = filtered.filter(item => item.price >= min && item.price <= max);
+      }
+      // Add occasion and category filtering when backend supports it
+    });
+
+    setFilteredItems(filtered);
+  };
+
   return (
     <>
       <div className="min-h-screen bg-background pb-20">
@@ -128,11 +155,23 @@ export const Partner = () => {
           </div>
         </section>
 
+        {/* Filter Chips */}
+        <section className="px-4 py-3">
+          <FilterChips onFilterChange={handleFilterChange} />
+        </section>
+
         {/* Items Grid - Responsive: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
         <main className="space-y-3">
-          <h2 className="text-lg font-semibold px-4">Browse Items</h2>
+          <h2 className="text-lg font-semibold px-4">
+            Browse Items 
+            {filteredItems.length !== items.length && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                ({filteredItems.length} results)
+              </span>
+            )}
+          </h2>
           <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <CustomerItemCard
                 key={item.id}
                 id={item.id}
