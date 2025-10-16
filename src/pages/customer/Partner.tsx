@@ -4,6 +4,7 @@ import { Star, Clock } from "lucide-react";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ItemSheetContent } from "@/components/customer/ItemSheetContent";
@@ -147,6 +148,7 @@ export const Partner = () => {
         </main>
 
         <ComplianceFooter />
+        <FloatingCartButton />
         <CustomerBottomNav />
       </div>
 

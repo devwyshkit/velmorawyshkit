@@ -13,6 +13,7 @@ import {
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { getRecommendations } from "@/lib/integrations/openai";
 import Autoplay from "embla-carousel-autoplay";
@@ -310,6 +311,7 @@ export const CustomerHome = () => {
       <div className="mt-6">
         <ComplianceFooter />
       </div>
+      <FloatingCartButton />
       <CustomerBottomNav />
     </div>
   );
