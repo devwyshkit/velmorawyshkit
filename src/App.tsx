@@ -31,8 +31,10 @@ const App = () => (
               <Route path="home" element={<LazyPages.Home />} />
               <Route path="search" element={<LazyPages.Search />} />
               <Route path="partners/:id" element={<LazyPages.Partner />} />
+              <Route path="items/:id" element={<LazyPages.ItemDetails />} />
               <Route path="cart" element={<LazyPages.Cart />} />
               <Route path="wishlist" element={<LazyPages.Wishlist />} />
+              <Route path="checkout" element={<LazyPages.Checkout />} />
               <Route path="confirmation" element={<LazyPages.Confirmation />} />
               <Route path="track/:orderId?" element={<LazyPages.Track />} />
               <Route path="profile" element={<LazyPages.Profile />} />

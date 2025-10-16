@@ -1,0 +1,280 @@
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { Stepper } from "@/components/customer/shared/Stepper";
+import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
+import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/contexts/CartContext";
+import { isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
+
+interface AddOn {
+  id: string;
+  name: string;
+  price: number;
+}
+
+export const ItemDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { refreshCartCount } = useCart();
+  const [quantity, setQuantity] = useState(1);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+
+  // Mock data - replace with actual Supabase query using id
+  const item = {
+    id: id || '1',
+    name: 'Premium Gift Hamper',
+    description: 'Curated selection of premium items including gourmet treats, artisan chocolates, and luxury accessories. Perfect for any special occasion. Makes gifting effortless and memorable.',
+    price: 2499,
+    rating: 4.6,
+    images: [
+      '/placeholder.svg',
+      '/placeholder.svg',
+      '/placeholder.svg',
+    ],
+    specs: {
+      weight: '2.5 kg',
+      dimensions: '30cm x 20cm x 15cm',
+      materials: 'Premium packaging with satin finish',
+    },
+  };
+
+  const addOns: AddOn[] = [
+    { id: '1', name: 'Greeting Card (+₹99)', price: 99 },
+    { id: '2', name: 'Gift Wrapping (+₹149)', price: 149 },
+    { id: '3', name: 'Express Delivery (+₹199)', price: 199 },
+  ];
+
+  const handleAddOnToggle = (addOnId: string) => {
+    setSelectedAddOns(prev =>
+      prev.includes(addOnId)
+        ? prev.filter(id => id !== addOnId)
+        : [...prev, addOnId]
+    );
+  };
+
+  const calculateTotal = () => {
+    const basePrice = item.price * quantity;
+    const addOnsPrice = selectedAddOns.reduce((sum, addOnId) => {
+      const addOn = addOns.find(a => a.id === addOnId);
+      return sum + (addOn?.price || 0);
+    }, 0);
+    return basePrice + addOnsPrice;
+  };
+
+  const handleAddToCart = async () => {
+    const authenticated = await isAuthenticated();
+
+    const cartItem = {
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity,
+      image: item.images[0],
+      addOns: selectedAddOns.map(id => addOns.find(a => a.id === id)).filter(Boolean),
+      total: calculateTotal(),
+    };
+
+    if (!authenticated) {
+      // Guest mode: save to localStorage
+      const guestCart = getGuestCart();
+      guestCart.push(cartItem);
+      setGuestCart(guestCart);
+      refreshCartCount();
+
+      toast({
+        title: "Added to cart",
+        description: "Sign in to checkout",
+      });
+
+      // Show login prompt after delay
+      setTimeout(() => {
+        navigate("/customer/login");
+      }, 1500);
+    } else {
+      // Authenticated: save to Supabase
+      // Implementation would go here
+      refreshCartCount();
+      
+      toast({
+        title: "Added to cart",
+        description: `${quantity}x ${item.name}`,
+      });
+
+      // Navigate to cart
+      navigate("/customer/cart");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <CustomerMobileHeader showBackButton title="Item Details" />
+      
+      <main className="max-w-screen-xl mx-auto px-4 py-6">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Image Carousel */}
+          <Carousel className="w-full">
+            <CarouselContent>
+              {item.images.map((image, index) => (
+                <CarouselItem key={index}>
+                  <div className="aspect-square rounded-xl overflow-hidden bg-muted">
+                    <img
+                      src={image}
+                      alt={`${item.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-2" />
+            <CarouselNext className="right-2" />
+          </Carousel>
+
+          {/* Title and Rating */}
+          <div>
+            <h1 className="text-2xl font-bold mb-2">{item.name}</h1>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-yellow-600">
+                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                <span className="font-semibold text-lg">{item.rating}</span>
+              </div>
+              <span className="text-muted-foreground">• 156 ratings</span>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold text-primary">
+              ₹{item.price.toLocaleString('en-IN')}
+            </span>
+            <span className="text-sm text-muted-foreground">(incl. GST)</span>
+          </div>
+
+          {/* Description */}
+          <div>
+            <h2 className="text-lg font-semibold mb-2">About this item</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {item.description}
+            </p>
+          </div>
+
+          {/* Quantity Stepper */}
+          <div>
+            <Label className="text-base font-semibold mb-3 block">Quantity</Label>
+            <Stepper value={quantity} onChange={setQuantity} min={1} max={99} />
+          </div>
+
+          {/* Add-ons */}
+          {addOns.length > 0 && (
+            <div>
+              <Label className="text-base font-semibold mb-3 block">Customize Your Gift</Label>
+              <div className="space-y-3">
+                {addOns.map((addOn) => (
+                  <div key={addOn.id} className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id={addOn.id}
+                      checked={selectedAddOns.includes(addOn.id)}
+                      onCheckedChange={() => handleAddOnToggle(addOn.id)}
+                    />
+                    <Label
+                      htmlFor={addOn.id}
+                      className="text-sm cursor-pointer flex-1"
+                    >
+                      {addOn.name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Specifications & Compliance */}
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="specs">
+              <AccordionTrigger className="text-base font-semibold">
+                Product Specifications
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-2 pt-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="font-medium text-foreground">Weight</span>
+                    <p>{item.specs.weight}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-foreground">Dimensions</span>
+                    <p>{item.specs.dimensions}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="font-medium text-foreground">Materials</span>
+                    <p>{item.specs.materials}</p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="compliance">
+              <AccordionTrigger className="text-base font-semibold">
+                Tax & Compliance
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-3 pt-4">
+                <div>
+                  <p className="font-medium text-foreground">HSN Code: 9985</p>
+                  <p className="text-xs">(Business Support Services)</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">GST Rate: 18%</p>
+                  <p className="text-xs">GST is included in the displayed price</p>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-destructive">
+                    <strong>Note:</strong> Custom items are non-refundable after proof approval
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          {/* Add to Cart Section */}
+          <div className="sticky bottom-20 md:bottom-4 bg-white border border-border rounded-lg p-4 shadow-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total Amount</span>
+              <span className="text-2xl font-bold text-primary">
+                ₹{calculateTotal().toLocaleString('en-IN')}
+              </span>
+            </div>
+            <Button
+              onClick={handleAddToCart}
+              className="w-full h-12 text-base"
+              size="lg"
+            >
+              Add to Cart
+            </Button>
+          </div>
+        </div>
+      </main>
+
+      <ComplianceFooter />
+      <CustomerBottomNav />
+    </div>
+  );
+};
+
