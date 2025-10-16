@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Star, Plus, Minus } from "lucide-react";
+import { X, Star, Plus, Minus, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -43,25 +43,24 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [item, setItem] = useState<any>(null);
 
-  // Mock data - replace with actual Supabase query
-  const item = {
-    id: itemId,
-    name: 'Premium Gift Hamper',
-    description: 'Curated selection of premium items including gourmet treats, artisan chocolates, and luxury accessories. Perfect for any special occasion.',
-    price: 2499,
-    rating: 4.6,
-    images: [
-      '/placeholder.svg',
-      '/placeholder.svg',
-      '/placeholder.svg',
-    ],
-    specs: {
-      weight: '2.5 kg',
-      dimensions: '30cm x 20cm x 15cm',
-      materials: 'Premium packaging with satin finish',
-    },
-  };
+  // Load item data from centralized mock data
+  useEffect(() => {
+    const loadItem = () => {
+      const items = getMockItems();
+      const foundItem = items.find(i => i.id === itemId) || items[0];
+      setItem({
+        ...foundItem,
+        specs: {
+          weight: '2.5 kg',
+          dimensions: '30cm x 20cm x 15cm',
+          materials: 'Premium packaging with satin finish',
+        },
+      });
+    };
+    loadItem();
+  }, [itemId]);
 
   const addOns: AddOn[] = [
     { id: '1', name: 'Greeting Card (+₹99)', price: 99 },
@@ -135,6 +134,14 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
     }
   };
 
+  if (!item) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Grabber */}
@@ -154,14 +161,22 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         {/* Image Carousel - Compact height per spec: ~100px (using h-24 = 96px) */}
         <Carousel className="w-full">
           <CarouselContent>
-            {item.images.map((image, index) => (
+            {item.images?.map((image: string, index: number) => (
               <CarouselItem key={index}>
-                <div className="h-24 rounded-lg overflow-hidden bg-muted">
+                <div className="relative h-24 rounded-lg overflow-hidden bg-muted">
                   <img
                     src={image}
                     alt={`${item.name} ${index + 1}`}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
+                  {/* Fallback gift icon */}
+                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
+                    <Gift className="w-12 h-12" />
+                  </div>
                 </div>
               </CarouselItem>
             ))}

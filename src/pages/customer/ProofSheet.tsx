@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { X, AlertCircle } from "lucide-react";
+import { X, AlertCircle, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -33,9 +33,9 @@ export const ProofSheet = ({ isOpen, onClose, orderId }: ProofSheetProps) => {
     orderId: orderId || 'ORD-123',
     itemName: 'Custom Gift Hamper',
     mockups: [
-      '/placeholder.svg',
-      '/placeholder.svg',
-      '/placeholder.svg',
+      `https://picsum.photos/seed/proof-${orderId || 'ORD-123'}-1/800/600`,
+      `https://picsum.photos/seed/proof-${orderId || 'ORD-123'}-2/800/600`,
+      `https://picsum.photos/seed/proof-${orderId || 'ORD-123'}-3/800/600`,
     ],
   };
 
@@ -147,12 +147,19 @@ export const ProofSheet = ({ isOpen, onClose, orderId }: ProofSheetProps) => {
               <CarouselContent>
                 {proof.mockups.map((mockup, index) => (
                   <CarouselItem key={index}>
-                    <div className="aspect-square rounded-xl overflow-hidden bg-muted">
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
                       <img
                         src={mockup}
                         alt={`Mockup ${index + 1}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
+                      {/* Fallback icon */}
+                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
+                        <FileImage className="w-16 h-16" />
+                      </div>
                     </div>
                   </CarouselItem>
                 ))}

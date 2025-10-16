@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Star } from "lucide-react";
+import { Star, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -173,12 +173,20 @@ export const ItemDetails = () => {
             <CarouselContent>
               {(item?.images || [item?.image]).map((image, index) => (
                 <CarouselItem key={index}>
-                  <div className="aspect-square rounded-xl overflow-hidden bg-muted">
+                  <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
                     <img
                       src={image}
                       alt={`${item.name} ${index + 1}`}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
+                    {/* Fallback icon */}
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
+                      <Gift className="w-16 h-16" />
+                    </div>
                   </div>
                 </CarouselItem>
               ))}

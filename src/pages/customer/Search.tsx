@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search as SearchIcon, ArrowLeft, X, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard"
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { getMockItems } from "@/lib/integrations/supabase-data";
 
 interface SearchResult {
   id: string;
@@ -34,59 +35,37 @@ export const CustomerMobileSearch = () => {
     'Wedding Favors',
   ];
 
-  // Mock search results
-  const mockResults: SearchResult[] = [
-    {
-      id: '1',
-      name: 'Premium Gift Hamper',
-      image: '/placeholder.svg',
-      price: 2499,
-      rating: 4.6,
-      ratingCount: 234,
-      type: 'item',
-      badge: 'bestseller',
-      shortDesc: 'Premium treats & chocolates for special occasions',
-    },
-    {
-      id: '2',
-      name: 'Artisan Chocolate Box',
-      image: '/placeholder.svg',
-      price: 1299,
-      rating: 4.8,
-      ratingCount: 189,
-      type: 'item',
-      badge: 'trending',
-      shortDesc: 'Belgian chocolates perfect for sweet lovers',
-    },
-    {
-      id: '3',
-      name: 'Custom Photo Frame',
-      image: '/placeholder.svg',
-      price: 899,
-      rating: 4.5,
-      ratingCount: 98,
-      type: 'item',
-      shortDesc: 'Personalized frame for cherished memories',
-    },
-    {
-      id: '4',
-      name: 'Gourmet Delights',
-      image: '/placeholder.svg',
-      price: 1999,
-      rating: 4.7,
-      ratingCount: 145,
-      type: 'partner',
-    },
-  ];
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    if (query.length > 2) {
-      // Simulate search
-      setResults(mockResults);
+  // Load and filter results from centralized mock data
+  useEffect(() => {
+    const items = getMockItems();
+    
+    if (searchQuery.trim() && searchQuery.length > 2) {
+      const filtered = items.filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.shortDesc?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      
+      const searchResults: SearchResult[] = filtered.map(item => ({
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        rating: item.rating,
+        ratingCount: item.ratingCount,
+        type: 'item' as const,
+        badge: item.badge,
+        shortDesc: item.shortDesc,
+      }));
+      
+      setResults(searchResults);
     } else {
       setResults([]);
     }
+  }, [searchQuery]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
   };
 
   const handleClearSearch = () => {
