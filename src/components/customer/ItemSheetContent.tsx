@@ -18,6 +18,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Stepper } from "@/components/customer/shared/Stepper";
+import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
 import { useCart } from "@/contexts/CartContext";
@@ -39,6 +40,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
   const { refreshCartCount } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // Mock data - replace with actual Supabase query
   const item = {
@@ -105,12 +107,10 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         description: "Sign in to checkout",
       });
 
-      onClose();
-
-      // Show login prompt
+      // Show login prompt overlay
       setTimeout(() => {
-        navigate("/customer/login");
-      }, 1500);
+        setShowLoginPrompt(true);
+      }, 500);
     } else {
       // Authenticated: save to Supabase
       // Implementation would go here
@@ -257,6 +257,12 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
           Add to Cart
         </Button>
       </div>
+
+      {/* Login Prompt Overlay */}
+      <LoginPromptSheet
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+      />
     </div>
   );
 };

@@ -18,6 +18,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Stepper } from "@/components/customer/shared/Stepper";
+import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
@@ -38,6 +39,7 @@ export const ItemDetails = () => {
   const { refreshCartCount } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // Mock data - replace with actual Supabase query using id
   const item = {
@@ -106,10 +108,10 @@ export const ItemDetails = () => {
         description: "Sign in to checkout",
       });
 
-      // Show login prompt after delay
+      // Show login prompt overlay
       setTimeout(() => {
-        navigate("/customer/login");
-      }, 1500);
+        setShowLoginPrompt(true);
+      }, 500);
     } else {
       // Authenticated: save to Supabase
       // Implementation would go here
@@ -274,6 +276,12 @@ export const ItemDetails = () => {
 
       <ComplianceFooter />
       <CustomerBottomNav />
+
+      {/* Login Prompt Overlay */}
+      <LoginPromptSheet
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+      />
     </div>
   );
 };
