@@ -292,20 +292,22 @@ export const CustomerHome = () => {
             {filteredPartners.slice(0, 6).map((partner) => (
               <Card
                 key={partner.id}
-                className="cursor-pointer overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow"
+                className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
                 onClick={() => navigate(`/customer/partners/${partner.id}`)}
               >
                 <CardContent className="p-2">
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
+                  {/* Image - FIXED height per spec: h-100px (using h-28 = 112px) */}
+                  <div className="relative w-full h-28 rounded-lg overflow-hidden bg-muted mb-2">
                     <img
                       src={partner.image}
                       alt={partner.name}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
+                    {/* Badge top-RIGHT per spec */}
                     {partner.badge && (
                       <Badge
-                        className="absolute top-2 left-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
+                        className="absolute top-2 right-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
                       >
                         {partner.badge === 'bestseller' ? (
                           <>
@@ -321,14 +323,31 @@ export const CustomerHome = () => {
                       </Badge>
                     )}
                   </div>
-                  <h3 className="text-sm font-semibold line-clamp-1 mb-1">
-                    {partner.name}
-                  </h3>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      ★ {partner.rating}
-                    </span>
-                    <span>{partner.delivery}</span>
+                  
+                  {/* Content */}
+                  <div className="space-y-1">
+                    {/* Name - 16px bold per spec */}
+                    <h3 className="text-base font-bold line-clamp-1">
+                      {partner.name}
+                    </h3>
+                    
+                    {/* Category - 12px gray per spec */}
+                    {partner.category && (
+                      <p className="text-xs text-muted-foreground">{partner.category}</p>
+                    )}
+                    
+                    {/* Rating (14px) and Delivery (12px) per spec */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1 text-sm">
+                        ★ {partner.rating} {partner.ratingCount && `(${partner.ratingCount})`}
+                      </span>
+                      <span>{partner.delivery}</span>
+                    </div>
+                    
+                    {/* Tagline - 12px gray, 1 line per spec */}
+                    {partner.tagline && (
+                      <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

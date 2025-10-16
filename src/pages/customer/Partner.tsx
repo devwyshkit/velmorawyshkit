@@ -168,7 +168,9 @@ export const Partner = () => {
                 image={item.image}
                 price={item.price}
                 rating={item.rating}
+                ratingCount={item.ratingCount}
                 badge={item.badge}
+                shortDesc={item.shortDesc}
                 onClick={() => handleItemClick(item.id)}
               />
             ))}

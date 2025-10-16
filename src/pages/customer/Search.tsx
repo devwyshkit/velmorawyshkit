@@ -16,6 +16,8 @@ interface SearchResult {
   rating: number;
   type: 'item' | 'partner';
   badge?: 'bestseller' | 'trending';
+  ratingCount?: number;
+  shortDesc?: string;
 }
 
 export const CustomerMobileSearch = () => {
@@ -40,8 +42,10 @@ export const CustomerMobileSearch = () => {
       image: '/placeholder.svg',
       price: 2499,
       rating: 4.6,
+      ratingCount: 234,
       type: 'item',
       badge: 'bestseller',
+      shortDesc: 'Premium treats & chocolates for special occasions',
     },
     {
       id: '2',
@@ -49,8 +53,10 @@ export const CustomerMobileSearch = () => {
       image: '/placeholder.svg',
       price: 1299,
       rating: 4.8,
+      ratingCount: 189,
       type: 'item',
       badge: 'trending',
+      shortDesc: 'Belgian chocolates perfect for sweet lovers',
     },
     {
       id: '3',
@@ -58,7 +64,9 @@ export const CustomerMobileSearch = () => {
       image: '/placeholder.svg',
       price: 899,
       rating: 4.5,
+      ratingCount: 98,
       type: 'item',
+      shortDesc: 'Personalized frame for cherished memories',
     },
     {
       id: '4',
@@ -66,6 +74,7 @@ export const CustomerMobileSearch = () => {
       image: '/placeholder.svg',
       price: 1999,
       rating: 4.7,
+      ratingCount: 145,
       type: 'partner',
     },
   ];
@@ -146,7 +155,9 @@ export const CustomerMobileSearch = () => {
                   image={item.image}
                   price={item.price}
                   rating={item.rating}
+                  ratingCount={item.ratingCount}
                   badge={item.badge}
+                  shortDesc={item.shortDesc}
                   onClick={() => handleItemClick(item)}
                 />
               ))}

@@ -9,6 +9,9 @@ export interface Partner {
   delivery: string;
   badge?: 'bestseller' | 'trending';
   location?: string;
+  category?: string;  // "Tech Gifts", "Gourmet", etc.
+  tagline?: string;   // "Premium tech products"
+  ratingCount?: number; // 156
 }
 
 export interface Item {
@@ -21,8 +24,10 @@ export interface Item {
   rating: number;
   badge?: 'bestseller' | 'trending';
   partner_id: string;
-  specs?: any;
-  add_ons?: any[];
+  specs?: Record<string, string>;
+  add_ons?: Array<{ id: string; name: string; price: number }>;
+  ratingCount?: number; // 156
+  shortDesc?: string; // 2-line benefits for card display
 }
 
 export interface CartItemData {
@@ -31,7 +36,7 @@ export interface CartItemData {
   price: number;
   quantity: number;
   image?: string;
-  addOns?: any[];
+  addOns?: Array<{ id: string; name: string; price: number }>;
 }
 
 export interface WishlistItemData {
@@ -52,6 +57,9 @@ const mockPartners: Partner[] = [
     rating: 4.5,
     delivery: '1-2 days',
     badge: 'bestseller',
+    category: 'Tech Gifts',
+    tagline: 'Premium tech accessories',
+    ratingCount: 234,
   },
   {
     id: '2',
@@ -60,6 +68,9 @@ const mockPartners: Partner[] = [
     rating: 4.7,
     delivery: '2-3 days',
     badge: 'trending',
+    category: 'Gourmet',
+    tagline: 'Curated gift hampers',
+    ratingCount: 189,
   },
   {
     id: '3',
@@ -67,6 +78,9 @@ const mockPartners: Partner[] = [
     image: '/placeholder.svg',
     rating: 4.6,
     delivery: '1-2 days',
+    category: 'Chocolates',
+    tagline: 'Artisan chocolates & sweets',
+    ratingCount: 156,
   },
   {
     id: '4',
@@ -75,6 +89,9 @@ const mockPartners: Partner[] = [
     rating: 4.8,
     delivery: '3-5 days',
     badge: 'bestseller',
+    category: 'Personalized',
+    tagline: 'Custom-made gifts',
+    ratingCount: 312,
   },
   {
     id: '5',
@@ -82,6 +99,9 @@ const mockPartners: Partner[] = [
     image: '/placeholder.svg',
     rating: 4.4,
     delivery: '1-2 days',
+    category: 'Food & Beverage',
+    tagline: 'International gourmet items',
+    ratingCount: 98,
   },
   {
     id: '6',
@@ -90,6 +110,9 @@ const mockPartners: Partner[] = [
     rating: 4.9,
     delivery: '2-3 days',
     badge: 'trending',
+    category: 'Premium',
+    tagline: 'Luxury gift collections',
+    ratingCount: 276,
   },
 ];
 
@@ -98,10 +121,12 @@ const mockItems: Item[] = [
     id: '1',
     name: 'Premium Gift Hamper',
     description: 'Curated selection of premium items including gourmet treats, artisan chocolates, and luxury accessories. Perfect for any special occasion.',
+    shortDesc: 'Premium treats & chocolates for special occasions',
     image: '/placeholder.svg',
     images: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg'],
     price: 2499,
     rating: 4.6,
+    ratingCount: 234,
     badge: 'bestseller',
     partner_id: '1',
     specs: {
@@ -114,10 +139,12 @@ const mockItems: Item[] = [
     id: '2',
     name: 'Artisan Chocolate Box',
     description: 'Hand-crafted chocolates made with premium Belgian cocoa. Delightful flavors that melt in your mouth.',
+    shortDesc: 'Belgian chocolates perfect for sweet lovers',
     image: '/placeholder.svg',
     images: ['/placeholder.svg', '/placeholder.svg'],
     price: 1299,
     rating: 4.8,
+    ratingCount: 189,
     badge: 'trending',
     partner_id: '1',
   },
@@ -125,36 +152,44 @@ const mockItems: Item[] = [
     id: '3',
     name: 'Custom Photo Frame',
     description: 'Personalized photo frame with custom engraving. Perfect for capturing special memories.',
+    shortDesc: 'Personalized frame for cherished memories',
     image: '/placeholder.svg',
     price: 899,
     rating: 4.5,
+    ratingCount: 98,
     partner_id: '1',
   },
   {
     id: '4',
     name: 'Luxury Perfume Set',
     description: 'Premium fragrance collection from renowned brands. Elegant packaging for gifting.',
+    shortDesc: 'Premium fragrances in elegant packaging',
     image: '/placeholder.svg',
     price: 3999,
     rating: 4.7,
+    ratingCount: 167,
     partner_id: '1',
   },
   {
     id: '5',
     name: 'Gourmet Snack Basket',
     description: 'Curated selection of international and local gourmet snacks. Perfect for food lovers.',
+    shortDesc: 'International snacks for food enthusiasts',
     image: '/placeholder.svg',
     price: 1799,
     rating: 4.4,
+    ratingCount: 124,
     partner_id: '1',
   },
   {
     id: '6',
     name: 'Wireless Earbuds',
     description: 'Premium wireless earbuds with noise cancellation. Perfect gift for music lovers.',
+    shortDesc: 'Wireless audio for music lovers',
     image: '/placeholder.svg',
     price: 4999,
     rating: 4.9,
+    ratingCount: 312,
     badge: 'bestseller',
     partner_id: '1',
   },

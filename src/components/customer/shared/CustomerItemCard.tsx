@@ -9,7 +9,9 @@ interface CustomerItemCardProps {
   image: string;
   price: number;
   rating?: number;
+  ratingCount?: number;
   badge?: 'bestseller' | 'trending';
+  shortDesc?: string;
   onClick?: () => void;
   className?: string;
 }
@@ -20,7 +22,9 @@ export const CustomerItemCard = ({
   image,
   price,
   rating,
+  ratingCount,
   badge,
+  shortDesc,
   onClick,
   className,
 }: CustomerItemCardProps) => {
@@ -33,8 +37,8 @@ export const CustomerItemCard = ({
       onClick={onClick}
     >
       <CardContent className="p-2">
-        {/* Image */}
-        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
+        {/* Image - FIXED height per spec: h-120px (using h-32 = 128px) */}
+        <div className="relative w-full h-32 rounded-lg overflow-hidden bg-muted mb-2">
           <img
             src={image}
             alt={name}
@@ -62,17 +66,30 @@ export const CustomerItemCard = ({
 
         {/* Content */}
         <div className="space-y-1">
-          <h3 className="text-sm font-medium line-clamp-2 leading-tight">
+          {/* Name - 16px bold per spec */}
+          <h3 className="text-base font-bold line-clamp-1 leading-tight">
             {name}
           </h3>
+          
+          {/* Short Description - 2 lines, 12px gray per spec */}
+          {shortDesc && (
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-snug">
+              {shortDesc}
+            </p>
+          )}
+          
+          {/* Price and Rating */}
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-primary">
+            {/* Price - 14px bold per spec */}
+            <p className="text-sm font-bold text-primary">
               ₹{price.toLocaleString('en-IN')}
             </p>
+            {/* Rating - 12px with count per spec */}
             {rating && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span>★</span>
                 <span>{rating}</span>
+                {ratingCount && <span>({ratingCount})</span>}
               </div>
             )}
           </div>
