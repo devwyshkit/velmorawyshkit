@@ -109,7 +109,7 @@ export const Track = () => {
       <CustomerMobileHeader showBackButton title="Track Order" />
 
       {/* Main Content */}
-      <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-4">
         {/* ETA Card - Prominent (Swiggy pattern) */}
         <Card className="bg-gradient-primary text-white border-0">
           <CardContent className="p-6 text-center">
@@ -134,7 +134,8 @@ export const Track = () => {
             }}
           >
             <Phone className="h-5 w-5" />
-            Contact Delivery Partner
+            <span className="hidden sm:inline">Contact Partner</span>
+            <span className="sm:hidden">Call</span>
           </Button>
           <Button
             variant="outline"
@@ -147,7 +148,8 @@ export const Track = () => {
             }}
           >
             <HelpCircle className="h-5 w-5" />
-            Need Help?
+            <span className="hidden sm:inline">Need Help?</span>
+            <span className="sm:hidden">Help</span>
           </Button>
         </div>
 
@@ -251,28 +253,13 @@ export const Track = () => {
           </CardContent>
         </Card>
 
-        {/* Actions */}
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            className="w-full h-12"
-            onClick={() => {
-              toast({
-                title: "Contacting delivery partner...",
-                description: "Call will be initiated",
-              });
-            }}
-          >
-            Contact Delivery Partner
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12"
-            onClick={() => navigate("/customer/help")}
-          >
-            Need Help?
-          </Button>
-        </div>
+        {/* Actions - Continue Shopping (Swiggy pattern) */}
+        <Button
+          onClick={() => navigate("/customer/home")}
+          className="w-full h-12"
+        >
+          Continue Shopping
+        </Button>
       </main>
 
       <ComplianceFooter />
