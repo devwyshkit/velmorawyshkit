@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2, ShoppingBag, Store } from "lucide-react";
+import { Trash2, ShoppingBag, Store, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
@@ -23,6 +24,8 @@ import {
   updateCartItemSupabase,
   removeCartItemSupabase,
   fetchPartnerById,
+  getMockItems,
+  type Item,
 } from "@/lib/integrations/supabase-data";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
 
@@ -44,6 +47,7 @@ export const Cart = () => {
   const [gstin, setGstin] = useState("");
   const [loading, setLoading] = useState(false);
   const [partnerName, setPartnerName] = useState<string>("");
+  const [upsellItems, setUpsellItems] = useState<Item[]>([]);
 
   useEffect(() => {
     loadCart();
@@ -69,10 +73,18 @@ export const Cart = () => {
         const cartData = await fetchCartItems();
         setItems(cartData);
         
-        // Load partner name
+        // Load partner name and upsell items
         if (cartData.length > 0 && cartData[0].partner_id) {
           const partner = await fetchPartnerById(cartData[0].partner_id);
           setPartnerName(partner?.name || "");
+          
+          // Load upsell items from same partner (exclude items already in cart)
+          const allItems = getMockItems();
+          const cartItemIds = cartData.map(item => item.id);
+          const partnerItems = allItems
+            .filter(item => item.partner_id === cartData[0].partner_id && !cartItemIds.includes(item.id))
+            .slice(0, 4);
+          setUpsellItems(partnerItems);
         }
       }
     } catch (error) {
@@ -307,6 +319,54 @@ HSN Code: 9985
                         </div>
                       </div>
                     ))}
+
+        {/* Frequently Bought Together (Swiggy pattern) */}
+        {upsellItems.length > 0 && (
+          <>
+            <Separator className="my-4" />
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold">Frequently Bought Together</h3>
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth -mx-4 px-4 pb-2">
+                {upsellItems.map((item) => (
+                  <Card
+                    key={item.id}
+                    className="snap-start flex-shrink-0 w-32 cursor-pointer border-0 shadow-sm hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/customer/partners/${item.partner_id}#item-${item.id}`)}
+                  >
+                    <div className="p-2">
+                      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                      <h4 className="text-xs font-semibold line-clamp-2 mb-1">
+                        {item.name}
+                      </h4>
+                      <p className="text-xs font-bold text-primary mb-2">
+                        ₹{item.price.toLocaleString('en-IN')}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/customer/partners/${item.partner_id}#item-${item.id}`);
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         <Separator className="my-4" />
 

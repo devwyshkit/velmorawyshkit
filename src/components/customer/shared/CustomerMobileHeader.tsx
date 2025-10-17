@@ -173,6 +173,34 @@ export const CustomerMobileHeader = ({
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Use Current Location (Swiggy pattern) */}
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                      // In production, reverse geocode coordinates to city name
+                      setLocationInput("Your Current Location");
+                      setLocation("Your Current Location");
+                      setIsLocationSheetOpen(false);
+                    },
+                    (error) => {
+                      console.error("Geolocation error:", error);
+                      alert("Unable to get your location. Please enable location permissions.");
+                    }
+                  );
+                } else {
+                  alert("Geolocation is not supported by your browser");
+                }
+              }}
+              className="w-full h-12 text-base gap-2"
+              size="lg"
+            >
+              <MapPin className="h-5 w-5 text-primary" />
+              Use Current Location
+            </Button>
+
             {/* Search Input with Google Places */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Search for your location</label>
