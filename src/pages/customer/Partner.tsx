@@ -98,13 +98,14 @@ export const Partner = () => {
             </div>
           </div>
 
-          {/* Items Skeleton */}
+          {/* Items Skeleton - Matches CustomerItemCard */}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="aspect-square rounded-xl" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+              <div key={i} className="space-y-1 p-2">
+                <Skeleton className="aspect-square rounded-lg mb-2" />
+                <Skeleton className="h-4 w-3/4" />  {/* Name */}
+                <Skeleton className="h-3 w-2/3" />  {/* Short desc */}
+                <Skeleton className="h-4 w-1/3" />  {/* Price + Rating */}
               </div>
             ))}
           </div>
