@@ -22,10 +22,14 @@ interface SearchResult {
   sponsored?: boolean;
 }
 
+const RECENT_SEARCHES_KEY = 'wyshkit_recent_searches';
+const MAX_RECENT_SEARCHES = 5;
+
 export const CustomerMobileSearch = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   // Mock trending searches
   const trendingSearches = [
@@ -66,13 +70,46 @@ export const CustomerMobileSearch = () => {
     }
   }, [searchQuery]);
 
+  // Load recent searches on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (stored) {
+      try {
+        setRecentSearches(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to parse recent searches:', e);
+      }
+    }
+  }, []);
+
+  const saveRecentSearch = (query: string) => {
+    if (!query.trim()) return;
+    
+    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, MAX_RECENT_SEARCHES);
+    setRecentSearches(updated);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+  };
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    if (query.trim()) {
+      saveRecentSearch(query);
+    }
   };
 
   const handleClearSearch = () => {
     setSearchQuery("");
     setResults([]);
+  };
+
+  const handleRecentSearchClick = (query: string) => {
+    setSearchQuery(query);
+    handleSearch(query);
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
   };
 
   const handleItemClick = (item: SearchResult) => {
@@ -146,13 +183,46 @@ export const CustomerMobileSearch = () => {
             </div>
           </div>
         ) : (
-          /* Trending Searches */
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Trending</h2>
+          /* Recent & Trending Searches */
+          <div className="space-y-6">
+            {/* Recent Searches (Swiggy/Zomato pattern) */}
+            {recentSearches.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <SearchIcon className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-semibold">Recent Searches</h2>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground h-auto p-0 text-sm"
+                    onClick={clearRecentSearches}
+                  >
+                    Clear all
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {recentSearches.map((term, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleRecentSearchClick(term)}
+                      className="flex items-center justify-between w-full p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <span className="text-sm">{term}</span>
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))}
             </div>
-            <div className="space-y-2">
+            </div>
+
+            {/* Trending Searches */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Trending</h2>
+              </div>
+              <div className="space-y-2">
               {trendingSearches.map((term, index) => (
                 <button
                   key={index}

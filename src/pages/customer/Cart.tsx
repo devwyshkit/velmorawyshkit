@@ -252,13 +252,23 @@ HSN Code: 9985
       <CustomerMobileHeader showBackButton title="My Cart" />
       
       <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-4">
-        {/* Partner Info */}
-        {partnerName && (
-          <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-            <Store className="h-5 w-5 text-primary flex-shrink-0" />
-            <span className="text-sm">
-              Items from <span className="font-semibold text-foreground">{partnerName}</span>
-            </span>
+        {/* Partner Info with "Add More Items" link (Swiggy pattern) */}
+        {partnerName && items.length > 0 && items[0].partner_id && (
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Store className="h-5 w-5 text-primary flex-shrink-0" />
+              <span className="text-sm">
+                Items from <span className="font-semibold text-foreground">{partnerName}</span>
+              </span>
+            </div>
+            <Button
+              variant="link"
+              size="sm"
+              className="text-primary h-auto p-0 text-sm font-medium"
+              onClick={() => navigate(`/customer/partners/${items[0].partner_id}`)}
+            >
+              Add more items
+            </Button>
           </div>
         )}
 

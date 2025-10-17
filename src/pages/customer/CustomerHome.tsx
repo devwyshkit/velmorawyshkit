@@ -261,7 +261,7 @@ export const CustomerHome = () => {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold px-4">What's the occasion?</h2>
           {/* Swiggy/Zomato pattern: Mobile = 2 rows horizontal scroll | Desktop = 1 row */}
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[95px] gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 pl-4 lg:grid-rows-1 lg:overflow-visible lg:pl-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[95px] gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:grid-rows-1 lg:overflow-visible lg:px-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
@@ -324,8 +324,8 @@ export const CustomerHome = () => {
                         Sponsored
                       </Badge>
                     )}
-                    {/* Bestseller/Trending Badge - Top Right */}
-                    {partner.badge && (
+                    {/* Bestseller/Trending Badge - Top Right (only if not sponsored) */}
+                    {partner.badge && !partner.sponsored && (
                       <Badge
                         className="absolute top-2 right-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
                       >
