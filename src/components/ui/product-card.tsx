@@ -169,6 +169,7 @@ export const ProductCard = ({
                     index === imageIndex ? "bg-white" : "bg-white/50"
                   )}
                   onMouseEnter={() => handleImageHover(index)}
+                  aria-label={`View image ${index + 1}`}
                 />
               ))}
             </div>
