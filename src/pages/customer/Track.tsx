@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { CheckCircle, Circle, Package, Truck, Home as HomeIcon } from "lucide-react";
+import { CheckCircle, Circle, Package, Truck, Home as HomeIcon, Phone, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
@@ -110,16 +110,46 @@ export const Track = () => {
 
       {/* Main Content */}
       <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
-        {/* ETA Card */}
+        {/* ETA Card - Prominent (Swiggy pattern) */}
         <Card className="bg-gradient-primary text-white border-0">
           <CardContent className="p-6 text-center">
             <Truck className="h-12 w-12 mx-auto mb-3 animate-bounce" />
-            <h2 className="text-xl font-bold mb-1">On the Way!</h2>
+            <h2 className="text-2xl font-bold mb-2">On the Way!</h2>
+            <p className="text-lg font-semibold mb-1">
+              Arriving by {eta || '3:45 PM'}
+            </p>
             <p className="text-sm opacity-90">
-              Expected arrival: {eta || '3:45 PM'}
+              Order #{orderId.substring(0, 12)}
             </p>
           </CardContent>
         </Card>
+
+        {/* Contact & Help Buttons (Swiggy/Zomato pattern) */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="outline"
+            className="h-12 gap-2"
+            onClick={() => {
+              window.location.href = `tel:${orderDetails.deliveryPhone}`;
+            }}
+          >
+            <Phone className="h-5 w-5" />
+            Contact Delivery Partner
+          </Button>
+          <Button
+            variant="outline"
+            className="h-12 gap-2"
+            onClick={() => {
+              toast({
+                title: "Need Help?",
+                description: "Our support team will contact you shortly",
+              });
+            }}
+          >
+            <HelpCircle className="h-5 w-5" />
+            Need Help?
+          </Button>
+        </div>
 
         {/* Timeline */}
         <Card>
