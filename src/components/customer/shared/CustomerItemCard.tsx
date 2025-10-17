@@ -57,28 +57,34 @@ export const CustomerItemCard = ({
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
             <Gift className="w-12 h-12" />
           </div>
-          {/* Sponsored Badge - Top Left (Icon only for clean UI) */}
+          {/* Sponsored Badge - Top Left (Small icon + text, Zomato pattern) */}
           {sponsored && (
-            <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 p-1.5 border-amber-200 dark:border-amber-700" aria-label="Sponsored">
-              <Sparkles className="h-3 w-3 text-amber-900 dark:text-amber-100" />
+            <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
+              <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
+              <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
             </Badge>
           )}
-          {/* Bestseller/Trending Badge - Top Right (Icon only) */}
+          {/* Bestseller/Trending Badge - Top Right (Small icon + text, Swiggy pattern) */}
           {badge && (
             <Badge
-              className="absolute top-2 right-2 p-1.5 bg-[#FFB3AF] dark:bg-[#8B4A47] border-0"
-              aria-label={badge === 'bestseller' ? 'Bestseller' : 'Trending'}
+              className="absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] bg-[#FFB3AF] dark:bg-[#8B4A47] border-0"
             >
               {badge === 'bestseller' ? (
-                <Trophy className="h-3 w-3 text-foreground" />
+                <>
+                  <Trophy className="h-2.5 w-2.5 text-foreground" />
+                  <span className="font-medium">Bestseller</span>
+                </>
               ) : (
-                <Flame className="h-3 w-3 text-foreground" />
+                <>
+                  <Flame className="h-2.5 w-2.5 text-foreground" />
+                  <span className="font-medium">Trending</span>
+                </>
               )}
             </Badge>
           )}
-          {/* Customizable Badge - Bottom Right (Gift icon) */}
+          {/* Customizable Badge - Bottom Right (Icon only, secondary info) */}
           {isCustomizable && (
-            <Badge className="absolute bottom-2 right-2 p-1.5 bg-background/90 dark:bg-card/90 backdrop-blur-sm border border-border" aria-label="Customizable">
+            <Badge className="absolute bottom-2 right-2 p-1 bg-background/90 dark:bg-card/90 backdrop-blur-sm border border-border" aria-label="Customizable">
               <Gift className="h-3 w-3 text-primary" />
             </Badge>
           )}
