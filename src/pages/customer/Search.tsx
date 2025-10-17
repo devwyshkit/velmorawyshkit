@@ -214,11 +214,10 @@ export const CustomerMobileSearch = () => {
                 </button>
               ))}
             </div>
-          </div>
-          )}
+            )}
 
-          {/* Trending Searches */}
-          <div>
+            {/* Trending Searches */}
+            <div>
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 <h2 className="text-lg font-semibold">Trending</h2>
