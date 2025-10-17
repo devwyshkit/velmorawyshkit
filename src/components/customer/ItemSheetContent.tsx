@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, Plus, Minus, Gift } from "lucide-react";
+import { Star, Plus, Minus, Gift, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -282,6 +282,12 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         <p className="text-sm text-muted-foreground leading-relaxed">
           {item.description}
         </p>
+
+        {/* ETA Display (Zomato/Swiggy pattern) */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>Delivery in 3-5 days</span>
+        </div>
 
         {/* Quantity Stepper */}
         <div>

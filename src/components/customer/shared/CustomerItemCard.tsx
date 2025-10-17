@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Flame, Gift } from "lucide-react";
+import { Trophy, Flame, Gift, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CustomerItemCardProps {
@@ -13,6 +13,7 @@ interface CustomerItemCardProps {
   badge?: 'bestseller' | 'trending';
   shortDesc?: string;
   sponsored?: boolean;
+  isCustomizable?: boolean;
   onClick?: () => void;
   className?: string;
 }
@@ -27,6 +28,7 @@ export const CustomerItemCard = ({
   badge,
   shortDesc,
   sponsored,
+  isCustomizable,
   onClick,
   className,
 }: CustomerItemCardProps) => {
@@ -55,28 +57,29 @@ export const CustomerItemCard = ({
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
             <Gift className="w-12 h-12" />
           </div>
-          {/* Sponsored Badge - Top Left (Zomato pattern) */}
+          {/* Sponsored Badge - Top Left (Icon only for clean UI) */}
           {sponsored && (
-            <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100 text-xs border-amber-200 dark:border-amber-700">
-              Sponsored
+            <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 p-1.5 border-amber-200 dark:border-amber-700" aria-label="Sponsored">
+              <Sparkles className="h-3 w-3 text-amber-900 dark:text-amber-100" />
             </Badge>
           )}
-          {/* Bestseller/Trending Badge - Top Right */}
+          {/* Bestseller/Trending Badge - Top Right (Icon only) */}
           {badge && (
             <Badge
-              className="absolute top-2 right-2 gap-1 text-sm bg-[#FFB3AF] dark:bg-[#8B4A47] text-foreground border-0 hover:bg-[#FFB3AF]/90 dark:hover:bg-[#8B4A47]/90"
+              className="absolute top-2 right-2 p-1.5 bg-[#FFB3AF] dark:bg-[#8B4A47] border-0"
+              aria-label={badge === 'bestseller' ? 'Bestseller' : 'Trending'}
             >
               {badge === 'bestseller' ? (
-                <>
-                  <Trophy className="w-3 h-3" />
-                  Bestseller
-                </>
+                <Trophy className="h-3 w-3 text-foreground" />
               ) : (
-                <>
-                  <Flame className="w-3 h-3" />
-                  Trending
-                </>
+                <Flame className="h-3 w-3 text-foreground" />
               )}
+            </Badge>
+          )}
+          {/* Customizable Badge - Bottom Right (Gift icon) */}
+          {isCustomizable && (
+            <Badge className="absolute bottom-2 right-2 p-1.5 bg-background/90 dark:bg-card/90 backdrop-blur-sm border border-border" aria-label="Customizable">
+              <Gift className="h-3 w-3 text-primary" />
             </Badge>
           )}
         </div>

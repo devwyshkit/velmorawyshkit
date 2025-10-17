@@ -318,27 +318,22 @@ export const CustomerHome = () => {
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
-                    {/* Sponsored Badge - Top Left (Zomato pattern) */}
+                    {/* Sponsored Badge - Top Left (Icon only for clean UI) */}
                     {partner.sponsored && (
-                      <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100 text-xs border-amber-200 dark:border-amber-700">
-                        Sponsored
+                      <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 p-1.5 border-amber-200 dark:border-amber-700" aria-label="Sponsored">
+                        <Sparkles className="h-3 w-3 text-amber-900 dark:text-amber-100" />
                       </Badge>
                     )}
-                    {/* Bestseller/Trending Badge - Top Right (only if not sponsored) */}
+                    {/* Bestseller/Trending Badge - Top Right (Icon only, no conflict with sponsored) */}
                     {partner.badge && !partner.sponsored && (
                       <Badge
-                        className="absolute top-2 right-2 gap-1 text-sm bg-[#FFB3AF] dark:bg-[#8B4A47] text-foreground border-0 hover:bg-[#FFB3AF]/90 dark:hover:bg-[#8B4A47]/90"
+                        className="absolute top-2 right-2 p-1.5 bg-[#FFB3AF] dark:bg-[#8B4A47] border-0"
+                        aria-label={partner.badge === 'bestseller' ? 'Bestseller' : 'Trending'}
                       >
                         {partner.badge === 'bestseller' ? (
-                          <>
-                            <Trophy className="w-3 h-3" />
-                            Bestseller
-                          </>
+                          <Trophy className="h-3 w-3 text-foreground" />
                         ) : (
-                          <>
-                            <Flame className="w-3 h-3" />
-                            Trending
-                          </>
+                          <Flame className="h-3 w-3 text-foreground" />
                         )}
                       </Badge>
                     )}

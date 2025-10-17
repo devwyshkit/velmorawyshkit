@@ -30,6 +30,9 @@ export interface Item {
   ratingCount?: number; // 156
   shortDesc?: string; // 3-line benefits for card display (emotional appeal)
   sponsored?: boolean; // Promoted/sponsored item
+  isCustomizable?: boolean; // Supports branding/customization (distributor-handled)
+  estimatedDeliveryDays?: string; // ETA display (e.g., "3-5 days")
+  components?: string[]; // For hampers: list of included items
 }
 
 export interface CartItemData {
