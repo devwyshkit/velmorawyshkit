@@ -126,8 +126,8 @@ export const CustomerHome = () => {
       <div className="min-h-screen bg-background pb-20">
         <CustomerMobileHeader />
         <main className="max-w-screen-xl mx-auto space-y-4 pt-4 px-4">
-          {/* Hero Skeleton */}
-          <Skeleton className="h-40 w-full rounded-xl" />
+          {/* Hero Skeleton - Matches actual h-32 banner height */}
+          <Skeleton className="h-32 w-full rounded-xl" />
           
           {/* Occasions Skeleton */}
           <div className="flex gap-4 overflow-hidden">
@@ -139,13 +139,15 @@ export const CustomerHome = () => {
             ))}
           </div>
 
-          {/* Partners Skeleton */}
+          {/* Partners Skeleton - Matches actual partner card structure */}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="aspect-square rounded-xl" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+              <div key={i} className="space-y-1 p-2">
+                <Skeleton className="aspect-square rounded-lg mb-2" />
+                <Skeleton className="h-4 w-3/4" />  {/* Name: text-base */}
+                <Skeleton className="h-3 w-1/2" />  {/* Category: text-xs */}
+                <Skeleton className="h-3 w-2/3" />  {/* Rating + Delivery */}
+                <Skeleton className="h-3 w-full" />  {/* Tagline */}
               </div>
             ))}
           </div>
