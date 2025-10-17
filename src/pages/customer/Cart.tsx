@@ -273,7 +273,7 @@ HSN Code: 9985
                 Items from <span className="font-semibold text-foreground">{partnerName}</span>
               </span>
             </div>
-            <Button
+            <Button 
               variant="link"
               size="sm"
               className="text-primary h-auto p-0 text-sm font-medium"
@@ -425,15 +425,15 @@ HSN Code: 9985
           >
             Proceed to Checkout
           </Button>
-          <Button 
+        <Button 
             variant="outline"
             onClick={() => navigate('/customer/home')}
-            className="w-full h-12 text-base"
+          className="w-full h-12 text-base"
             size="lg"
-          >
+        >
             Continue Shopping
-          </Button>
-        </div>
+        </Button>
+      </div>
       </main>
 
       <ComplianceFooter />

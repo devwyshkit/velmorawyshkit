@@ -133,7 +133,7 @@ export const CustomerHome = () => {
           <div className="flex gap-4 overflow-hidden">
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="flex flex-col items-center gap-2">
-                <Skeleton className="w-16 h-16 rounded-full" />
+                <Skeleton className="w-20 h-20 rounded-full" />
                 <Skeleton className="h-3 w-12" />
               </div>
             ))}
@@ -257,11 +257,11 @@ export const CustomerHome = () => {
           </div>
         </section>
 
-        {/* Occasions - ROUND cards like Swiggy: Horizontal scroll mobile, Grid desktop */}
+        {/* Occasions - ROUND cards like Swiggy: Single row for service marketplace focus */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold px-4">What's the occasion?</h2>
-          {/* Swiggy/Zomato pattern: Mobile = 2 rows horizontal scroll | Desktop = 1 row */}
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[95px] gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:grid-rows-1 lg:overflow-visible lg:px-0 lg:gap-6 lg:auto-cols-auto lg:justify-start">
+          {/* Single row horizontal scroll (optimized for partner card visibility) */}
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
