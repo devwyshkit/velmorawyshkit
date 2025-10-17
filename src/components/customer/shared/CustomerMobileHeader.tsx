@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
 import { useCart } from "@/contexts/CartContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { loadGooglePlaces, initAutocomplete, formatAddress } from "@/lib/integrations/google-places";
@@ -111,6 +112,7 @@ export const CustomerMobileHeader = ({
         
         {/* Desktop Only: Search, Cart, Wishlist, Account icons (mobile uses bottom nav) */}
         <div className="hidden md:flex items-center gap-2">
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"
@@ -167,7 +169,7 @@ export const CustomerMobileHeader = ({
           </div>
 
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
+          <div className="sticky top-0 z-10 bg-background dark:bg-card border-b border-border px-4 py-3">
             <h2 className="text-lg font-semibold">Select Location</h2>
           </div>
 

@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { LocationProvider } from "@/contexts/LocationContext";
@@ -14,13 +15,14 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CartProvider>
-        <LocationProvider>
-          <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+    <ThemeProvider defaultTheme="system" storageKey="wyshkit-ui-theme">
+      <AuthProvider>
+        <CartProvider>
+          <LocationProvider>
+            <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
           <Routes>
             {/* Root redirect to customer home */}
             <Route path="/" element={<Navigate to="/customer/home" replace />} />
@@ -46,11 +48,12 @@ const App = () => (
             <Route path="/unauthorized" element={<LazyPages.Unauthorized />} />
             <Route path="*" element={<LazyPages.NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </LocationProvider>
-  </CartProvider>
-  </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </LocationProvider>
+    </CartProvider>
+    </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

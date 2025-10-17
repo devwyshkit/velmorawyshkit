@@ -10,7 +10,7 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 
 interface Order {
   id: string;

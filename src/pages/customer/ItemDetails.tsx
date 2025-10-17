@@ -136,6 +136,14 @@ export const ItemDetails = () => {
       toast({
         title: "Added to cart",
         description: "Sign in to checkout",
+        action: (
+          <ToastAction 
+            altText="Sign in"
+            onClick={() => setShowLoginPrompt(true)}
+          >
+            Sign In
+          </ToastAction>
+        ),
       });
 
       // Show login prompt overlay
@@ -151,9 +159,17 @@ export const ItemDetails = () => {
         toast({
           title: "Added to cart",
           description: `${quantity}x ${item.name}`,
+          action: (
+            <ToastAction 
+              altText="View cart"
+              onClick={() => navigate('/customer/cart')}
+            >
+              View Cart
+            </ToastAction>
+          ),
         });
-        // Navigate to cart
-        navigate("/customer/cart");
+        // Auto-navigate to cart after 2 seconds (or user can click toast)
+        setTimeout(() => navigate("/customer/cart"), 2000);
       } else {
         toast({
           title: "Error",

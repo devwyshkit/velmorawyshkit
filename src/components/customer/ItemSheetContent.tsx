@@ -21,6 +21,7 @@ import { Stepper } from "@/components/customer/shared/Stepper";
 import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
 import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { supabase, isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
 import { addToCartSupabase, getMockItems, fetchPartnerById, fetchItemById } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
@@ -149,6 +150,17 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
       toast({
         title: "Added to cart",
         description: "Sign in to checkout",
+        action: (
+          <ToastAction 
+            altText="Sign in"
+            onClick={() => {
+              onClose();
+              setShowLoginPrompt(true);
+            }}
+          >
+            Sign In
+          </ToastAction>
+        ),
       });
 
       // Show login prompt overlay
@@ -173,6 +185,17 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
         toast({
           title: "Added to cart",
           description: `${quantity}x ${item.name}`,
+          action: (
+            <ToastAction 
+              altText="View cart"
+              onClick={() => {
+                onClose();
+                navigate('/customer/cart');
+              }}
+            >
+              View Cart
+            </ToastAction>
+          ),
         });
       } else {
         toast({
