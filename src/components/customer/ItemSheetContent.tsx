@@ -22,7 +22,7 @@ import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet"
 import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
-import { addToCartSupabase, getMockItems, fetchPartnerById } from "@/lib/integrations/supabase-data";
+import { addToCartSupabase, getMockItems, fetchPartnerById, fetchItemById } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 
@@ -49,19 +49,40 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
   const [currentPartnerName, setCurrentPartnerName] = useState<string>("");
   const [newPartnerName, setNewPartnerName] = useState<string>("");
 
-  // Load item data from centralized mock data
+  // Load item data from Supabase (fallback to mock)
   useEffect(() => {
-    const loadItem = () => {
-      const items = getMockItems();
-      const foundItem = items.find(i => i.id === itemId) || items[0];
-      setItem({
-        ...foundItem,
-        specs: {
-          weight: '2.5 kg',
-          dimensions: '30cm x 20cm x 15cm',
-          materials: 'Premium packaging with satin finish',
-        },
-      });
+    const loadItem = async () => {
+      try {
+        const itemData = await fetchItemById(itemId);
+        if (itemData) {
+          setItem({
+            ...itemData,
+            specs: itemData.specs || {
+              weight: '2.5 kg',
+              dimensions: '30cm x 20cm x 15cm',
+              materials: 'Premium packaging with satin finish',
+            },
+          });
+        } else {
+          // Fallback to mock if not found
+          const items = getMockItems();
+          const foundItem = items.find(i => i.id === itemId) || items[0];
+          setItem({
+            ...foundItem,
+            specs: {
+              weight: '2.5 kg',
+              dimensions: '30cm x 20cm x 15cm',
+              materials: 'Premium packaging with satin finish',
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load item:', error);
+        // Fallback to mock on error
+        const items = getMockItems();
+        const foundItem = items.find(i => i.id === itemId) || items[0];
+        setItem(foundItem);
+      }
     };
     loadItem();
   }, [itemId]);

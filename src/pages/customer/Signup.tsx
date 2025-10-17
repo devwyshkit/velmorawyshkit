@@ -21,24 +21,37 @@ export const CustomerMobileSignup = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: name,
           },
+          emailRedirectTo: window.location.origin + '/customer/home',
         },
       });
 
       if (error) throw error;
 
-      toast({
-        title: "Account created!",
-        description: "Please check your email to verify your account.",
-      });
-
-      navigate("/customer/login");
+      // Supabase auto-logs in user after signup (even without email verification)
+      if (data.session) {
+        // User is logged in immediately (Swiggy/Zomato pattern)
+        toast({
+          title: "Welcome to Wyshkit!",
+          description: data.user?.email_confirmed_at 
+            ? "Your account is ready!" 
+            : "Please verify your email to unlock all features.",
+        });
+        navigate("/customer/home");
+      } else {
+        // Email confirmation required before login (rare case - depends on Supabase settings)
+        toast({
+          title: "Check your email",
+          description: "Click the verification link to activate your account.",
+        });
+        navigate("/customer/login");
+      }
     } catch (error: unknown) {
       toast({
         title: "Signup failed",

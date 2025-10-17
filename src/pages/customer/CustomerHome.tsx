@@ -16,10 +16,12 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
 import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { EmailVerificationBanner } from "@/components/customer/shared/EmailVerificationBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRecommendations } from "@/lib/integrations/openai";
 import { fetchPartners, type Partner } from "@/lib/integrations/supabase-data";
 import { useLocation } from "@/contexts/LocationContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import Autoplay from "embla-carousel-autoplay";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,7 @@ export const CustomerHome = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { location } = useLocation();
+  const { user } = useAuth();
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,6 +158,11 @@ export const CustomerHome = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <CustomerMobileHeader />
+      
+      {/* Email Verification Banner - Show if user not verified */}
+      {user && !user.isEmailVerified && (
+        <EmailVerificationBanner email={user.email} />
+      )}
 
       {/* Main Content */}
       <main className="max-w-screen-xl mx-auto space-y-4 pt-4">
@@ -170,6 +178,9 @@ export const CustomerHome = () => {
               plugins={[
                 Autoplay({
                   delay: 5000,
+                  stopOnInteraction: true,      // Pause on click/drag
+                  stopOnMouseEnter: true,       // Pause on hover (Zomato pattern)
+                  stopOnFocusIn: true,          // Pause on keyboard focus (WCAG 2.2.2)
                 }),
               ]}
               className="w-full"
