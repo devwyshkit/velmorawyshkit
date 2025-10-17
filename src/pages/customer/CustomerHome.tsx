@@ -191,7 +191,7 @@ export const CustomerHome = () => {
                     <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 border-0 overflow-hidden">
                       <CardContent className="p-0">
                         <div
-                          className="relative h-40 bg-gradient-to-br from-primary via-primary-light to-primary"
+                          className="relative h-32 bg-gradient-to-br from-primary via-primary-light to-primary"
                           onClick={() => navigate(`/customer/partners/${item.partner_id}`)}
                         >
                           {/* Background Pattern */}
@@ -390,9 +390,7 @@ export const CustomerHome = () => {
         </section>
       </main>
 
-      <div className="mt-6">
-        <ComplianceFooter />
-      </div>
+      {/* Footer removed from Home for service marketplace focus - more partner cards above fold */}
       <FloatingCartButton />
       <CustomerBottomNav />
     </div>
