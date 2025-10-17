@@ -320,14 +320,14 @@ export const CustomerHome = () => {
                     />
                     {/* Sponsored Badge - Top Left (Zomato pattern) */}
                     {partner.sponsored && (
-                      <Badge className="absolute top-2 left-2 bg-amber-100 text-amber-900 text-xs border-amber-200">
+                      <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100 text-xs border-amber-200 dark:border-amber-700">
                         Sponsored
                       </Badge>
                     )}
                     {/* Bestseller/Trending Badge - Top Right (only if not sponsored) */}
                     {partner.badge && !partner.sponsored && (
                       <Badge
-                        className="absolute top-2 right-2 gap-1 text-sm bg-[#FFB3AF] text-foreground border-0 hover:bg-[#FFB3AF]/90"
+                        className="absolute top-2 right-2 gap-1 text-sm bg-[#FFB3AF] dark:bg-[#8B4A47] text-foreground border-0 hover:bg-[#FFB3AF]/90 dark:hover:bg-[#8B4A47]/90"
                       >
                         {partner.badge === 'bestseller' ? (
                           <>

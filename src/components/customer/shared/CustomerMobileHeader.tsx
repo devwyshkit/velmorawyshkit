@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
+import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/contexts/CartContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { loadGooglePlaces, initAutocomplete, formatAddress } from "@/lib/integrations/google-places";
@@ -22,11 +23,15 @@ export const CustomerMobileHeader = ({
   onBackClick,
 }: CustomerMobileHeaderProps) => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const { cartCount } = useCart();
   const { location, setLocation } = useLocation();
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [locationInput, setLocationInput] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
+  
+  // Determine if dark mode is active (for logo switching)
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   useEffect(() => {
     if (isLocationSheetOpen && addressInputRef.current) {
@@ -95,7 +100,11 @@ export const CustomerMobileHeader = ({
           ) : (
             <>
               <Link to="/customer/home" className="flex-shrink-0" aria-label="Go to home">
-                <img src="/wyshkit-customer-logo.png" alt="Wyshkit" className="h-8 hover:opacity-80 transition-opacity" />
+                <img 
+                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"} 
+                  alt="Wyshkit" 
+                  className="h-8 hover:opacity-80 transition-opacity" 
+                />
               </Link>
               {/* Location with city name - Swiggy pattern */}
               <button 

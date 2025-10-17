@@ -127,9 +127,9 @@ export const Profile = () => {
       <header className="bg-gradient-primary text-white py-8 px-4">
         <div className="max-w-screen-xl mx-auto">
           <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16 border-2 border-white">
+            <Avatar className="h-16 w-16 border-2 border-primary/20">
               <AvatarImage src={userData.avatar} />
-              <AvatarFallback className="bg-white text-primary text-xl">
+              <AvatarFallback className="bg-background dark:bg-card text-primary text-xl">
                 {userData.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>

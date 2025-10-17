@@ -6,15 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/components/theme-provider";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 
 export const CustomerMobileSignup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  
+  // Determine if dark mode is active
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +102,7 @@ export const CustomerMobileSignup = () => {
             <div className="flex justify-center mb-4">
               <Link to="/customer/home">
                 <img
-                  src="/wyshkit-customer-logo.png"
+                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"}
                   alt="Wyshkit - Go to home"
                   className="h-12 hover:opacity-80 transition-opacity cursor-pointer"
                 />
