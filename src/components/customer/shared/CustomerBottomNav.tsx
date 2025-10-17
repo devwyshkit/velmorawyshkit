@@ -47,7 +47,7 @@ export const CustomerBottomNav = () => {
                 {showBadge && (
                   <Badge 
                     variant="destructive" 
-                    className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center p-0 text-xs"
+                    className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center p-0 text-xs pointer-events-none"
                   >
                     {cartCount > 9 ? '9+' : cartCount}
                   </Badge>

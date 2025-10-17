@@ -18,7 +18,7 @@ import {
   getGuestCart,
   setGuestCart,
 } from "@/lib/integrations/supabase-client";
-import {
+import { 
   fetchCartItems,
   updateCartItemSupabase,
   removeCartItemSupabase,
@@ -216,8 +216,8 @@ HSN Code: 9985
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
                 <Skeleton className="h-8 w-32" />
-              </div>
-            </div>
+          </div>
+        </div>
           ))}
         </main>
 
@@ -346,14 +346,24 @@ HSN Code: 9985
           </div>
         </div>
         
-        {/* Checkout Button */}
-        <Button 
-          onClick={handleProceedToCheckout}
-          className="w-full h-12 text-base sticky bottom-20 md:bottom-4"
-          size="lg"
-        >
-          Proceed to Checkout
-        </Button>
+        {/* Action Buttons */}
+        <div className="sticky bottom-20 md:bottom-4 space-y-3">
+          <Button 
+            onClick={handleProceedToCheckout}
+            className="w-full h-12 text-base"
+            size="lg"
+          >
+            Proceed to Checkout
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/customer/home')}
+            className="w-full h-12 text-base"
+            size="lg"
+          >
+            Continue Shopping
+          </Button>
+        </div>
       </main>
 
       <ComplianceFooter />

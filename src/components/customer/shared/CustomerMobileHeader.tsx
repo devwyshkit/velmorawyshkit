@@ -47,7 +47,12 @@ export const CustomerMobileHeader = ({
     if (onBackClick) {
       onBackClick();
     } else {
-      navigate(-1);
+      // Smart back: Go back if history exists, otherwise go to home (Swiggy pattern)
+      if (window.history.length > 2) {
+        navigate(-1);
+      } else {
+        navigate('/customer/home');
+      }
     }
   };
 
@@ -125,7 +130,7 @@ export const CustomerMobileHeader = ({
             {cartCount > 0 && (
               <Badge 
                 variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs pointer-events-none"
               >
                 {cartCount > 9 ? '9+' : cartCount}
               </Badge>

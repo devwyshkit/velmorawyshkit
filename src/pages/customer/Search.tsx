@@ -98,7 +98,7 @@ export const CustomerMobileSearch = () => {
           <div className="flex-1 relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              type="search"
+              type="text"
               placeholder="Search for gifts, partners..."
               className="pl-9 pr-9"
               value={searchQuery}

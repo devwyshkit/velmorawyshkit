@@ -33,7 +33,7 @@ export const FloatingCartButton = ({ className }: FloatingCartButtonProps) => {
         {cartCount > 0 && (
           <Badge 
             variant="destructive" 
-            className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs font-bold rounded-full"
+            className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs font-bold rounded-full pointer-events-none"
           >
             {cartCount > 9 ? '9+' : cartCount}
           </Badge>
