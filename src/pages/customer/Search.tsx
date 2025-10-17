@@ -211,9 +211,10 @@ export const CustomerMobileSearch = () => {
                     >
                       <span className="text-sm">{term}</span>
                       <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Trending Searches */}
