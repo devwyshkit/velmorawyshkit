@@ -384,6 +384,51 @@ export const ItemDetails = () => {
             </Accordion>
           )}
 
+          {/* What's Included (for hampers) */}
+          {item.hamper_components && item.hamper_components.length > 0 && (
+            <Accordion type="single" collapsible className="w-full" defaultOpen>
+              <AccordionItem value="components">
+                <AccordionTrigger className="text-base font-semibold">
+                  🎁 What's Included
+                </AccordionTrigger>
+                <AccordionContent className="space-y-3 pt-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    This hamper includes {item.hamper_components.length} carefully curated items:
+                  </p>
+                  
+                  <div className="space-y-2">
+                    {item.hamper_components.map((component: any, index: number) => (
+                      <div key={index} className="flex gap-3 items-center p-3 bg-muted/50 rounded-lg">
+                        {component.image_url && (
+                          <img 
+                            src={component.image_url} 
+                            alt={component.name}
+                            className="w-14 h-14 rounded object-cover" 
+                          />
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{component.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Quantity: {component.quantity}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          Included
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      All components assembled with care and ready for gifting
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
+
           {/* Specifications & Compliance */}
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="specs">
