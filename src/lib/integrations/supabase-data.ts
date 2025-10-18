@@ -531,3 +531,455 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
 export const getMockPartners = () => mockPartners;
 export const getMockItems = () => mockItems;
 
+// ============================================
+// PARTNER PLATFORM TYPES & FUNCTIONS
+// (Added for partner dashboard - extends existing customer types)
+// ============================================
+
+export interface PartnerProfile {
+  id: string;
+  user_id: string;
+  business_name: string;
+  display_name: string;
+  category: string;
+  tagline?: string;
+  email: string;
+  phone: string;
+  
+  // KYC
+  pan_number: string;
+  pan_verified: boolean;
+  gst_number?: string;
+  gst_verified: boolean;
+  tan_number?: string;
+  tan_verified: boolean;
+  
+  // IDfy request IDs
+  idfy_pan_request_id?: string;
+  idfy_gst_request_id?: string;
+  idfy_bank_request_id?: string;
+  
+  // Address
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  
+  // Bank
+  bank_account_number: string;
+  bank_ifsc: string;
+  bank_account_holder: string;
+  bank_verified: boolean;
+  
+  // Status
+  onboarding_status: 'incomplete' | 'pending_review' | 'approved' | 'rejected';
+  onboarding_step: number;
+  rejection_reason?: string;
+  approved_at?: string;
+  approved_by?: string;
+  
+  // Locations (multi-warehouse)
+  warehouse_locations: Array<{ city: string; pincode: string; address: string }>;
+  
+  // Settings
+  lead_time_days: number;
+  accepts_customization: boolean;
+  
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PartnerProduct {
+  id: string;
+  partner_id: string;
+  name: string;
+  description: string;
+  short_desc?: string;
+  category: string;
+  
+  // Pricing (in paise)
+  price: number;
+  original_price?: number;
+  
+  // Images
+  image_url: string;
+  additional_images: string[];
+  
+  // Inventory
+  stock_by_location: Record<string, number>; // { delhi: 50, bangalore: 30 }
+  total_stock: number;
+  
+  // Specs
+  weight?: string;
+  dimensions?: string;
+  is_customizable: boolean;
+  customization_options: Array<{ name: string; price: number }>;
+  
+  // Lead time
+  preparation_days: number;
+  estimated_delivery_days: string;
+  
+  // Status
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PartnerHamper {
+  id: string;
+  partner_id: string;
+  name: string;
+  description: string;
+  short_desc?: string;
+  
+  // Components
+  components: Array<{
+    product_id: string;
+    quantity: number;
+    source: 'own' | 'vendor';
+  }>;
+  
+  // Pricing (in paise)
+  price: number;
+  original_price?: number;
+  
+  // Images
+  mockup_image_url: string;
+  component_images: string[];
+  
+  // Inventory
+  stock: number;
+  
+  // Lead time
+  preparation_days: number;
+  
+  // Status
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface PartnerOrder {
+  id: string;
+  order_id: string;
+  partner_id: string;
+  
+  // Items
+  items: Array<{
+    product_id: string;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  
+  // Fulfillment
+  status: 'pending' | 'preparing' | 'ready' | 'dispatched' | 'completed' | 'cancelled';
+  proof_images: string[];
+  proof_approved: boolean;
+  proof_approved_at?: string;
+  
+  // Tracking
+  tracking_number?: string;
+  dispatched_at?: string;
+  
+  // Financials (in paise)
+  total_amount: number;
+  commission_rate: number;
+  partner_payout: number;
+  
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PartnerEarnings {
+  id: string;
+  partner_id: string;
+  month: number;
+  year: number;
+  
+  // Financials (in paise)
+  total_sales: number;
+  commission_amount: number;
+  net_earnings: number;
+  
+  // Payout
+  payout_status: 'pending' | 'processing' | 'paid';
+  payout_date?: string;
+  razorpay_payout_id?: string;
+  
+  created_at: string;
+}
+
+// ============================================
+// PARTNER DATA FETCHING FUNCTIONS
+// ============================================
+
+/**
+ * Fetch partner profile by user ID
+ */
+export const fetchPartnerProfile = async (userId: string): Promise<PartnerProfile | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('partner_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch partner profile:', error);
+    return null;
+  }
+};
+
+/**
+ * Create or update partner profile
+ */
+export const upsertPartnerProfile = async (profileData: Partial<PartnerProfile>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('partner_profiles')
+      .upsert(profileData, { onConflict: 'user_id' });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to upsert partner profile:', error);
+    return false;
+  }
+};
+
+/**
+ * Fetch partner's own products
+ */
+export const fetchPartnerProducts = async (partnerId: string): Promise<PartnerProduct[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('partner_products')
+      .select('*')
+      .eq('partner_id', partnerId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch partner products:', error);
+    return [];
+  }
+};
+
+/**
+ * Create a new partner product
+ */
+export const createPartnerProduct = async (productData: Partial<PartnerProduct>): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('partner_products')
+      .insert(productData)
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data?.id || null;
+  } catch (error) {
+    console.error('Failed to create partner product:', error);
+    return null;
+  }
+};
+
+/**
+ * Update a partner product
+ */
+export const updatePartnerProduct = async (productId: string, updates: Partial<PartnerProduct>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('partner_products')
+      .update(updates)
+      .eq('id', productId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to update partner product:', error);
+    return false;
+  }
+};
+
+/**
+ * Delete a partner product
+ */
+export const deletePartnerProduct = async (productId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('partner_products')
+      .delete()
+      .eq('id', productId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to delete partner product:', error);
+    return false;
+  }
+};
+
+/**
+ * Fetch partner orders
+ */
+export const fetchPartnerOrders = async (partnerId: string, status?: string): Promise<PartnerOrder[]> => {
+  try {
+    let query = supabase
+      .from('partner_orders')
+      .select('*')
+      .eq('partner_id', partnerId)
+      .order('created_at', { ascending: false });
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch partner orders:', error);
+    return [];
+  }
+};
+
+/**
+ * Update order status
+ */
+export const updateOrderStatus = async (orderId: string, status: string, updates?: Partial<PartnerOrder>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('partner_orders')
+      .update({ status, ...updates })
+      .eq('id', orderId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to update order status:', error);
+    return false;
+  }
+};
+
+/**
+ * Fetch partner earnings for a specific period
+ */
+export const fetchPartnerEarnings = async (partnerId: string, month?: number, year?: number): Promise<PartnerEarnings[]> => {
+  try {
+    let query = supabase
+      .from('partner_earnings')
+      .select('*')
+      .eq('partner_id', partnerId)
+      .order('year', { ascending: false })
+      .order('month', { ascending: false });
+
+    if (month && year) {
+      query = query.eq('month', month).eq('year', year);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch partner earnings:', error);
+    return [];
+  }
+};
+
+/**
+ * Fetch all partner profiles (for admin)
+ */
+export const fetchAllPartnerProfiles = async (status?: string): Promise<PartnerProfile[]> => {
+  try {
+    let query = supabase
+      .from('partner_profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (status) {
+      query = query.eq('onboarding_status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch all partner profiles:', error);
+    return [];
+  }
+};
+
+/**
+ * Approve a partner (admin only)
+ */
+export const approvePartner = async (partnerId: string, adminId: string): Promise<boolean> => {
+  try {
+    const authenticated = await isAuthenticated();
+    if (!authenticated) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('partner_profiles')
+      .update({
+        onboarding_status: 'approved',
+        approved_at: new Date().toISOString(),
+        approved_by: adminId,
+      })
+      .eq('id', partnerId);
+
+    if (error) throw error;
+
+    // Log admin action
+    await supabase.from('admin_actions').insert({
+      admin_id: adminId,
+      action_type: 'approve_partner',
+      target_id: partnerId,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to approve partner:', error);
+    return false;
+  }
+};
+
+/**
+ * Reject a partner (admin only)
+ */
+export const rejectPartner = async (partnerId: string, adminId: string, reason: string): Promise<boolean> => {
+  try {
+    const authenticated = await isAuthenticated();
+    if (!authenticated) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('partner_profiles')
+      .update({
+        onboarding_status: 'rejected',
+        rejection_reason: reason,
+      })
+      .eq('id', partnerId);
+
+    if (error) throw error;
+
+    // Log admin action
+    await supabase.from('admin_actions').insert({
+      admin_id: adminId,
+      action_type: 'reject_partner',
+      target_id: partnerId,
+      details: { reason },
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to reject partner:', error);
+    return false;
+  }
+};
+

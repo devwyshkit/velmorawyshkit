@@ -30,8 +30,12 @@ export const ProtectedRoute = ({ children, allowedRoles, requireAuth = true }: P
       return <>{children}</>;
     }
     
-    // For now, allow unauthenticated access (will be replaced with proper auth)
-    return <>{children}</>;
+    // Redirect to appropriate login page
+    const loginPath = location.pathname.startsWith('/admin') || location.pathname.startsWith('/partner') 
+      ? '/partner/login'
+      : '/customer/login';
+    
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {

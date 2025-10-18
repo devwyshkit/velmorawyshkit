@@ -8,6 +8,7 @@ interface User {
   name: string;
   avatar?: string;
   isEmailVerified: boolean;
+  role: 'customer' | 'seller' | 'admin' | 'kam';
 }
 
 interface AuthContextType {
@@ -50,6 +51,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Map Supabase user to our User interface
   const mapSupabaseUser = (supabaseUser: SupabaseUser): User => {
+    // Extract role from app_metadata (set by admin) or user_metadata (fallback)
+    const role = (supabaseUser.app_metadata?.role || 
+                  supabaseUser.user_metadata?.role || 
+                  'customer') as 'customer' | 'seller' | 'admin' | 'kam';
+    
     return {
       id: supabaseUser.id,
       email: supabaseUser.email || '',
@@ -58,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             'User',
       avatar: supabaseUser.user_metadata?.avatar_url,
       isEmailVerified: !!supabaseUser.email_confirmed_at,
+      role,
     };
   };
 
