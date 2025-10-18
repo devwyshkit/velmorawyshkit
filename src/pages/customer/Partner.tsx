@@ -72,6 +72,19 @@ export const Partner = () => {
     setSelectedItemId(null);
   };
 
+  // Track browsing history for better OpenAI recommendations
+  useEffect(() => {
+    if (selectedItemId && isItemSheetOpen) {
+      try {
+        const history = JSON.parse(localStorage.getItem('wyshkit_browsing_history') || '[]');
+        const updated = [selectedItemId, ...history.filter((id: string) => id !== selectedItemId).slice(0, 19)]; // Keep last 20, avoid duplicates
+        localStorage.setItem('wyshkit_browsing_history', JSON.stringify(updated));
+      } catch (error) {
+        console.error('Failed to update browsing history:', error);
+      }
+    }
+  }, [selectedItemId, isItemSheetOpen]);
+
   const handleFilterChange = (activeFilters: Filter[]) => {
     if (activeFilters.length === 0) {
       setFilteredItems(items);
@@ -129,11 +142,11 @@ export const Partner = () => {
             </div>
           </div>
 
-          {/* Items Skeleton - Matches CustomerItemCard */}
+          {/* Items Skeleton - Matches CustomerItemCard with aspect-ratio to prevent CLS */}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map(i => (
               <div key={i} className="space-y-1 p-2">
-                <Skeleton className="aspect-square rounded-lg mb-2" />
+                <Skeleton className="w-full aspect-square rounded-lg mb-2" />
                 <Skeleton className="h-4 w-3/4" />  {/* Name */}
                 <Skeleton className="h-3 w-2/3" />  {/* Short desc */}
                 <Skeleton className="h-4 w-1/3" />  {/* Price + Rating */}
@@ -176,8 +189,8 @@ export const Partner = () => {
           </div>
         </section>
 
-        {/* Filter Chips */}
-        <section className="px-4 py-3">
+        {/* Filter Chips - Sticky on scroll for better UX */}
+        <section className="sticky top-14 z-10 bg-background/95 backdrop-blur-sm px-4 py-3 border-b border-border transition-shadow">
           <FilterChips onFilterChange={handleFilterChange} />
         </section>
 

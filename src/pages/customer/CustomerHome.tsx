@@ -61,10 +61,11 @@ export const CustomerHome = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Load recommendations with user context
+        // Load recommendations with user context and browsing history
+        const browsingHistory = JSON.parse(localStorage.getItem('wyshkit_browsing_history') || '[]');
         const recs = await getRecommendations({
           location: location || 'India',
-          browsing_history: [], // TODO: Track from localStorage
+          browsing_history: browsingHistory.slice(0, 10), // Last 10 viewed items
           occasion: 'General',
         });
         setRecommendations(recs);
