@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search as SearchIcon, ArrowLeft, X, TrendingUp } from "lucide-react";
+import { Search as SearchIcon, ArrowLeft, X, TrendingUp, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
