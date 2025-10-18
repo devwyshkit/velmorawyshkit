@@ -26,6 +26,12 @@ import {
 } from '@/components/ui/select';
 import { Plus, Pencil, Trash2, Image as ImageIcon, Loader2, Package } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import {
   fetchPartnerProducts,
@@ -33,8 +39,10 @@ import {
   updatePartnerProduct,
   deletePartnerProduct,
   type PartnerProduct,
+  type BulkPricingTier,
 } from '@/lib/integrations/supabase-data';
 import { supabase } from '@/lib/integrations/supabase-client';
+import { BulkPricingForm } from '@/components/partner/BulkPricingForm';
 
 export const Catalog = () => {
   const { toast } = useToast();
@@ -57,6 +65,15 @@ export const Catalog = () => {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  
+  // Bulk Pricing State (NEW)
+  const [bulkPricingEnabled, setBulkPricingEnabled] = useState(false);
+  const [bulkTiers, setBulkTiers] = useState<BulkPricingTier[]>([
+    { min_qty: 1, max_qty: 49, price_per_unit: 0 },
+    { min_qty: 50, max_qty: 99, price_per_unit: 0 },
+    { min_qty: 100, max_qty: null, price_per_unit: 0 },
+  ]);
+  const [minOrderQty, setMinOrderQty] = useState(1);
 
   // Load products on mount
   useEffect(() => {
@@ -148,6 +165,11 @@ export const Catalog = () => {
         category: formData.category,
         price: parseInt(formData.price) * 100, // Convert to paise
         original_price: formData.original_price ? parseInt(formData.original_price) * 100 : undefined,
+        
+        // Bulk Pricing (NEW)
+        bulk_pricing_tiers: bulkPricingEnabled ? bulkTiers.filter(t => t.price_per_unit > 0) : [],
+        min_order_qty: bulkPricingEnabled ? minOrderQty : 1,
+        
         image_url: imageUrl,
         additional_images: [],
         stock_by_location: {},
@@ -209,6 +231,16 @@ export const Catalog = () => {
     });
     setImageFile(null);
     setEditingProduct(null);
+    
+    // Reset bulk pricing
+    setBulkPricingEnabled(false);
+    setBulkTiers([
+      { min_qty: 1, max_qty: 49, price_per_unit: 0 },
+      { min_qty: 50, max_qty: 99, price_per_unit: 0 },
+      { min_qty: 100, max_qty: null, price_per_unit: 0 },
+    ]);
+    setMinOrderQty(1);
+    
     setIsAddSheetOpen(false);
   };
 
@@ -224,6 +256,22 @@ export const Catalog = () => {
       stock: product.total_stock.toString(),
       preparation_days: product.preparation_days.toString(),
     });
+    
+    // Load bulk pricing if exists
+    if (product.bulk_pricing_tiers && product.bulk_pricing_tiers.length > 0) {
+      setBulkPricingEnabled(true);
+      setBulkTiers(product.bulk_pricing_tiers);
+      setMinOrderQty(product.min_order_qty || 1);
+    } else {
+      setBulkPricingEnabled(false);
+      setBulkTiers([
+        { min_qty: 1, max_qty: 49, price_per_unit: 0 },
+        { min_qty: 50, max_qty: 99, price_per_unit: 0 },
+        { min_qty: 100, max_qty: null, price_per_unit: 0 },
+      ]);
+      setMinOrderQty(1);
+    }
+    
     setIsAddSheetOpen(true);
   };
 
@@ -386,6 +434,26 @@ export const Catalog = () => {
                   required
                 />
               </div>
+
+              {/* Bulk Pricing (NEW) */}
+              <Accordion type="single" collapsible>
+                <AccordionItem value="bulk-pricing">
+                  <AccordionTrigger className="text-sm font-medium">
+                    Bulk Pricing (Optional)
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <BulkPricingForm
+                      enabled={bulkPricingEnabled}
+                      onEnabledChange={setBulkPricingEnabled}
+                      tiers={bulkTiers}
+                      onTiersChange={setBulkTiers}
+                      minOrderQty={minOrderQty}
+                      onMinOrderQtyChange={setMinOrderQty}
+                      basePrice={parseInt(formData.price) * 100 || 0}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
 
               {/* Submit Button */}
               <Button type="submit" className="w-full" disabled={uploading}>

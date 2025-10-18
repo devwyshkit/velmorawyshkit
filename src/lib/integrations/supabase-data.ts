@@ -590,6 +590,24 @@ export interface PartnerProfile {
   updated_at: string;
 }
 
+// Bulk Pricing Tier (for B2B/corporate orders)
+export interface BulkPricingTier {
+  min_qty: number;
+  max_qty: number | null; // null = unlimited (100+)
+  price_per_unit: number; // in paise
+}
+
+// Hamper Component (for combo/bundle products)
+export interface HamperComponent {
+  product_id: string;
+  partner_id: string;
+  name: string;
+  quantity: number;
+  wholesale_price: number; // in paise (15% discount from retail)
+  location: string;
+  image_url?: string;
+}
+
 export interface PartnerProduct {
   id: string;
   partner_id: string;
@@ -601,6 +619,10 @@ export interface PartnerProduct {
   // Pricing (in paise)
   price: number;
   original_price?: number;
+  
+  // Bulk Pricing (NEW)
+  bulk_pricing_tiers: BulkPricingTier[];
+  min_order_qty: number;
   
   // Images
   image_url: string;
@@ -614,7 +636,7 @@ export interface PartnerProduct {
   weight?: string;
   dimensions?: string;
   is_customizable: boolean;
-  customization_options: Array<{ name: string; price: number }>;
+  customization_options: Array<{ name: string; price: number; moq?: number }>;
   
   // Lead time
   preparation_days: number;
