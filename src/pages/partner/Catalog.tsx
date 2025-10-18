@@ -24,8 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Pencil, Trash2, Image as ImageIcon, Loader2, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, Image as ImageIcon, Loader2, Package, Gift } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
   AccordionContent,
@@ -38,19 +39,30 @@ import {
   createPartnerProduct,
   updatePartnerProduct,
   deletePartnerProduct,
+  fetchPartnerHampers,
+  createPartnerHamper,
+  updatePartnerHamper,
+  deletePartnerHamper,
   type PartnerProduct,
+  type PartnerHamper,
   type BulkPricingTier,
+  type HamperComponent,
 } from '@/lib/integrations/supabase-data';
 import { supabase } from '@/lib/integrations/supabase-client';
 import { BulkPricingForm } from '@/components/partner/BulkPricingForm';
+import { HamperBuilder } from '@/components/partner/HamperBuilder';
 
 export const Catalog = () => {
   const { toast } = useToast();
   const [products, setProducts] = useState<PartnerProduct[]>([]);
+  const [hampers, setHampers] = useState<PartnerHamper[]>([]);
   const [loading, setLoading] = useState(true);
   const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [partnerLocation, setPartnerLocation] = useState<string>('delhi');
+  const [activeTab, setActiveTab] = useState<'products' | 'hampers'>('products');
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<PartnerProduct | null>(null);
+  const [editingHamper, setEditingHamper] = useState<PartnerHamper | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -74,10 +86,24 @@ export const Catalog = () => {
     { min_qty: 100, max_qty: null, price_per_unit: 0 },
   ]);
   const [minOrderQty, setMinOrderQty] = useState(1);
+  
+  // Hamper State (NEW)
+  const [hamperComponents, setHamperComponents] = useState<HamperComponent[]>([]);
+  const [hamperFormData, setHamperFormData] = useState({
+    name: '',
+    description: '',
+    short_desc: '',
+    price: '',
+    original_price: '',
+    stock: '',
+    preparation_days: '5', // Hampers take longer (assembly)
+  });
+  const [hamperImageFile, setHamperImageFile] = useState<File | null>(null);
 
-  // Load products on mount
+  // Load products and hampers on mount
   useEffect(() => {
     loadProducts();
+    loadHampers();
   }, []);
 
   const loadProducts = async () => {
@@ -98,6 +124,7 @@ export const Catalog = () => {
 
       if (profile) {
         setPartnerId(profile.id);
+        setPartnerLocation(profile.city || 'delhi');
         const fetchedProducts = await fetchPartnerProducts(profile.id);
         setProducts(fetchedProducts);
       }
@@ -106,6 +133,26 @@ export const Catalog = () => {
       toast({ title: 'Error loading products', variant: 'destructive' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadHampers = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('partner_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        const fetchedHampers = await fetchPartnerHampers(profile.id);
+        setHampers(fetchedHampers);
+      }
+    } catch (error) {
+      console.error('Failed to load hampers:', error);
     }
   };
 
@@ -219,6 +266,7 @@ export const Catalog = () => {
   };
 
   const resetForm = () => {
+    // Reset product form
     setFormData({
       name: '',
       description: '',
@@ -240,6 +288,20 @@ export const Catalog = () => {
       { min_qty: 100, max_qty: null, price_per_unit: 0 },
     ]);
     setMinOrderQty(1);
+    
+    // Reset hamper form
+    setHamperFormData({
+      name: '',
+      description: '',
+      short_desc: '',
+      price: '',
+      original_price: '',
+      stock: '',
+      preparation_days: '5',
+    });
+    setHamperImageFile(null);
+    setHamperComponents([]);
+    setEditingHamper(null);
     
     setIsAddSheetOpen(false);
   };
@@ -281,7 +343,9 @@ export const Catalog = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Catalog Manager</h1>
-          <p className="text-sm text-muted-foreground">{products.length} products</p>
+          <p className="text-sm text-muted-foreground">
+            {activeTab === 'products' ? `${products.length} products` : `${hampers.length} hampers`}
+          </p>
         </div>
         
         <Sheet open={isAddSheetOpen} onOpenChange={(open) => {
@@ -291,19 +355,28 @@ export const Catalog = () => {
           <SheetTrigger asChild>
             <Button size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Add Product
+              {activeTab === 'products' ? 'Add Product' : 'Create Hamper'}
             </Button>
           </SheetTrigger>
           
           <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</SheetTitle>
+              <SheetTitle>
+                {activeTab === 'products' 
+                  ? (editingProduct ? 'Edit Product' : 'Add New Product')
+                  : (editingHamper ? 'Edit Hamper' : 'Create New Hamper')
+                }
+              </SheetTitle>
               <SheetDescription>
-                Fill in the details below to {editingProduct ? 'update' : 'add'} a product
+                {activeTab === 'products'
+                  ? `Fill in the details below to ${editingProduct ? 'update' : 'add'} a product`
+                  : 'Create a curated gift bundle by combining products'
+                }
               </SheetDescription>
             </SheetHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+            {activeTab === 'products' ? (
+              <form onSubmit={handleSubmit} className="space-y-4 mt-6">
               {/* Product Image */}
               <div>
                 <Label htmlFor="image">Product Image *</Label>
@@ -461,16 +534,212 @@ export const Catalog = () => {
                 {editingProduct ? 'Update Product' : 'Add Product'}
               </Button>
             </form>
+            ) : (
+              /* Hamper Creation Form */
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!partnerId) return;
+                
+                setUploading(true);
+                try {
+                  // Upload hamper mockup image
+                  let imageUrl = editingHamper?.mockup_image_url || '';
+                  if (hamperImageFile) {
+                    const uploaded = await handleImageUpload(hamperImageFile);
+                    if (!uploaded) {
+                      setUploading(false);
+                      return;
+                    }
+                    imageUrl = uploaded;
+                  }
+
+                  // Validate
+                  if (!hamperFormData.name || !hamperFormData.price || !imageUrl || hamperComponents.length < 2) {
+                    toast({ 
+                      title: 'Validation failed', 
+                      description: 'Fill all fields and add at least 2 components',
+                      variant: 'destructive' 
+                    });
+                    setUploading(false);
+                    return;
+                  }
+
+                  const hamperData = {
+                    partner_id: partnerId,
+                    name: hamperFormData.name,
+                    description: hamperFormData.description,
+                    short_desc: hamperFormData.short_desc,
+                    components: hamperComponents,
+                    price: parseInt(hamperFormData.price) * 100,
+                    original_price: hamperFormData.original_price ? parseInt(hamperFormData.original_price) * 100 : undefined,
+                    mockup_image_url: imageUrl,
+                    component_images: hamperComponents.map(c => c.image_url || '').filter(Boolean),
+                    stock: parseInt(hamperFormData.stock) || 0,
+                    preparation_days: parseInt(hamperFormData.preparation_days) || 5,
+                    is_active: true,
+                  };
+
+                  const hamperId = await createPartnerHamper(hamperData);
+                  if (hamperId) {
+                    toast({ title: 'Hamper created successfully! 🎉' });
+                    loadHampers();
+                    resetForm();
+                  }
+                } catch (error) {
+                  console.error('Error creating hamper:', error);
+                  toast({ title: 'Error creating hamper', variant: 'destructive' });
+                } finally {
+                  setUploading(false);
+                }
+              }} className="space-y-4 mt-6">
+                {/* Hamper Mockup Image */}
+                <div>
+                  <Label htmlFor="hamper-image">Hamper Mockup Image *</Label>
+                  <Input
+                    id="hamper-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setHamperImageFile(e.target.files?.[0] || null)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload final assembled hamper image
+                  </p>
+                </div>
+
+                {/* Hamper Name */}
+                <div>
+                  <Label htmlFor="hamper-name">Hamper Name *</Label>
+                  <Input
+                    id="hamper-name"
+                    value={hamperFormData.name}
+                    onChange={(e) => setHamperFormData({ ...hamperFormData, name: e.target.value })}
+                    placeholder="Diwali Festival Hamper"
+                    required
+                  />
+                </div>
+
+                {/* Short Description */}
+                <div>
+                  <Label htmlFor="hamper-short-desc">Short Description</Label>
+                  <Input
+                    id="hamper-short-desc"
+                    value={hamperFormData.short_desc}
+                    onChange={(e) => setHamperFormData({ ...hamperFormData, short_desc: e.target.value })}
+                    placeholder="Curated joy for festive celebrations"
+                    maxLength={100}
+                  />
+                </div>
+
+                {/* Full Description */}
+                <div>
+                  <Label htmlFor="hamper-description">Full Description *</Label>
+                  <Textarea
+                    id="hamper-description"
+                    value={hamperFormData.description}
+                    onChange={(e) => setHamperFormData({ ...hamperFormData, description: e.target.value })}
+                    placeholder="Curated joy with candles, chocolates, and card for festive surprises..."
+                    rows={3}
+                    required
+                  />
+                </div>
+
+                {/* Hamper Builder Component */}
+                <div>
+                  <Label className="text-base font-medium mb-3 block">Build Your Hamper</Label>
+                  <HamperBuilder
+                    components={hamperComponents}
+                    onChange={setHamperComponents}
+                    curatorLocation={partnerLocation}
+                    partnerId={partnerId || ''}
+                  />
+                </div>
+
+                {/* Pricing */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="hamper-price">Selling Price (₹) *</Label>
+                    <Input
+                      id="hamper-price"
+                      type="number"
+                      value={hamperFormData.price}
+                      onChange={(e) => setHamperFormData({ ...hamperFormData, price: e.target.value })}
+                      placeholder="2499"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="hamper-original">Original Price (₹)</Label>
+                    <Input
+                      id="hamper-original"
+                      type="number"
+                      value={hamperFormData.original_price}
+                      onChange={(e) => setHamperFormData({ ...hamperFormData, original_price: e.target.value })}
+                      placeholder="2999"
+                    />
+                  </div>
+                </div>
+
+                {/* Stock & Preparation Days */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="hamper-stock">Stock</Label>
+                    <Input
+                      id="hamper-stock"
+                      type="number"
+                      value={hamperFormData.stock}
+                      onChange={(e) => setHamperFormData({ ...hamperFormData, stock: e.target.value })}
+                      placeholder="50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="hamper-prep-days">Assembly Days</Label>
+                    <Input
+                      id="hamper-prep-days"
+                      type="number"
+                      value={hamperFormData.preparation_days}
+                      onChange={(e) => setHamperFormData({ ...hamperFormData, preparation_days: e.target.value })}
+                      placeholder="5"
+                    />
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <Button type="submit" className="w-full" disabled={uploading || hamperComponents.length < 2}>
+                  {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Create Hamper
+                </Button>
+                
+                {hamperComponents.length < 2 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Add at least 2 components to create a hamper
+                  </p>
+                )}
+              </form>
+            )}
           </SheetContent>
         </Sheet>
       </div>
 
-      {/* Products Grid */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : products.length === 0 ? (
+      {/* Products | Hampers Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'products' | 'hampers')}>
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="products">
+            <Package className="h-4 w-4 mr-2" />
+            Products ({products.length})
+          </TabsTrigger>
+          <TabsTrigger value="hampers">
+            <Gift className="h-4 w-4 mr-2" />
+            Hampers ({hampers.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Products Tab Content */}
+        <TabsContent value="products" className="mt-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : products.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
@@ -559,6 +828,104 @@ export const Catalog = () => {
           ))}
         </div>
       )}
+        </TabsContent>
+
+        {/* Hampers Tab Content */}
+        <TabsContent value="hampers" className="mt-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : hampers.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Gift className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No hampers yet</h3>
+                <p className="text-sm text-muted-foreground mb-4">Create your first hamper/combo</p>
+                <Button onClick={() => setIsAddSheetOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Hamper
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {hampers.map((hamper) => (
+                <Card key={hamper.id} className="overflow-hidden">
+                  <div className="aspect-square relative">
+                    <img
+                      src={hamper.mockup_image_url}
+                      alt={hamper.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <Badge className="absolute top-2 left-2 bg-primary">
+                      <Gift className="h-3 w-3 mr-1" />
+                      Hamper
+                    </Badge>
+                  </div>
+                  
+                  <CardHeader>
+                    <CardTitle className="text-lg">{hamper.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {hamper.short_desc || hamper.description}
+                    </p>
+                  </CardHeader>
+
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-lg font-bold">₹{(hamper.price / 100).toLocaleString()}</span>
+                        {hamper.original_price && (
+                          <span className="text-sm text-muted-foreground line-through ml-2">
+                            ₹{(hamper.original_price / 100).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm text-muted-foreground">Stock: {hamper.stock}</span>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground">
+                      {hamper.components.length} components • {hamper.preparation_days} days
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => {
+                          // TODO: Open edit hamper
+                          toast({ title: 'Edit hamper coming soon!' });
+                        }}
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={async () => {
+                          if (confirm('Delete this hamper?')) {
+                            const success = await deletePartnerHamper(hamper.id);
+                            if (success) {
+                              toast({ title: 'Hamper deleted' });
+                              loadHampers();
+                            }
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

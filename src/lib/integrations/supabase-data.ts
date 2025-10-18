@@ -847,6 +847,80 @@ export const deletePartnerProduct = async (productId: string): Promise<boolean> 
 };
 
 /**
+ * Fetch all hampers for a partner
+ */
+export const fetchPartnerHampers = async (partnerId: string): Promise<PartnerHamper[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('partner_hampers')
+      .select('*')
+      .eq('partner_id', partnerId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch partner hampers:', error);
+    return [];
+  }
+};
+
+/**
+ * Create a new partner hamper
+ */
+export const createPartnerHamper = async (hamperData: Omit<PartnerHamper, 'id' | 'created_at' | 'updated_at'>): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('partner_hampers')
+      .insert(hamperData)
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data?.id || null;
+  } catch (error) {
+    console.error('Failed to create partner hamper:', error);
+    return null;
+  }
+};
+
+/**
+ * Update a partner hamper
+ */
+export const updatePartnerHamper = async (hamperId: string, updates: Partial<PartnerHamper>): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('partner_hampers')
+      .update(updates)
+      .eq('id', hamperId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to update partner hamper:', error);
+    return false;
+  }
+};
+
+/**
+ * Delete a partner hamper
+ */
+export const deletePartnerHamper = async (hamperId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('partner_hampers')
+      .delete()
+      .eq('id', hamperId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to delete partner hamper:', error);
+    return false;
+  }
+};
+
+/**
  * Fetch partner orders
  */
 export const fetchPartnerOrders = async (partnerId: string, status?: string): Promise<PartnerOrder[]> => {
