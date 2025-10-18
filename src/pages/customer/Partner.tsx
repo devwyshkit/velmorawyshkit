@@ -9,6 +9,13 @@ import { FilterChips, type Filter } from "@/components/customer/shared/FilterChi
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ItemSheetContent } from "@/components/customer/ItemSheetContent";
 import { fetchPartnerById, fetchItemsByPartner, type Item as ItemType, type Partner as PartnerType } from "@/lib/integrations/supabase-data";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +29,8 @@ export const Partner = () => {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isItemSheetOpen, setIsItemSheetOpen] = useState(false);
   const [filteredItems, setFilteredItems] = useState<ItemType[]>([]);
+  const [sortedItems, setSortedItems] = useState<ItemType[]>([]);
+  const [sortBy, setSortBy] = useState<string>("popularity");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -82,6 +91,28 @@ export const Partner = () => {
 
     setFilteredItems(filtered);
   };
+
+  // Sort items based on selected sort option
+  useEffect(() => {
+    let sorted = [...filteredItems];
+    
+    switch (sortBy) {
+      case 'price-low':
+        sorted.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        sorted.sort((a, b) => b.price - a.price);
+        break;
+      case 'rating':
+        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'popularity':
+      default:
+        sorted.sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0));
+    }
+    
+    setSortedItems(sorted);
+  }, [sortBy, filteredItems]);
 
   if (loading || !partner) {
     return (
@@ -152,16 +183,32 @@ export const Partner = () => {
 
         {/* Items Grid - Responsive: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
         <main className="space-y-3">
-          <h2 className="text-lg font-semibold px-4">
-            Browse Items 
-            {filteredItems.length !== items.length && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                ({filteredItems.length} results)
-              </span>
-            )}
-          </h2>
+          <div className="flex items-center justify-between px-4">
+            <h2 className="text-lg font-semibold">
+              Browse Items 
+              {filteredItems.length !== items.length && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({filteredItems.length} results)
+                </span>
+              )}
+            </h2>
+            
+            {/* Sort Dropdown - Swiggy/Zomato Pattern */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[140px] h-9 text-sm">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="popularity">Popularity</SelectItem>
+                <SelectItem value="price-low">Price: Low-High</SelectItem>
+                <SelectItem value="price-high">Price: High-Low</SelectItem>
+                <SelectItem value="rating">Rating</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
-            {filteredItems.map((item) => (
+            {sortedItems.map((item) => (
               <CustomerItemCard
                 key={item.id}
                 id={item.id}
