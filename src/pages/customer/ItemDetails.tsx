@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Star, Gift } from "lucide-react";
+import { Star, Gift, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
   AccordionContent,
@@ -27,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useCart } from "@/contexts/CartContext";
+import { useBulkPricing } from "@/hooks/use-bulk-pricing";
 import { isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
 import { fetchItemById, addToCartSupabase, fetchPartnerById, type Item as ItemType } from "@/lib/integrations/supabase-data";
 
@@ -87,8 +89,16 @@ export const ItemDetails = () => {
     );
   };
 
+  // Bulk Pricing Auto-Update (NEW)
+  const { appliedPrice, totalPrice, tierApplied, discount } = useBulkPricing(
+    item?.price || 0,
+    quantity,
+    item?.bulk_pricing_tiers || []
+  );
+
   const calculateTotal = () => {
-    const basePrice = item.price * quantity;
+    // Use bulk pricing if applicable
+    const basePrice = tierApplied ? totalPrice : (item.price * quantity);
     const addOnsPrice = selectedAddOns.reduce((sum, addOnId) => {
       const addOn = addOns.find(a => a.id === addOnId);
       return sum + (addOn?.price || 0);
@@ -255,12 +265,28 @@ export const ItemDetails = () => {
             </div>
           </div>
 
-          {/* Price */}
-          <div className="flex items-center gap-2">
-            <span className="text-3xl font-bold text-primary">
-              ₹{item.price.toLocaleString('en-IN')}
-            </span>
-            <span className="text-sm text-muted-foreground">(incl. GST)</span>
+          {/* Price with Bulk Discount */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-3xl font-bold text-primary">
+                ₹{(appliedPrice / 100).toLocaleString('en-IN')}
+              </span>
+              {tierApplied && (
+                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                  {discount}% Bulk Discount
+                </Badge>
+              )}
+              <span className="text-sm text-muted-foreground">(incl. GST)</span>
+            </div>
+            {tierApplied && item.price !== appliedPrice && (
+              <p className="text-sm text-muted-foreground">
+                <span className="line-through">₹{(item.price / 100).toLocaleString('en-IN')}</span>
+                <span className="ml-2 text-green-600 font-medium">
+                  Save ₹{((item.price - appliedPrice) * quantity / 100).toLocaleString('en-IN')} on {quantity} items!
+                </span>
+              </p>
+            )}
           </div>
 
           {/* Description */}
@@ -299,6 +325,63 @@ export const ItemDetails = () => {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Bulk Pricing Tiers (if available) */}
+          {item.bulk_pricing_tiers && item.bulk_pricing_tiers.length > 0 && (
+            <Accordion type="single" collapsible className="w-full" defaultOpen>
+              <AccordionItem value="bulk-pricing">
+                <AccordionTrigger className="text-base font-semibold">
+                  💰 Bulk Pricing Tiers
+                </AccordionTrigger>
+                <AccordionContent className="space-y-3 pt-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Order more, save more! Get special pricing on bulk orders.
+                  </p>
+                  <div className="space-y-2">
+                    {item.bulk_pricing_tiers.map((tier, index) => {
+                      const isActiveTier = tierApplied?.min_qty === tier.min_qty;
+                      return (
+                        <div
+                          key={index}
+                          className={`p-3 rounded-lg border ${
+                            isActiveTier 
+                              ? 'border-primary bg-primary/5' 
+                              : 'border-border'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-sm">
+                              {tier.min_qty} - {tier.max_qty || '∞'} units
+                            </span>
+                            <div className="text-right">
+                              <p className="font-bold text-lg">
+                                ₹{(tier.price_per_unit / 100).toLocaleString('en-IN')}/unit
+                              </p>
+                              {tier.price_per_unit < item.price && (
+                                <p className="text-xs text-green-600">
+                                  {Math.round(((item.price - tier.price_per_unit) / item.price) * 100)}% off
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          {isActiveTier && (
+                            <Badge className="mt-2" variant="secondary">
+                              Currently Applied
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {item.min_order_qty > 1 && (
+                    <p className="text-xs text-muted-foreground mt-3">
+                      * Minimum order quantity: {item.min_order_qty} units
+                    </p>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           )}
 
           {/* Specifications & Compliance */}
