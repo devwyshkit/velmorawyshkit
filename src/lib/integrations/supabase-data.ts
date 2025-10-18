@@ -644,6 +644,12 @@ export interface PartnerProduct {
   
   // Status
   is_active: boolean;
+  
+  // Sourcing (NEW - for hamper builder)
+  available_for_sourcing?: boolean;   // Opt-in: Allow other partners to source
+  wholesale_price?: number;            // Partner-defined wholesale (paise)
+  sourcing_limit?: number;             // Max units/month for sourcing
+  
   created_at: string;
   updated_at: string;
 }
@@ -695,7 +701,7 @@ export interface PartnerOrder {
   }>;
   
   // Fulfillment
-  status: 'pending' | 'preparing' | 'ready' | 'dispatched' | 'completed' | 'cancelled';
+  status: 'pending' | 'awaiting_sourcing' | 'sourcing_in_transit' | 'ready_to_assemble' | 'assembling' | 'preparing' | 'ready' | 'dispatched' | 'completed' | 'cancelled';
   proof_images: string[];
   proof_approved: boolean;
   proof_approved_at?: string;
@@ -704,11 +710,43 @@ export interface PartnerOrder {
   tracking_number?: string;
   dispatched_at?: string;
   
+  // Two-Step Shipping (NEW - for hamper sourcing)
+  parent_order_id?: string;           // For sourcing sub-orders: main hamper order
+  is_sourcing_order?: boolean;        // True if vendor→curator shipment
+  ship_to_partner_id?: string;        // Curator receiving components
+  ship_to_address?: any;              // JSONB address for sourcing
+  sourcing_eta?: string;              // Arrival date at curator
+  components_status?: any;            // JSONB array of component statuses
+  
   // Financials (in paise)
   total_amount: number;
   commission_rate: number;
   partner_payout: number;
   
+  created_at: string;
+  updated_at: string;
+}
+
+// Order Shipment (NEW - for two-step shipping tracking)
+export interface OrderShipment {
+  id: string;
+  order_id: string;
+  shipment_type: 'sourcing' | 'final';
+  
+  // Shipping details
+  from_partner_id?: string;
+  to_partner_id?: string;             // For sourcing leg
+  to_customer_address?: any;          // For final leg (JSONB)
+  
+  // Tracking
+  tracking_number?: string;
+  carrier?: string;
+  status: 'pending' | 'picked_up' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed';
+  shipped_at?: string;
+  delivered_at?: string;
+  eta?: string;
+  
+  notes?: string;
   created_at: string;
   updated_at: string;
 }

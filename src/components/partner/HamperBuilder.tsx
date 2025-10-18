@@ -72,15 +72,16 @@ export const HamperBuilder = ({
             state
           )
         `)
+        .eq('available_for_sourcing', true) // Only show opt-in products
         .neq('partner_id', partnerId) // Exclude own products
         .ilike('name', `%${query}%`)
         .eq('is_active', true)
         .limit(20);
 
-      // Calculate wholesale price (15% discount) and add location info
+      // Use partner-defined wholesale price (or fallback to retail if not set)
       const productsWithWholesale = (data || []).map(p => ({
         ...p,
-        wholesale_price: Math.floor(p.price * 0.85), // 15% discount
+        wholesale_price: p.wholesale_price || p.price, // Partner-defined or retail
         partner_name: p.partner_profiles.business_name,
         partner_location: `${p.partner_profiles.city}, ${p.partner_profiles.state}`,
       }));

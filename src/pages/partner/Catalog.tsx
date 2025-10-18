@@ -87,6 +87,11 @@ export const Catalog = () => {
   ]);
   const [minOrderQty, setMinOrderQty] = useState(1);
   
+  // Sourcing Options State (NEW - for partner-controlled wholesale)
+  const [availableForSourcing, setAvailableForSourcing] = useState(false);
+  const [wholesalePrice, setWholesalePrice] = useState('');
+  const [sourcingLimit, setSourcingLimit] = useState('');
+  
   // Hamper State (NEW)
   const [hamperComponents, setHamperComponents] = useState<HamperComponent[]>([]);
   const [hamperFormData, setHamperFormData] = useState({
@@ -217,6 +222,11 @@ export const Catalog = () => {
         bulk_pricing_tiers: bulkPricingEnabled ? bulkTiers.filter(t => t.price_per_unit > 0) : [],
         min_order_qty: bulkPricingEnabled ? minOrderQty : 1,
         
+        // Sourcing Options (NEW - partner-controlled wholesale)
+        available_for_sourcing: availableForSourcing,
+        wholesale_price: availableForSourcing && wholesalePrice ? parseInt(wholesalePrice) * 100 : undefined,
+        sourcing_limit: sourcingLimit ? parseInt(sourcingLimit) : undefined,
+        
         image_url: imageUrl,
         additional_images: [],
         stock_by_location: {},
@@ -289,6 +299,11 @@ export const Catalog = () => {
     ]);
     setMinOrderQty(1);
     
+    // Reset sourcing options
+    setAvailableForSourcing(false);
+    setWholesalePrice('');
+    setSourcingLimit('');
+    
     // Reset hamper form
     setHamperFormData({
       name: '',
@@ -333,6 +348,11 @@ export const Catalog = () => {
       ]);
       setMinOrderQty(1);
     }
+    
+    // Load sourcing options if exists
+    setAvailableForSourcing(product.available_for_sourcing || false);
+    setWholesalePrice(product.wholesale_price ? (product.wholesale_price / 100).toString() : '');
+    setSourcingLimit(product.sourcing_limit?.toString() || '');
     
     setIsAddSheetOpen(true);
   };
@@ -524,6 +544,63 @@ export const Catalog = () => {
                       onMinOrderQtyChange={setMinOrderQty}
                       basePrice={parseInt(formData.price) * 100 || 0}
                     />
+                  </AccordionContent>
+                </AccordionItem>
+                
+                {/* Sourcing Options (NEW) */}
+                <AccordionItem value="sourcing">
+                  <AccordionTrigger className="text-sm font-medium">
+                    Sourcing Options (Optional)
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Switch 
+                          checked={availableForSourcing}
+                          onCheckedChange={setAvailableForSourcing}
+                        />
+                        <Label className="font-normal cursor-pointer">
+                          Available for sourcing by other partners
+                        </Label>
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground">
+                        Allow other partners to include this product in their hampers. They'll pay your wholesale price.
+                      </p>
+                      
+                      {availableForSourcing && (
+                        <>
+                          <div>
+                            <Label htmlFor="wholesale-price">Wholesale Price (₹) *</Label>
+                            <Input 
+                              id="wholesale-price"
+                              type="number"
+                              placeholder="1199"
+                              value={wholesalePrice}
+                              onChange={(e) => setWholesalePrice(e.target.value)}
+                              required={availableForSourcing}
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Recommended: 10-20% below retail (₹{formData.price ? Math.floor(parseInt(formData.price) * 0.85) : '0'})
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="sourcing-limit">Monthly Sourcing Limit (optional)</Label>
+                            <Input 
+                              id="sourcing-limit"
+                              type="number"
+                              placeholder="100"
+                              value={sourcingLimit}
+                              onChange={(e) => setSourcingLimit(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Maximum units per month other partners can source
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
