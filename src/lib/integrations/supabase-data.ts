@@ -459,6 +459,74 @@ export const removeFromWishlistSupabase = async (itemId: string): Promise<boolea
   }
 };
 
+// Search functions using Postgres Full-Text Search
+export const searchItems = async (query: string): Promise<Item[]> => {
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+
+  try {
+    // Format query for PostgreSQL tsquery (handle spaces, special chars)
+    const formattedQuery = query
+      .trim()
+      .split(/\s+/)
+      .map(word => word.replace(/[^\w]/g, ''))
+      .filter(word => word.length > 0)
+      .join(' | '); // OR operator for better results
+
+    const { data, error } = await supabase
+      .rpc('search_items', { search_query: formattedQuery });
+
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      return data;
+    }
+  } catch (error) {
+    console.warn('Backend search failed, using client-side fallback:', error);
+  }
+  
+  // Fallback to client-side search if backend fails
+  return mockItems.filter(item =>
+    item.name.toLowerCase().includes(query.toLowerCase()) ||
+    item.description.toLowerCase().includes(query.toLowerCase()) ||
+    item.shortDesc?.toLowerCase().includes(query.toLowerCase())
+  );
+};
+
+export const searchPartners = async (query: string): Promise<Partner[]> => {
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+
+  try {
+    const formattedQuery = query
+      .trim()
+      .split(/\s+/)
+      .map(word => word.replace(/[^\w]/g, ''))
+      .filter(word => word.length > 0)
+      .join(' | ');
+
+    const { data, error } = await supabase
+      .rpc('search_partners', { search_query: formattedQuery });
+
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      return data;
+    }
+  } catch (error) {
+    console.warn('Backend search failed, using client-side fallback:', error);
+  }
+  
+  // Fallback to client-side search
+  return mockPartners.filter(partner =>
+    partner.name.toLowerCase().includes(query.toLowerCase()) ||
+    partner.tagline?.toLowerCase().includes(query.toLowerCase()) ||
+    partner.category?.toLowerCase().includes(query.toLowerCase())
+  );
+};
+
 // Mock data getters (for fallback)
 export const getMockPartners = () => mockPartners;
 export const getMockItems = () => mockItems;

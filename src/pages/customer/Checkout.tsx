@@ -39,6 +39,16 @@ export const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
   const [contactlessDelivery, setContactlessDelivery] = useState(false);
+  const [deliveryTimeSlot, setDeliveryTimeSlot] = useState<string>("");
+
+  // Delivery time slots (Swiggy/Zomato pattern)
+  const timeSlots = [
+    { id: "10-12", label: "10:00 AM - 12:00 PM", available: true },
+    { id: "12-2", label: "12:00 PM - 2:00 PM", available: true },
+    { id: "2-4", label: "2:00 PM - 4:00 PM", available: true },
+    { id: "4-6", label: "4:00 PM - 6:00 PM", available: true },
+    { id: "6-8", label: "6:00 PM - 8:00 PM", available: true },
+  ];
 
   useEffect(() => {
     if (!savedAddress && addressInputRef.current) {
@@ -111,6 +121,15 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
       toast({
         title: "Address required",
         description: "Please provide a delivery address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!deliveryTimeSlot) {
+      toast({
+        title: "Time slot required",
+        description: "Please select a delivery time slot",
         variant: "destructive",
       });
       return;
@@ -222,6 +241,45 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
               checked={contactlessDelivery}
               onCheckedChange={setContactlessDelivery}
             />
+          </div>
+
+          {/* Delivery Time Slot */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              Delivery Time Slot <span className="text-destructive">*</span>
+            </Label>
+            <div className="grid grid-cols-1 gap-2">
+              {timeSlots.map((slot) => (
+                <button
+                  key={slot.id}
+                  type="button"
+                  onClick={() => setDeliveryTimeSlot(slot.id)}
+                  disabled={!slot.available}
+                  className={`
+                    relative p-3 rounded-lg border-2 text-left transition-all
+                    ${deliveryTimeSlot === slot.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border bg-background hover:border-primary/50'
+                    }
+                    ${!slot.available && 'opacity-50 cursor-not-allowed'}
+                  `}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{slot.label}</span>
+                    {deliveryTimeSlot === slot.id && (
+                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                        <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {!slot.available && (
+                    <span className="text-xs text-muted-foreground mt-1 block">Not available</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Delivery Instructions */}

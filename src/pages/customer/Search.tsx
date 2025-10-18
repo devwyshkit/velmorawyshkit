@@ -7,7 +7,7 @@ import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard"
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
-import { getMockItems } from "@/lib/integrations/supabase-data";
+import { searchItems, searchPartners } from "@/lib/integrations/supabase-data";
 
 interface SearchResult {
   id: string;
@@ -40,34 +40,59 @@ export const CustomerMobileSearch = () => {
     'Wedding Favors',
   ];
 
-  // Load and filter results from centralized mock data
+  // Backend search with debouncing
   useEffect(() => {
-    const items = getMockItems();
-    
-    if (searchQuery.trim() && searchQuery.length > 2) {
-      const filtered = items.filter(item => 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.shortDesc?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      
-      const searchResults: SearchResult[] = filtered.map(item => ({
-        id: item.id,
-        name: item.name,
-        image: item.image,
-        price: item.price,
-        rating: item.rating,
-        ratingCount: item.ratingCount,
-        type: 'item' as const,
-        badge: item.badge,
-        shortDesc: item.shortDesc,
-        sponsored: item.sponsored,
-      }));
-      
-      setResults(searchResults);
-    } else {
-      setResults([]);
-    }
+    const performSearch = async () => {
+      if (searchQuery.trim() && searchQuery.length > 2) {
+        try {
+          // Search both items and partners
+          const [itemResults, partnerResults] = await Promise.all([
+            searchItems(searchQuery),
+            searchPartners(searchQuery),
+          ]);
+          
+          // Transform items to search results
+          const itemSearchResults: SearchResult[] = itemResults.map(item => ({
+            id: item.id,
+            name: item.name,
+            image: item.image,
+            price: item.price,
+            rating: item.rating,
+            ratingCount: item.ratingCount,
+            type: 'item' as const,
+            badge: item.badge,
+            shortDesc: item.shortDesc,
+            sponsored: item.sponsored,
+          }));
+          
+          // Transform partners to search results
+          const partnerSearchResults: SearchResult[] = partnerResults.map(partner => ({
+            id: partner.id,
+            name: partner.name,
+            image: partner.image,
+            price: 0, // Partners don't have price
+            rating: partner.rating,
+            ratingCount: partner.ratingCount,
+            type: 'partner' as const,
+            badge: partner.badge,
+            shortDesc: partner.tagline,
+            sponsored: partner.sponsored,
+          }));
+          
+          // Combine results: partners first (if any), then items
+          setResults([...partnerSearchResults, ...itemSearchResults]);
+        } catch (error) {
+          console.error('Search failed:', error);
+          setResults([]);
+        }
+      } else {
+        setResults([]);
+      }
+    };
+
+    // Debounce search by 300ms
+    const timeoutId = setTimeout(performSearch, 300);
+    return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
   // Load recent searches on mount

@@ -61,8 +61,12 @@ export const CustomerHome = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Load recommendations
-        const recs = await getRecommendations();
+        // Load recommendations with user context
+        const recs = await getRecommendations({
+          location: location || 'India',
+          browsing_history: [], // TODO: Track from localStorage
+          occasion: 'General',
+        });
         setRecommendations(recs);
 
         // Load partners from Supabase (with fallback to mock data)
