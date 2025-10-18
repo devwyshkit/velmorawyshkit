@@ -71,6 +71,11 @@ export const ComplianceFooter = () => {
             </a>
           </div>
           <div className="flex justify-center gap-3">
+            <a href="/partner/login" className="hover:text-primary transition-colors">Partner Login</a>
+            <span>•</span>
+            <a href="/partner/login" className="hover:text-primary transition-colors">Admin Login</a>
+          </div>
+          <div className="flex justify-center gap-3">
             <a href="/terms" className="hover:text-primary transition-colors">Terms</a>
             <span>•</span>
             <a href="/privacy" className="hover:text-primary transition-colors">Privacy</a>

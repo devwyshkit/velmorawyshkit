@@ -1,21 +1,32 @@
 /**
  * Partner Dashboard Layout
- * Mobile-first container with bottom nav (same pattern as customer UI)
+ * Responsive: Desktop sidebar + Mobile bottom nav (matches customer UI pattern)
  */
 
 import { Outlet } from 'react-router-dom';
 import { PartnerHeader } from '@/components/partner/PartnerHeader';
 import { PartnerBottomNav } from '@/components/partner/PartnerBottomNav';
+import { PartnerSidebar } from '@/components/partner/PartnerSidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export const Dashboard = () => {
-  return (
-    <div className="min-h-screen bg-background">
-      <PartnerHeader />
-      
-      <main className="pb-16 md:pb-4">
-        <Outlet />
-      </main>
+  const isMobile = useIsMobile();
 
+  return (
+    <div className="flex min-h-screen bg-background">
+      {/* Desktop Sidebar */}
+      <PartnerSidebar />
+      
+      <div className="flex-1 flex flex-col">
+        <PartnerHeader />
+        
+        {/* Mobile: pb-20 for bottom nav | Desktop: pb-4 */}
+        <main className={isMobile ? "pb-20" : "pb-4"}>
+          <Outlet />
+        </main>
+      </div>
+
+      {/* Mobile Bottom Nav */}
       <PartnerBottomNav />
     </div>
   );

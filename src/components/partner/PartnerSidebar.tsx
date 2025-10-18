@@ -1,14 +1,14 @@
 /**
- * Admin Sidebar Navigation
- * Desktop-only navigation for admin console (Swiggy pattern)
+ * Partner Sidebar Navigation
+ * Desktop-only navigation (Swiggy pattern)
  */
 
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, ShoppingBag } from 'lucide-react';
+import { Home, Package, ShoppingCart, DollarSign, User } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-export const AdminSidebar = () => {
+export const PartnerSidebar = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
 
@@ -16,13 +16,15 @@ export const AdminSidebar = () => {
   if (isMobile) return null;
 
   const navItems = [
-    { to: '/admin/overview', icon: LayoutDashboard, label: 'Overview' },
-    { to: '/admin/partners', icon: Users, label: 'Partner Approvals' },
-    { to: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
+    { to: '/partner/dashboard', icon: Home, label: 'Home' },
+    { to: '/partner/catalog', icon: Package, label: 'Catalog' },
+    { to: '/partner/orders', icon: ShoppingCart, label: 'Orders' },
+    { to: '/partner/earnings', icon: DollarSign, label: 'Earnings' },
+    { to: '/partner/profile', icon: User, label: 'Account' },
   ];
 
   return (
-    <aside className="w-64 border-r bg-card min-h-screen hidden md:block">
+    <aside className="w-64 border-r bg-card min-h-screen">
       <div className="p-6 space-y-2">
         {navItems.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to;
