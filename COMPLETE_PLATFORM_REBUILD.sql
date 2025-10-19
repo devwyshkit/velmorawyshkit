@@ -60,7 +60,10 @@ DELETE FROM auth.users WHERE email IN (
 -- Re-enable constraints
 SET session_replication_role = 'origin';
 
-RAISE NOTICE '✅ Cleanup complete - starting fresh build...';
+-- Cleanup complete (notice wrapped in DO block)
+DO $$ BEGIN
+  RAISE NOTICE '✅ Cleanup complete - starting fresh build...';
+END $$;
 
 -- ============================================================================
 -- PART 2: CUSTOMER TABLES (Customer UI needs these)
@@ -168,8 +171,6 @@ ALTER TABLE public.wishlist ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage own wishlist"
   ON public.wishlist FOR ALL
   USING (auth.uid() = user_id);
-
-RAISE NOTICE '✅ Customer tables created';
 
 -- ============================================================================
 -- PART 3: PARTNER PLATFORM TABLES
@@ -310,8 +311,6 @@ LEFT JOIN public.partner_profiles p ON p.id = o.partner_id
 WHERE o.status = 'completed'
 GROUP BY o.partner_id, week_start, month_start;
 
-RAISE NOTICE '✅ Partner tables created';
-
 -- ============================================================================
 -- PART 4: FUNCTIONS & TRIGGERS
 -- ============================================================================
@@ -397,8 +396,6 @@ CREATE TRIGGER update_partner_products_search
   BEFORE INSERT OR UPDATE ON public.partner_products
   FOR EACH ROW EXECUTE FUNCTION public.update_product_search_vector();
 
-RAISE NOTICE '✅ Functions & triggers created';
-
 -- ============================================================================
 -- PART 5: INDEXES FOR PERFORMANCE
 -- ============================================================================
@@ -419,8 +416,6 @@ CREATE INDEX idx_orders_status ON public.orders(status);
 CREATE INDEX idx_cart_user_id ON public.cart(user_id);
 CREATE INDEX idx_wishlist_user_id ON public.wishlist(user_id);
 CREATE INDEX idx_items_partner_id ON public.items(partner_id);
-
-RAISE NOTICE '✅ Indexes created';
 
 -- ============================================================================
 -- PART 6: TEST ACCOUNTS (All Roles)
@@ -501,8 +496,6 @@ INSERT INTO public.partner_profiles (
   'ABCDE1234F', '22ABCDE1234F1Z5', '12345678901234', NOW(), NOW()
 );
 
-RAISE NOTICE '✅ Test accounts created (4 accounts)';
-
 -- ============================================================================
 -- PART 7: SAMPLE DATA (So everything works together)
 -- ============================================================================
@@ -550,8 +543,6 @@ INSERT INTO public.orders (
   299900,
   'pending'
 );
-
-RAISE NOTICE '✅ Sample data created';
 
 -- ============================================================================
 -- FINAL VERIFICATION & SUCCESS MESSAGE
