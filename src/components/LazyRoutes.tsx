@@ -24,6 +24,9 @@ export { PartnerOrders } from '../pages/partner/Orders';
 export { PartnerEarnings } from '../pages/partner/Earnings';
 export { PartnerProfile } from '../pages/partner/Profile';
 
+// Admin Pages
+export { AdminPartnerApprovals } from '../pages/admin/PartnerApprovals';
+
 // Utility Pages
 export { default as NotFound } from '../pages/NotFound';
 export { default as Unauthorized } from '../pages/Unauthorized';

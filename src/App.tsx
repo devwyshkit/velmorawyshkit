@@ -62,6 +62,12 @@ const App = () => (
               </Route>
             </Route>
 
+            {/* Admin Routes - Internal Console */}
+            <Route path="/admin">
+              <Route index element={<Navigate to="partner-approvals" replace />} />
+              <Route path="partner-approvals" element={<LazyPages.AdminPartnerApprovals />} />
+            </Route>
+
             {/* Utility Routes */}
             <Route path="/unauthorized" element={<LazyPages.Unauthorized />} />
             <Route path="*" element={<LazyPages.NotFound />} />
