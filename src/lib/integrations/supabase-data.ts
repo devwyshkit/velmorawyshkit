@@ -207,23 +207,31 @@ const mockItems: Item[] = [
 // Data fetching functions
 export const fetchPartners = async (location?: string): Promise<Partner[]> => {
   try {
+    // Query partners table (no status/is_active columns in this table)
     const { data, error } = await supabase
       .from('partners')
       .select('*')
-      .eq('status', 'approved')  // Only show approved partners
-      .eq('is_active', true)      // Only show active partners
       .order('rating', { ascending: false });
 
     if (error) throw error;
     
     if (data && data.length > 0) {
-      return data;
+      return data.map(p => ({
+        id: p.id,
+        name: p.name,
+        image: p.image || 'https://picsum.photos/seed/partner/400/400',
+        rating: p.rating || 4.5,
+        delivery: p.delivery_time || '3-5 days',
+        location: p.location,
+        category: p.category,
+        ratingCount: 100, // Default until we have actual data
+      }));
     }
   } catch (error) {
     console.warn('Supabase fetch failed, using mock data:', error);
   }
   
-  // Fallback to mock data (mock partners are implicitly approved)
+  // Fallback to mock data
   return mockPartners;
 };
 
@@ -504,21 +512,27 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
   }
 
   try {
-    const formattedQuery = query
-      .trim()
-      .split(/\s+/)
-      .map(word => word.replace(/[^\w]/g, ''))
-      .filter(word => word.length > 0)
-      .join(' | ');
-
+    // Simple search on partners table
     const { data, error } = await supabase
-      .rpc('search_partners', { search_query: formattedQuery });
+      .from('partners')
+      .select('*')
+      .or(`name.ilike.%${query}%,category.ilike.%${query}%`)
+      .order('rating', { ascending: false })
+      .limit(20);
 
     if (error) throw error;
     
     if (data && data.length > 0) {
-      // Filter approved partners only
-      return data.filter((p: Partner) => p.status === 'approved' && p.is_active !== false);
+      return data.map(p => ({
+        id: p.id,
+        name: p.name,
+        image: p.image || 'https://picsum.photos/seed/partner/400/400',
+        rating: p.rating || 4.5,
+        delivery: p.delivery_time || '3-5 days',
+        location: p.location,
+        category: p.category,
+        ratingCount: 100,
+      }));
     }
   } catch (error) {
     console.warn('Backend search failed, using client-side fallback:', error);
