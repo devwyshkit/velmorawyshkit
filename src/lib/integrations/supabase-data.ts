@@ -13,6 +13,8 @@ export interface Partner {
   tagline?: string;   // "Premium tech products"
   ratingCount?: number; // 156
   sponsored?: boolean; // Promoted/sponsored partner
+  status?: 'pending' | 'approved' | 'rejected';  // Partner approval status
+  is_active?: boolean;  // Partner can self-disable
 }
 
 export interface Item {
@@ -208,6 +210,8 @@ export const fetchPartners = async (location?: string): Promise<Partner[]> => {
     const { data, error } = await supabase
       .from('partners')
       .select('*')
+      .eq('status', 'approved')  // Only show approved partners
+      .eq('is_active', true)      // Only show active partners
       .order('rating', { ascending: false });
 
     if (error) throw error;
@@ -219,7 +223,7 @@ export const fetchPartners = async (location?: string): Promise<Partner[]> => {
     console.warn('Supabase fetch failed, using mock data:', error);
   }
   
-  // Fallback to mock data
+  // Fallback to mock data (mock partners are implicitly approved)
   return mockPartners;
 };
 
@@ -513,13 +517,14 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
     if (error) throw error;
     
     if (data && data.length > 0) {
-      return data;
+      // Filter approved partners only
+      return data.filter((p: Partner) => p.status === 'approved' && p.is_active !== false);
     }
   } catch (error) {
     console.warn('Backend search failed, using client-side fallback:', error);
   }
   
-  // Fallback to client-side search
+  // Fallback to client-side search (mock partners are implicitly approved)
   return mockPartners.filter(partner =>
     partner.name.toLowerCase().includes(query.toLowerCase()) ||
     partner.tagline?.toLowerCase().includes(query.toLowerCase()) ||
