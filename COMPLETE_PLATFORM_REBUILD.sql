@@ -23,11 +23,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 SET CONSTRAINTS ALL DEFERRED;
 SET session_replication_role = 'replica';
 
--- Drop views first
-DROP VIEW IF EXISTS public.partner_earnings CASCADE;
-
--- Drop partner tables
+-- Drop partner_earnings (try TABLE first since error says it's a table)
 DROP TABLE IF EXISTS public.partner_earnings CASCADE;
+DROP VIEW IF EXISTS public.partner_earnings CASCADE;
 DROP TABLE IF EXISTS public.partner_products CASCADE;
 DROP TABLE IF EXISTS public.partner_profiles CASCADE;
 
