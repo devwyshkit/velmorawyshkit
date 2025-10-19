@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, ShoppingBag, DollarSign, User, Bell, LogOut, Menu, Star } from "lucide-react";
+import { Home, Package, ShoppingBag, DollarSign, User, Bell, LogOut, Menu, Star, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,13 +34,14 @@ export const PartnerLayout = () => {
   
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-  // Partner navigation items (Swiggy/Zomato pattern: Home, Menu, Orders, Earnings, Reviews, Profile)
+  // Partner navigation items (Swiggy/Zomato pattern: Home, Products, Orders, Earnings, Reviews, Campaigns, Profile)
   const navItems = [
     { icon: Home, label: "Home", path: "/partner/dashboard" },
     { icon: Package, label: "Products", path: "/partner/products" },
     { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // TODO: Real-time count
     { icon: DollarSign, label: "Earnings", path: "/partner/earnings" },
     { icon: Star, label: "Reviews", path: "/partner/reviews" },
+    { icon: Megaphone, label: "Campaigns", path: "/partner/campaigns" },
     { icon: User, label: "Profile", path: "/partner/profile" },
   ];
 
