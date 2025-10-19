@@ -15,8 +15,9 @@
 -- Disable triggers temporarily
 SET session_replication_role = 'replica';
 
--- Drop views first (depend on tables)
+-- Drop partner_earnings (could be view OR table)
 DROP VIEW IF EXISTS public.partner_earnings CASCADE;
+DROP TABLE IF EXISTS public.partner_earnings CASCADE;
 
 -- Drop tables (CASCADE removes dependencies)
 DROP TABLE IF EXISTS public.partner_products CASCADE;
