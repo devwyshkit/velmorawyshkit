@@ -1,812 +1,798 @@
-# Partner Platform Implementation Plan - MVP
-## Mobile-First, DRY Principles, Swiggy/Zomato Patterns
+# Partner Platform Implementation Plan - DRY & Mobile-First
 
 **Date**: October 19, 2025  
-**Timeline**: 2-3 weeks (14-18 days)  
-**Approach**: Reuse customer UI components, build incrementally
+**Approach**: Reuse Customer UI components, Mobile-first, IDfy onboarding, Swiggy/Zomato patterns  
+**Timeline**: 2 weeks (Partner Dashboard 7 days + Onboarding 5 days + Admin 3 days)
 
 ---
 
-## Executive Summary
+## ✅ Validation of Your 12 Prompts
 
-Build a **minimal viable partner platform** that allows vendors to:
-1. Sign up with Email+Password (no social login)
-2. Complete 4-step onboarding (conditional FSSAI)
-3. Wait for admin approval
-4. Manage catalog (add/edit products)
-5. Accept/reject orders (real-time)
-6. View earnings (commission transparency)
+### What's GOOD ✅
+1. **Comprehensive** - You've thought through every feature
+2. **Mobile-first** - All prompts specify 320px base
+3. **Swiggy/Zomato patterns** - Matches industry standards
+4. **Technical specs** - Schema, API calls, edge cases covered
+5. **Testing checklists** - Every prompt has testing criteria
 
-**Design Philosophy**: Mobile-first, DRY (reuse 80% from customer UI), Swiggy/Zomato patterns
+### What to SIMPLIFY (DRY Principle) 🔄
+
+**Issues**:
+1. **Too many features for MVP** - 12 features = 6-8 weeks, not 2-3
+2. **Component duplication** - Creating new components when customer UI has reusable ones
+3. **Complex features first** - Launch Blockers (bulk pricing, disputes) should be Phase 2
+4. **Over-engineering** - IDfy, Razorpay, Delhivery all at once
+
+**DRY Fixes**:
+```
+❌ Create BulkPricingTiers component from scratch
+✅ Reuse FilterChips, Accordion, Input from customer UI
+
+❌ Build custom DisputeResolution page
+✅ Reuse DataTable, Sheet components (already exist)
+
+❌ New PartnerBottomNav from scratch
+✅ Clone CustomerBottomNav, change icons/routes (5 mins vs 1 hour)
+
+❌ Build all 12 features Week 1
+✅ Build core dashboard (5 pages), add features iteratively
+```
 
 ---
 
-## Phase 1: Foundation (Days 1-3)
+## 🎯 SIMPLIFIED MVP PLAN (2 Weeks)
 
-### Day 1: Database Schema + Authentication
+### Week 1: Partner Dashboard Core (5 Pages)
 
-**Database Migration** (`supabase/migrations/005_partner_platform.sql`):
+**Goal**: Approved partners can manage their business
+
+**Pages** (Reusing Customer UI Patterns):
+1. **Home/Overview** - Dashboard with stats (reuse Card, Badge components)
+2. **Products** - CRUD with DataTable (reuse existing DataTable)
+3. **Orders** - Real-time list (reuse Sheet, Badge, DataTable)
+4. **Earnings** - Transactions (reuse DataTable, format from customer UI)
+5. **Profile** - Edit business info (reuse Form components)
+
+**Shared Components to Reuse**:
+- `CustomerBottomNav.tsx` → `PartnerBottomNav.tsx` (change 5 icons/routes)
+- `CustomerMobileHeader.tsx` → `PartnerHeader.tsx` (remove cart, add notifications)
+- `CustomerItemCard.tsx` → `ProductCard.tsx` (same structure, different data)
+- `DataTable` (ui/) → Use directly for Products, Orders, Earnings
+- `Sheet` (ui/) → Use for order details, product edit
+- `FilterChips.tsx` → Use for order status filters
+- `Stepper.tsx` → Reuse for quantity inputs
+- `ThemeToggle.tsx` → Reuse as-is
+
+**NEW Components to Build** (Only what's unique):
+1. `PartnerLayout.tsx` - Container with sidebar (desktop) + bottom nav (mobile)
+2. `StatsCard.tsx` - Dashboard metrics (orders, revenue, rating)
+3. `ProductForm.tsx` - Add/edit product sheet
+4. `OrderCard.tsx` - Order item in list (reuse Card structure from customer)
+
+**Estimated Time**: 5-7 days (50% faster due to reuse)
+
+---
+
+### Week 2 (Part 1): Vendor Onboarding (4 Steps) - 3 Days
+
+**Goal**: New vendors can signup and complete KYC
+
+**Pages**:
+1. **Signup** - Email + Password (reuse customer Login.tsx, modify for partner)
+2. **Onboarding** - 4-step stepper (reuse Stepper component)
+   - Step 1: Business Details (reuse Form components)
+   - Step 2: KYC Documents (IDfy API or manual for MVP)
+   - Step 3: Banking (simple form, no Razorpay validation for MVP)
+   - Step 4: Review & Submit
+
+**KYC Strategy for MVP**:
+```typescript
+// ❌ Don't build: Full IDfy integration (Week 1)
+// ✅ Do build: Manual document upload + admin review
+
+interface Step2KYC_MVP {
+  fields: {
+    panCard: {
+      number: string;        // Input field
+      upload: File;          // Drag-drop (reuse from customer)
+      // NO IDfy API call for MVP (admin manually verifies)
+    };
+    gstNumber: {
+      number: string;
+      // NO API verification for MVP
+    };
+    fssaiNumber?: {         // Conditional
+      required: category === 'food';
+      number: string;
+      upload: File;
+    };
+  };
+  
+  validation: {
+    panFormat: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;  // Regex only
+    gstFormat: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[Z0-9]{1}[A-Z]{1}[0-9]{1}$/;
+    // NO API calls (save ₹10-15 per partner)
+  };
+}
+```
+
+**Why Simplify**:
+- **IDfy costs ₹30-45** per vendor (PAN + GST + Aadhaar)
+- **MVP has <20 vendors** (₹600-900 total cost vs free manual review)
+- **Add IDfy in Phase 2** when you have 50+ signups/month
+
+**Estimated Time**: 3 days (using reusable forms)
+
+---
+
+### Week 2 (Part 2): Admin Console (3 Days)
+
+**Goal**: Admins can approve partners and monitor orders
+
+**Pages** (Ultra Simple MVP):
+1. **Partner Approvals** - DataTable with approve/reject buttons
+2. **Orders Monitor** - All orders across partners (read-only for MVP)
+3. **Analytics** (Optional) - Basic stats, no complex charts
+
+**Estimated Time**: 3 days (reuse DataTable, simple CRUD)
+
+---
+
+## 🔄 DRY Component Map
+
+### Reuse from Customer UI (No Changes Needed)
+
+| Customer Component | Partner Usage | Time Saved |
+|-------------------|---------------|------------|
+| `DataTable` (ui/) | Products, Orders, Earnings tables | 8 hours |
+| `Sheet` (ui/) | Order details, Product edit | 4 hours |
+| `Card` (ui/) | Stats cards, Product cards | 3 hours |
+| `Form` components (ui/) | All forms | 6 hours |
+| `Stepper.tsx` | Quantity inputs | 1 hour |
+| `ThemeToggle.tsx` | Use as-is | 1 hour |
+| `FilterChips.tsx` | Order status filters | 2 hours |
+| **TOTAL SAVED** | | **25 hours = 3 days** |
+
+### Modify from Customer UI (Clone & Adapt)
+
+| Customer Component | Partner Component | Changes | Time |
+|-------------------|-------------------|---------|------|
+| `CustomerBottomNav.tsx` | `PartnerBottomNav.tsx` | Change 5 icons (Home, Products, Orders, Earnings, Profile) | 30 mins |
+| `CustomerMobileHeader.tsx` | `PartnerHeader.tsx` | Remove cart, add notification bell | 1 hour |
+| `CustomerItemCard.tsx` | `ProductCard.tsx` | Add stock badge, edit button | 1 hour |
+| **TOTAL** | | | **2.5 hours** |
+
+### Build New (Partner-Specific)
+
+| Component | Purpose | Time |
+|-----------|---------|------|
+| `PartnerLayout.tsx` | Sidebar (desktop) + bottom nav (mobile) container | 3 hours |
+| `StatsCard.tsx` | Dashboard metrics (orders, revenue, rating) | 2 hours |
+| `ProductForm.tsx` | Add/edit product sheet | 4 hours |
+| `OrderCard.tsx` | Order item with accept/reject | 2 hours |
+| `OnboardingStepper.tsx` | 4-step wizard | 4 hours |
+| **TOTAL** | | **15 hours = 2 days** |
+
+**Grand Total: 5 days for full partner dashboard** (vs 10 days building from scratch)
+
+---
+
+## 📋 STREAMLINED FEATURE PRIORITY
+
+### Phase 1 (MVP - 2 Weeks): Core Dashboard
+
+**Launch Blockers** (Must Have):
+1. ✅ **Partner Authentication** (Login, Signup) - 1 day
+2. ✅ **Dashboard Layout** (Sidebar, Bottom Nav) - 1 day
+3. ✅ **Products CRUD** (Add, Edit, Delete, List) - 2 days
+4. ✅ **Orders Management** (List, Accept, Reject) - 2 days
+5. ✅ **Onboarding Flow** (4 steps, manual KYC) - 3 days
+6. ✅ **Admin Approvals** (Review, Approve, Reject) - 2 days
+7. ✅ **Earnings View** (Read-only transactions) - 1 day
+
+**Total**: 12 days = **2 calendar weeks** (with buffer)
+
+---
+
+### Phase 2 (Post-Launch): Advanced Features
+
+**Add After MVP Proven** (Your 12 Prompts):
+1. 🔄 **Bulk Pricing** (3 days) - PROMPT 1
+2. 🔄 **Dispute Resolution** (3 days) - PROMPT 2
+3. 🔄 **Returns & Refunds** (3 days) - PROMPT 3
+4. 🔄 **Campaign Management** (2 days) - PROMPT 4
+5. 🔄 **Sponsored Listings** (2 days) - PROMPT 5
+6. 🔄 **Loyalty Badges** (2 days) - PROMPT 6
+7. 🔄 **Referral Program** (2 days) - PROMPT 7
+8. 🔄 **Bulk Operations** (2 days) - PROMPT 8
+9. 🔄 **Ratings & Reviews** (2 days) - PROMPT 9
+10. 🔄 **Stock Alerts** (1 day) - PROMPT 10
+11. 🔄 **Sourcing Limits** (1 day) - PROMPT 11
+12. 🔄 **Help Center** (2 days) - PROMPT 12
+
+**Total Phase 2**: 25 days = **5 weeks**
+
+---
+
+## 🚀 IMMEDIATE NEXT STEPS (Phase 1 MVP)
+
+### Step 1: Database Schema (30 mins)
+
+Create `005_partner_platform_core.sql`:
 
 ```sql
 -- Partner profiles (extends auth.users)
 CREATE TABLE partner_profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   business_name TEXT NOT NULL,
-  business_type TEXT, -- 'sole_proprietor' | 'partnership' | 'private_limited'
-  category TEXT NOT NULL, -- Determines FSSAI requirement
-  
-  -- Address
-  address_line1 TEXT,
-  address_line2 TEXT,
-  city TEXT,
-  state TEXT,
-  pincode TEXT,
-  
-  -- KYC (conditional based on category)
-  pan_number TEXT,
-  pan_verified BOOLEAN DEFAULT false,
-  gst_number TEXT,
-  gst_verified BOOLEAN DEFAULT false,
-  fssai_number TEXT, -- NULL if not food category
-  fssai_expiry DATE,
-  fssai_verified BOOLEAN DEFAULT false,
-  
-  -- Banking
-  bank_account TEXT, -- Encrypted
-  bank_ifsc TEXT,
-  bank_verified BOOLEAN DEFAULT false,
-  
-  -- Approval workflow
+  category TEXT NOT NULL,  -- Determines FSSAI requirement
+  address JSONB,
+  phone TEXT,
   status TEXT DEFAULT 'pending', -- 'pending' | 'approved' | 'rejected'
   rejection_reason TEXT,
-  approved_at TIMESTAMPTZ,
-  approved_by UUID REFERENCES auth.users(id),
   
-  -- Metadata
+  -- KYC (stored for admin review, no API calls for MVP)
+  pan_number TEXT,
+  pan_document_url TEXT,
+  gst_number TEXT,
+  fssai_number TEXT,           -- NULL if not food
+  fssai_document_url TEXT,
+  
+  -- Banking
+  bank_account TEXT,            -- Encrypted
+  bank_ifsc TEXT,
+  
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  approved_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Partner products
+-- Products (simple for MVP)
 CREATE TABLE partner_products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   partner_id UUID REFERENCES partner_profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
-  images TEXT[], -- Array of Cloudinary URLs
-  
-  -- Pricing
-  price INTEGER NOT NULL, -- in paise
-  
-  -- Stock
+  price INTEGER NOT NULL,       -- in paise
   stock INTEGER DEFAULT 0,
-  stock_alert_threshold INTEGER DEFAULT 50,
-  
-  -- Metadata
+  images TEXT[],
   is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Partner orders (links to existing orders table)
+-- Orders (link existing orders table to partners)
 ALTER TABLE orders ADD COLUMN partner_id UUID REFERENCES partner_profiles(id);
 ALTER TABLE orders ADD COLUMN partner_status TEXT DEFAULT 'pending'; -- 'pending' | 'accepted' | 'preparing' | 'ready'
 
--- Enable RLS
-ALTER TABLE partner_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE partner_products ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies (partners can only see their own data)
-CREATE POLICY "Partners can view own profile"
-  ON partner_profiles FOR SELECT
-  USING (auth.uid() = id);
-
-CREATE POLICY "Partners can update own profile"
-  ON partner_profiles FOR UPDATE
-  USING (auth.uid() = id);
-
-CREATE POLICY "Partners can view own products"
-  ON partner_products FOR SELECT
-  USING (partner_id = auth.uid());
-
-CREATE POLICY "Partners can insert own products"
-  ON partner_products FOR INSERT
-  WITH CHECK (partner_id = auth.uid());
+-- Earnings (simple view)
+CREATE VIEW partner_earnings AS
+SELECT 
+  partner_id,
+  DATE_TRUNC('week', created_at) as week,
+  SUM(total) as revenue,
+  SUM(total * 0.15) as commission,
+  SUM(total * 0.85) as payout,
+  COUNT(*) as orders
+FROM orders
+WHERE status = 'completed'
+GROUP BY partner_id, week;
 ```
-
-**Partner Authentication** (`src/pages/partner/Login.tsx`, `Signup.tsx`):
-
-```typescript
-// REUSE customer Login.tsx structure but:
-// - Remove social login buttons (Google, Facebook)
-// - Keep Email+Password only
-// - Add stricter password validation (min 8 chars, uppercase, number, special)
-// - Session: 7 days (vs 30 for customers)
-// - Role: Set user.role = 'partner' on signup
-
-// DRY: Reuse from customer UI:
-import { CustomerMobileHeader } from '@/components/customer/shared/CustomerMobileHeader';
-// Just rename to PartnerHeader (or reuse as-is with logo prop)
-```
-
-**Estimated Time**: 6-8 hours
 
 ---
 
-### Days 2-3: Partner Layout + Routing
+### Step 2: Reusable Component Library (1 day)
 
-**Partner Layout** (`src/components/partner/PartnerLayout.tsx`):
-
-```typescript
-// REUSE CustomerBottomNav pattern but with different nav items
-const PartnerBottomNav = () => {
-  const navItems = [
-    { icon: Home, label: "Home", path: "/partner/dashboard" },
-    { icon: Package, label: "Catalog", path: "/partner/catalog" },
-    { icon: ShoppingBag, label: "Orders", path: "/partner/orders" },
-    { icon: DollarSign, label: "Earnings", path: "/partner/earnings" },
-    { icon: User, label: "Profile", path: "/partner/profile" },
-  ];
-  
-  // Rest is IDENTICAL to CustomerBottomNav
-  // DRY: Extract base BottomNav component, pass navItems as props
-};
-```
-
-**Routing** (`src/App.tsx`):
+Create `src/components/shared/` for cross-platform components:
 
 ```typescript
-// Add partner routes (protected by role check)
-<Route path="/partner">
-  <Route path="login" element={<PartnerLogin />} />
-  <Route path="signup" element={<PartnerSignup />} />
-  
-  {/* Protected routes - require auth + role='partner' */}
-  <Route element={<ProtectedRoute allowedRoles={['partner']} />}>
-    <Route path="onboarding" element={<PartnerOnboarding />} />
-    <Route path="dashboard" element={<PartnerDashboard />}>
-      <Route index element={<PartnerHome />} />
-      <Route path="catalog" element={<PartnerCatalog />} />
-      <Route path="orders" element={<PartnerOrders />} />
-      <Route path="earnings" element={<PartnerEarnings />} />
-      <Route path="profile" element={<PartnerProfile />} />
-    </Route>
-  </Route>
-</Route>
-```
-
-**Estimated Time**: 8-10 hours
-
----
-
-## Phase 2: Onboarding (Days 4-7)
-
-### Day 4-5: 4-Step Onboarding Form
-
-**Onboarding Container** (`src/pages/partner/Onboarding.tsx`):
-
-```typescript
-// REUSE Stepper component from customer UI
-import { Stepper } from '@/components/customer/shared/Stepper';
-
-const steps = [
-  { label: 'Business', component: Step1Business },
-  { label: 'KYC', component: Step2KYC },
-  { label: 'Banking', component: Step3Banking },
-  { label: 'Review', component: Step4Review },
-];
-
-// DRY: Same stepper logic as customer checkout, just different steps
-```
-
-**Step 1: Business Details** (`src/pages/partner/onboarding/Step1Business.tsx`):
-
-```typescript
-// Form fields:
-const fields = {
-  businessName: 'text input',
-  businessType: 'select dropdown',
-  category: 'select dropdown', // KEY: Determines FSSAI requirement
-  address: 'textarea',
-  city: 'text',
-  state: 'select',
-  pincode: 'number',
-  phone: 'tel',
-  email: 'email (pre-filled from auth.user)',
-};
-
-// Validation (Zod schema):
-const schema = z.object({
-  businessName: z.string().min(3).max(100),
-  category: z.enum(['food', 'perishables', 'tech_gifts', 'chocolates', 'personalized', 'premium']),
-  pincode: z.string().length(6).regex(/^[1-9][0-9]{5}$/),
-  phone: z.string().regex(/^[6-9]\d{9}$/), // Indian mobile
-});
-
-// DRY: Reuse Input, Select, Textarea from Shadcn
-// Mobile-first: 320px base, labels above inputs (not inline)
-```
-
-**Step 2: KYC Documents** (`src/pages/partner/onboarding/Step2KYC.tsx`):
-
-```typescript
-// Conditional logic (YOUR KEY QUESTION):
-const requiresFSSAI = ['food', 'perishables'].includes(formData.category);
-
-const fields = {
-  // Mandatory for ALL
-  pan_number: 'text input with format validation',
-  pan_document: 'file upload (drag-drop)',
-  gst_number: 'text input with format validation',
-  
-  // Conditional for food category
-  ...(requiresFSSAI && {
-    fssai_number: 'text input (14 digits)',
-    fssai_expiry: 'date picker (must be future)',
-    fssai_document: 'file upload',
-  }),
-};
-
-// File upload: REUSE pattern from customer proof upload
-// DRY: Extract FileUploadZone component (drag-drop, preview, remove)
-
-// Validation: Manual for MVP (no IDfy yet)
-// Admin reviews documents in approval flow
-```
-
-**Step 3: Banking** (`Step3Banking.tsx`):
-
-```typescript
-const fields = {
-  accountHolderName: 'text (auto-filled from PAN name)',
-  accountNumber: 'number (9-18 digits)',
-  confirmAccountNumber: 're-enter for validation',
-  ifscCode: 'text (11 chars, auto-fetch bank name)',
-  accountType: 'radio (Savings / Current)',
-};
-
-// IFSC auto-complete: Use public IFSC API
-// DRY: Reuse Input, Radio from Shadcn
-```
-
-**Step 4: Review & Submit** (`Step4Review.tsx`):
-
-```typescript
-// Shows summary of all steps
-// Each section editable (click to go back to that step)
-// Terms & Conditions checkbox (mandatory)
-// [Submit for Approval] button
-
-// On submit:
-// 1. Create partner_profiles record with status='pending'
-// 2. Upload documents to Supabase Storage
-// 3. Send email to admin: "New partner pending approval"
-// 4. Navigate to /partner/dashboard (pending state)
-
-// DRY: Reuse Accordion, Checkbox, Button from Shadcn
-```
-
-**Estimated Time**: 16-20 hours
-
----
-
-### Days 6-7: Pending State Dashboard
-
-**Pending State** (`src/pages/partner/Pending.tsx`):
-
-```typescript
-// When status='pending', show limited dashboard:
-// - Banner: "Your application is under review. We'll notify you within 24-48 hours."
-// - Can view: Profile, Support
-// - Cannot view: Catalog, Orders, Earnings (show lock icons)
-// - [Contact Support] button
-
-// DRY: Reuse Banner, Card, Button from Shadcn
-```
-
-**Estimated Time**: 6-8 hours
-
----
-
-## Phase 3: Partner Dashboard (Days 8-14)
-
-### Day 8-9: Dashboard Home (Post-Approval)
-
-**Home Page** (`src/pages/partner/Home.tsx`):
-
-```typescript
-// Stats cards (4-col grid on desktop, 2-col on mobile)
-const stats = [
-  { label: 'Orders Today', value: '12', icon: ShoppingBag },
-  { label: 'Revenue Today', value: '₹24,000', icon: DollarSign },
-  { label: 'Products', value: '18', icon: Package },
-  { label: 'Rating', value: '4.8★', icon: Star },
-];
-
-// Quick actions
-const actions = [
-  { label: 'Add Product', icon: Plus, path: '/partner/catalog?action=add' },
-  { label: 'View Orders', icon: Eye, path: '/partner/orders' },
-];
-
-// Recent orders (5 latest, real-time)
-// DRY: Reuse Card, Badge from Shadcn
-```
-
-**Estimated Time**: 8-10 hours
-
----
-
-### Day 10-12: Catalog Manager
-
-**Products Page** (`src/pages/partner/Catalog.tsx`):
-
-```typescript
-// REUSE DataTable from src/components/ui/data-table.tsx
-const columns: ColumnDef<Product>[] = [
-  { accessorKey: 'image', cell: ({ row }) => <img src={row.original.image} className="w-12 h-12 rounded" /> },
-  { accessorKey: 'name', header: 'Product Name' },
-  { accessorKey: 'price', header: 'Price', cell: ({ row }) => `₹${row.original.price / 100}` },
-  { accessorKey: 'stock', header: 'Stock' },
-  { id: 'actions', cell: ActionsCell },
-];
-
-// [+ Add Product] button → Opens bottom sheet
-// DRY: Reuse Sheet, DataTable, Button from Shadcn
-```
-
-**Add Product Sheet** (`src/components/partner/AddProductSheet.tsx`):
-
-```typescript
-const fields = {
-  name: 'text input',
-  description: 'textarea (3-4 lines)',
-  images: 'drag-drop upload (max 5 images)',
-  price: 'number input (in ₹)',
-  stock: 'number input',
-  stockAlertThreshold: 'number input (default 50)',
-};
-
-// Image upload to Cloudinary (reuse customer proof upload pattern)
-// DRY: Extract ImageUploader component (drag-drop, preview carousel, remove)
-
-// Form validation: React Hook Form + Zod
-// Mobile-first: Bottom sheet 80vh on mobile, modal on desktop
-```
-
-**Stock Alert** (Critical for MVP):
-
-```typescript
-// Real-time listener (add to Dashboard.tsx)
-useEffect(() => {
-  const channel = supabase
-    .channel('stock-alerts')
-    .on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'partner_products',
-      filter: `partner_id=eq.${partnerId}`
-    }, (payload) => {
-      const product = payload.new;
-      if (product.stock < product.stock_alert_threshold) {
-        toast({
-          title: "Low Stock Alert",
-          description: `${product.name}: Only ${product.stock} units left`,
-          variant: "destructive"
-        });
-      }
-    })
-    .subscribe();
-  
-  return () => supabase.removeChannel(channel);
-}, [partnerId]);
-```
-
-**Estimated Time**: 12-16 hours
-
----
-
-### Day 13-14: Orders Management
-
-**Orders Page** (`src/pages/partner/Orders.tsx`):
-
-```typescript
-// Tabs: [New] [Preparing] [Completed]
-// Real-time subscription to orders table
-// REUSE: Tabs, DataTable, Badge from Shadcn
-
-const columns = [
-  { accessorKey: 'id', header: 'Order #' },
-  { accessorKey: 'customer', header: 'Customer' },
-  { accessorKey: 'items', header: 'Items' },
-  { accessorKey: 'total', header: 'Amount' },
-  { accessorKey: 'status', header: 'Status', cell: StatusBadge },
-  { id: 'actions', cell: ({ row }) => (
-    <div className="flex gap-2">
-      <Button size="sm" onClick={() => acceptOrder(row.original.id)}>Accept</Button>
-      <Button size="sm" variant="outline" onClick={() => rejectOrder(row.original.id)}>Reject</Button>
-    </div>
-  )},
-];
-
-// Accept order: Update order.partner_status = 'accepted'
-// Reject order: Open dialog for rejection reason
-```
-
-**Estimated Time**: 10-12 hours
-
----
-
-## Phase 4: Admin Console (Days 15-18)
-
-### Day 15-16: Admin Layout + Partner Approvals
-
-**Admin Layout**: Similar to partner layout, different nav items
-
-**Partner Approvals** (`src/pages/admin/PartnerApprovals.tsx`):
-
-```typescript
-// DataTable with pending partners
-const columns = [
-  { accessorKey: 'business_name', header: 'Business Name' },
-  { accessorKey: 'category', header: 'Category' },
-  { accessorKey: 'submitted_at', header: 'Submitted' },
-  { accessorKey: 'status', header: 'KYC Status', cell: KYCStatusBadges },
-  { id: 'actions', cell: ({ row }) => (
-    <div className="flex gap-2">
-      <Button size="sm" onClick={() => viewDetails(row.original.id)}>Review</Button>
-    </div>
-  )},
-];
-
-// Click Review → Opens detail sheet with all KYC documents
-// Shows: PAN (image + number), GST, FSSAI (if food), Bank details
-// Admin can: [Approve] [Reject] [Request More Info]
-
-// Approve: Update status='approved', send email
-// Reject: Require rejection_reason, send email with reason
-```
-
-**Estimated Time**: 10-12 hours
-
----
-
-### Day 17-18: Admin Orders + Polish
-
-**Admin Orders Monitoring**: View all orders across all partners  
-**Polish**: Fix any bugs, mobile testing, final UAT
-
-**Estimated Time**: 10-12 hours
-
----
-
-## DRY Component Reuse Matrix
-
-| Component | Customer UI | Partner UI | Admin UI | Notes |
-|-----------|-------------|------------|----------|-------|
-| **BottomNav** | ✅ Used | ✅ Reuse (different items) | ✅ Reuse | Extract to shared/BottomNav.tsx with items prop |
-| **MobileHeader** | ✅ Used | ✅ Reuse (different logo) | ✅ Reuse | Pass logo prop |
-| **ItemCard** | ✅ Used | ❌ Not needed | ❌ Not needed | Customer-specific |
-| **Stepper** | ✅ Used | ✅ Reuse (onboarding) | ❌ Not needed | Shared component |
-| **DataTable** | ❌ Not used | ✅ Use (products, orders) | ✅ Use (approvals) | Already in ui/ |
-| **Sheet** | ✅ Used | ✅ Reuse (add product, order detail) | ✅ Reuse | Shadcn component |
-| **Toast** | ✅ Used | ✅ Reuse | ✅ Reuse | Shadcn component |
-| **FileUpload** | ✅ Used (proof) | ✅ Reuse (KYC docs) | ❌ Not needed | Extract to shared |
-| **ComplianceFooter** | ✅ Used | ✅ Reuse | ✅ Reuse | Same footer everywhere |
-
-**DRY Refactoring** (Day 1 task):
-
-```typescript
-// Extract shared BottomNav
-// FROM: CustomerBottomNav.tsx
-// TO: src/components/shared/BottomNav.tsx
-
+// src/components/shared/MobileBottomNav.tsx (DRY!)
 interface BottomNavProps {
-  items: NavItem[];
-  basePath: string; // '/customer' or '/partner' or '/admin'
+  items: Array<{
+    icon: LucideIcon;
+    label: string;
+    path: string;
+    badge?: number;
+  }>;
 }
+
+export const MobileBottomNav = ({ items }: BottomNavProps) => {
+  // SAME CODE as CustomerBottomNav, but accepts items as props
+  // Use for: Customer, Partner, Admin (3 platforms, 1 component)
+};
 
 // Usage:
-<BottomNav items={partnerNavItems} basePath="/partner" />
+// Customer: <MobileBottomNav items={customerNavItems} />
+// Partner: <MobileBottomNav items={partnerNavItems} />
+// Admin: <MobileBottomNav items={adminNavItems} />
 ```
+
+**Reusable Components to Extract**:
+1. `MobileBottomNav` - Used by all 3 platforms
+2. `MobileHeader` - Generic header (logo, location, actions)
+3. `StatsCard` - Metrics display (orders, revenue, rating)
+4. `StatusBadge` - Color-coded status (pending, approved, active)
+5. `ImageUploader` - Drag-drop with Cloudinary (onboarding + products)
+
+**Time Saved**: 10-15 hours across all platforms
 
 ---
 
-## Mobile-First Design System
+### Step 3: Partner Dashboard (5 Pages) - 5 Days
 
-### Breakpoints (Consistent Across All Platforms)
+Using DRY approach, here's the streamlined build:
 
+#### Day 1: Layout & Authentication
+
+**Files to Create**:
+1. `src/pages/partner/Login.tsx` - Clone `customer/Login.tsx`, change title/redirect
+2. `src/pages/partner/Signup.tsx` - Email+Password only (no social)
+3. `src/components/partner/PartnerLayout.tsx` - Sidebar + BottomNav wrapper
+4. `src/components/shared/MobileBottomNav.tsx` - **DRY component** (extracted from customer)
+
+**Reuse**: Form components, Button, Input, Card (90% code reuse)
+
+---
+
+#### Day 2: Dashboard Home
+
+**Files to Create**:
+1. `src/pages/partner/Home.tsx` - Stats cards + quick actions
+2. `src/components/shared/StatsCard.tsx` - **DRY component** (reusable metric display)
+
+**Code Example** (DRY):
 ```typescript
-const breakpoints = {
-  mobile: '320px - 767px',  // Base
-  tablet: '768px - 1023px',
-  desktop: '1024px+',
-};
+// StatsCard - Use for Customer, Partner, Admin metrics
+export const StatsCard = ({ title, value, icon: Icon, trend, color }) => (
+  <Card>
+    <CardContent>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <h3 className="text-2xl font-bold">{value}</h3>
+        </div>
+        <Icon className={`h-8 w-8 text-${color}`} />
+      </div>
+      {trend && <p className="text-xs mt-2">{trend}</p>}
+    </CardContent>
+  </Card>
+);
 
-// Tailwind config (already set):
-// sm: 640px, md: 768px, lg: 1024px, xl: 1280px
+// Usage in partner/Home.tsx
+<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+  <StatsCard title="Orders" value="24" icon={ShoppingBag} trend="+12% this week" color="primary" />
+  <StatsCard title="Revenue" value="₹45K" icon={DollarSign} trend="+8%" color="green" />
+  <StatsCard title="Rating" value="4.8★" icon={Star} color="yellow" />
+  <StatsCard title="Products" value="18" icon={Package} color="blue" />
+</div>
 ```
 
-### Component Sizing Standards
+**Reuse**: Card, Badge, Button (100% reuse)
 
+---
+
+#### Day 3-4: Products Page (CRUD)
+
+**Files to Create**:
+1. `src/pages/partner/Products.tsx` - Main page with DataTable
+2. `src/components/partner/ProductForm.tsx` - Add/edit sheet
+3. `src/components/shared/ImageUploader.tsx` - **DRY component** (for onboarding too)
+
+**Reuse**:
+- `DataTable` (ui/) - 100% reuse
+- `Sheet` (ui/) - 100% reuse
+- `Form` components - 100% reuse
+
+**Code Example** (DRY):
 ```typescript
-const designTokens = {
-  // Touch targets (mobile-first)
-  minTouchTarget: '48px', // Buttons, nav items
-  
-  // Typography
-  heading1: '20px / 1.4 (mobile), 24px / 1.3 (desktop)',
-  heading2: '18px / 1.4 (mobile), 20px / 1.4 (desktop)',
-  body: '16px / 1.5',
-  small: '14px / 1.5',
-  tiny: '12px / 1.4',
-  
-  // Spacing (8px grid)
-  spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '16px',
-    lg: '24px',
-    xl: '32px',
+// Products.tsx - Reuse DataTable from ui/
+import { DataTable } from "@/components/ui/data-table";
+
+const columns: ColumnDef<Product>[] = [
+  {
+    accessorKey: "image",
+    header: "Image",
+    cell: ({ row }) => <img src={row.original.image} className="w-12 h-12 rounded" />
   },
+  { accessorKey: "name", header: "Name" },
+  { accessorKey: "price", header: "Price", cell: ({ row }) => `₹${row.original.price}` },
+  { accessorKey: "stock", header: "Stock" },
+  {
+    id: "actions",
+    cell: ({ row }) => (
+      <DropdownMenu>
+        <DropdownMenuItem onClick={() => editProduct(row.original)}>Edit</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => deleteProduct(row.original.id)}>Delete</DropdownMenuItem>
+      </DropdownMenu>
+    )
+  }
+];
+
+return <DataTable columns={columns} data={products} searchKey="name" />;
+```
+
+**Time**: 2 days (vs 4 days building custom table)
+
+---
+
+#### Day 5: Orders Page (Real-time)
+
+**Files to Create**:
+1. `src/pages/partner/Orders.tsx` - Orders list with tabs
+2. `src/components/partner/OrderDetail.tsx` - Order detail sheet
+
+**Reuse**:
+- `DataTable` (ui/) - 100% reuse
+- `Sheet` (ui/) - 100% reuse
+- `Badge` (ui/) - For status
+- `Tabs` (ui/) - For New/Preparing/Ready
+
+**Code Example** (DRY + Real-time):
+```typescript
+// Orders.tsx
+import { useEffect } from 'react';
+import { DataTable } from '@/components/ui/data-table';
+import { Tabs } from '@/components/ui/tabs';
+
+export const PartnerOrders = () => {
+  const [orders, setOrders] = useState([]);
   
-  // Bottom sheets
-  sheetHeight: {
-    mobile: '80vh',
-    desktop: '600px',
-  },
+  // Supabase real-time subscription (Zomato pattern)
+  useEffect(() => {
+    const channel = supabase
+      .channel('partner-orders')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'orders',
+        filter: `partner_id=eq.${partnerId}`
+      }, (payload) => {
+        setOrders(prev => [payload.new, ...prev]);
+        toast({ title: "New Order!", description: `Order #${payload.new.id}` });
+      })
+      .subscribe();
+    
+    return () => supabase.removeChannel(channel);
+  }, [partnerId]);
   
-  // Bottom nav
-  bottomNavHeight: '56px (h-14)',
-  
-  // Content padding (account for bottom nav)
-  contentPadding: 'pb-20 (80px for nav + safe area)',
+  return (
+    <Tabs defaultValue="new">
+      <TabsList>
+        <TabsTrigger value="new">New ({newCount})</TabsTrigger>
+        <TabsTrigger value="preparing">Preparing</TabsTrigger>
+        <TabsTrigger value="ready">Ready</TabsTrigger>
+      </TabsList>
+      <TabsContent value="new">
+        <DataTable columns={orderColumns} data={orders.filter(o => o.status === 'pending')} />
+      </TabsContent>
+    </Tabs>
+  );
 };
 ```
 
----
-
-## Simplified MVP Feature Set
-
-### ✅ Include in MVP (Core 7 Features)
-
-1. **Partner Auth** (Email+Password only)
-2. **4-Step Onboarding** (Business, KYC, Banking, Review)
-3. **Approval Flow** (Pending → Approved states)
-4. **Dashboard Home** (Stats, quick actions)
-5. **Catalog Manager** (Add/edit products, single price)
-6. **Orders** (Accept/reject, real-time)
-7. **Stock Alerts** (Low stock notifications)
-
-### ❌ Move to Phase 2 (Post-MVP)
-
-1. Bulk Pricing (too complex, start with single price)
-2. Dispute Resolution (admin-handled initially)
-3. Returns & Refunds (admin-handled initially)
-4. Campaign Management (monetization feature)
-5. Sponsored Listings (monetization feature)
-6. Loyalty Badges (need data first)
-7. Referral Program (growth feature)
-8. Bulk Operations (nice-to-have)
-9. Reviews Management (admin-handled initially)
-10. Sourcing Limits (complex business logic)
-11. Help Center (email support initially)
-
-**Rationale**: Focus on core workflow (onboarding → catalog → orders). Add advanced features once you have 20-50 active partners and real usage data.
+**Time**: 1 day (vs 2-3 days building custom)
 
 ---
 
-## Implementation Timeline
+#### Day 6: Earnings Page
 
-### Week 1: Foundation + Onboarding
-- **Day 1**: Database schema + partner auth (8h)
-- **Day 2-3**: Partner layout + routing (16h)
-- **Day 4-5**: 4-step onboarding (16h)
-- **Day 6-7**: Pending state + admin approval UI (16h)
+**Files to Create**:
+1. `src/pages/partner/Earnings.tsx` - Transactions table
 
-**Deliverable**: Partners can sign up, complete onboarding, await approval
+**Reuse**:
+- `DataTable` (ui/) - 100% reuse
+- `Card` (ui/) - For summary cards
+
+**Code Example** (Simple!):
+```typescript
+// Earnings.tsx - VERY simple for MVP
+export const PartnerEarnings = () => {
+  const [earnings, setEarnings] = useState({ week: 0, pending: 0 });
+  
+  useEffect(() => {
+    // Fetch from partner_earnings view
+    const fetchEarnings = async () => {
+      const { data } = await supabase
+        .from('partner_earnings')
+        .select('*')
+        .eq('partner_id', partnerId)
+        .single();
+      
+      setEarnings(data);
+    };
+    fetchEarnings();
+  }, []);
+  
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">This Week</p>
+            <h3 className="text-2xl font-bold">₹{earnings.week / 100}</h3>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Pending Payout</p>
+            <h3 className="text-2xl font-bold">₹{earnings.pending / 100}</h3>
+          </CardContent>
+        </Card>
+      </div>
+      <DataTable columns={transactionColumns} data={transactions} />
+    </div>
+  );
+};
+```
+
+**Time**: 4 hours (ultra simple)
 
 ---
 
-### Week 2: Dashboard + Orders
-- **Day 8-9**: Dashboard home (stats, quick actions) (16h)
-- **Day 10-12**: Catalog manager (DataTable, add/edit products) (20h)
-- **Day 13-14**: Orders management (real-time, accept/reject) (16h)
+#### Day 7: Profile Page
 
-**Deliverable**: Approved partners can manage catalog and orders
+**Files to Create**:
+1. `src/pages/partner/Profile.tsx` - Edit business details
 
----
+**Reuse**:
+- `Form` components (ui/) - 100% reuse from customer
+- `Card` (ui/) - 100% reuse
 
-### Week 3: Admin Console + Polish
-- **Day 15-16**: Admin layout + partner approvals (20h)
-- **Day 17**: Admin orders monitoring (8h)
-- **Day 18**: Testing, bug fixes, UAT (8h)
-
-**Deliverable**: Full partner platform MVP ready
+**Time**: 4 hours
 
 ---
 
-**Total**: 144-160 hours (18-20 working days with testing)  
-**Calendar**: 3-4 weeks (accounting for meetings, delays)
+### Week 2: Onboarding + Admin (6 Days)
+
+#### Day 8-10: Onboarding (3 Days)
+
+**Files to Create**:
+1. `src/pages/partner/Onboarding.tsx` - Stepper container
+2. `src/pages/partner/onboarding/Step1Business.tsx` - Business form
+3. `src/pages/partner/onboarding/Step2KYC.tsx` - Documents upload (conditional FSSAI)
+4. `src/pages/partner/onboarding/Step3Banking.tsx` - Bank details
+5. `src/pages/partner/onboarding/Step4Review.tsx` - Summary
+
+**Conditional FSSAI Logic** (Your Question Answered):
+```typescript
+// Step1Business.tsx
+const [category, setCategory] = useState('');
+
+// Step2KYC.tsx
+const showFSSAI = ['food', 'perishables', 'beverages'].includes(category);
+
+return (
+  <Form>
+    <FormField name="pan_number" />
+    <FormField name="gst_number" />
+    
+    {/* Conditional FSSAI - only if food category */}
+    {showFSSAI && (
+      <>
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>FSSAI Required</AlertTitle>
+          <AlertDescription>
+            Since you deal with food items, FSSAI license is mandatory.
+            <Link href="https://foscos.fssai.gov.in" target="_blank">How to get FSSAI?</Link>
+          </AlertDescription>
+        </Alert>
+        <FormField name="fssai_number" required />
+        <FormField name="fssai_document" type="file" required />
+      </>
+    )}
+  </Form>
+);
+```
+
+**Reuse**:
+- `Form`, `Input`, `Button`, `Alert` - 100% reuse
+- `ImageUploader` - Reuse from shared components
+
+**IDfy for MVP**: **Skip it** (manual review), add in Phase 2
 
 ---
 
-## Key Decisions Answered
+#### Day 11-12: Admin Console (2 Days)
 
-### 1. Login/Signup Strategy
+**Files to Create**:
+1. `src/pages/admin/PartnerApprovals.tsx` - Approval queue
+2. `src/components/admin/ApprovalDetail.tsx` - Review KYC sheet
 
-| Platform | Method | Why Different | Session |
-|----------|--------|---------------|---------|
-| **Customer** | Social (Google, Facebook, Apple) | Convenience, quick checkout | 30 days |
-| **Partner** | **Email + Password ONLY** | Professional, audit trail, no social for business | 7 days |
-| **Admin** | Email + Password + 2FA | Security (approves money), audit log | 4 hours |
+**Reuse**:
+- `DataTable` (ui/) - 100% reuse
+- `Sheet` (ui/) - 100% reuse
 
-**Swiggy/Zomato Comparison**: ✅ Exactly the same - Customer social, Partner email, Admin 2FA
+**Code Example** (Simple!):
+```typescript
+// PartnerApprovals.tsx
+const columns: ColumnDef<PartnerProfile>[] = [
+  { accessorKey: "business_name", header: "Business Name" },
+  { accessorKey: "category", header: "Category" },
+  { accessorKey: "created_at", header: "Submitted", cell: ({ row }) => formatDate(row.original.created_at) },
+  {
+    id: "actions",
+    cell: ({ row }) => (
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => approve(row.original.id)}>Approve</Button>
+        <Button size="sm" variant="destructive" onClick={() => reject(row.original.id)}>Reject</Button>
+      </div>
+    )
+  }
+];
+
+return <DataTable columns={columns} data={pendingPartners} />;
+```
+
+**Time**: 2 days (vs 5 days building custom UI)
 
 ---
 
-### 2. FSSAI Collection Strategy
+## 🛠 Customer UI Changes Needed
+
+### What Needs to Change:
+
+#### 1. Partners Data Structure (Add Status Field)
+
+Currently `supabase-data.ts` has basic Partner interface. Need to add:
 
 ```typescript
-// Step 1: Ask category FIRST
-const category = formData.category;
-
-// Step 2: Conditional FSSAI
-if (['food', 'perishables', 'beverages'].includes(category)) {
-  showFields(['pan', 'gst', 'fssai']); // FSSAI mandatory
-  showAlert('FSSAI is mandatory for food category');
-} else {
-  showFields(['pan', 'gst']); // FSSAI hidden
+// src/lib/integrations/supabase-data.ts
+export interface Partner {
+  id: string;
+  name: string;
+  image: string;
+  rating: number;
+  delivery: string;
+  // ... existing fields ...
+  
+  // ADD THESE for partner platform integration:
+  status?: 'pending' | 'approved' | 'rejected';  // NEW
+  category: string;                               // Already exists ✅
+  business_email?: string;                        // NEW
+  commission_percent?: number;                    // NEW (for earnings)
 }
+```
 
-// On submit, validation:
-if (category.includes('food') && !fssai_number) {
-  throw new Error('FSSAI required for food category');
+#### 2. Items/Products - Link to Partners
+
+Already has `partner_id` ✅ No changes needed!
+
+```typescript
+export interface Item {
+  partner_id: string;  // ✅ Already exists
+  // ... rest is good
 }
 ```
 
-**Admin Approval**:
-- For food partners: Verify FSSAI expiry date (must be future)
-- For non-food: Skip FSSAI check
+#### 3. Customer UI - Filter Only Approved Partners
 
-**Swiggy/Zomato Comparison**: ✅ Exactly the same - conditional based on category, strict enforcement
+**Change needed in**: `src/pages/customer/CustomerHome.tsx`
 
----
+```typescript
+// BEFORE (shows all partners)
+const { data: partners } = await supabase.from('partners').select('*');
 
-### 3. KYC Integration (MVP vs Production)
-
-**MVP Approach** (Recommended):
-- **No IDfy integration** (save ₹10-15 per partner)
-- **Manual verification**: Admin reviews PAN/GST documents visually
-- **Time**: ~10 minutes per partner (acceptable for <20 partners/month)
-
-**Production Approach** (Phase 2 - when you have 50+ partners/month):
-- **IDfy API**: Auto-verify PAN, GST, Aadhaar (2-5 seconds)
-- **Cost**: ₹10-15 per partner (worth it at scale)
-- **Time**: Instant approval (95% automation)
-
-**When to Switch**: When manual verification takes >2 hours/day
-
----
-
-## Technical Stack (Reusing 80% from Customer UI)
-
-### Frontend
-- **React 18.3.1** (same)
-- **React Router 6.30.1** (same)
-- **Shadcn UI** (same - reuse all components)
-- **Tailwind CSS** (same - reuse design tokens)
-- **Supabase JS 2.75.0** (same)
-
-### New Dependencies (Partner-specific)
-- None! Everything reuses customer UI stack
-
-### Backend
-- **Supabase** (same - just new tables)
-- **Supabase Storage** (for KYC document uploads)
-- **Supabase Realtime** (for order notifications)
-
-### APIs (Phase 2, not MVP)
-- IDfy: PAN/GST verification
-- Razorpay: Bank account verification
-
----
-
-## File Structure
-
-```
-src/
-├── components/
-│   ├── shared/              # NEW - DRY components
-│   │   ├── BottomNav.tsx   # Extracted from CustomerBottomNav
-│   │   ├── MobileHeader.tsx # Extracted from CustomerMobileHeader
-│   │   ├── FileUploader.tsx # Extracted from customer proof
-│   │   └── Stepper.tsx     # Moved from customer/shared
-│   │
-│   ├── partner/             # NEW
-│   │   ├── AddProductSheet.tsx
-│   │   ├── OrderCard.tsx
-│   │   └── StatsCard.tsx
-│   │
-│   └── admin/               # NEW
-│       ├── PartnerDetailSheet.tsx
-│       └── KYCReviewCard.tsx
-│
-├── pages/
-│   ├── partner/             # NEW
-│   │   ├── Login.tsx
-│   │   ├── Signup.tsx
-│   │   ├── Onboarding.tsx
-│   │   ├── onboarding/
-│   │   │   ├── Step1Business.tsx
-│   │   │   ├── Step2KYC.tsx
-│   │   │   ├── Step3Banking.tsx
-│   │   │   └── Step4Review.tsx
-│   │   ├── Dashboard.tsx (layout)
-│   │   ├── Home.tsx
-│   │   ├── Catalog.tsx
-│   │   ├── Orders.tsx
-│   │   ├── Earnings.tsx
-│   │   └── Profile.tsx
-│   │
-│   └── admin/               # NEW
-│       ├── Login.tsx
-│       ├── Dashboard.tsx (layout)
-│       ├── PartnerApprovals.tsx
-│       └── Orders.tsx
-│
-└── lib/
-    └── integrations/
-        └── partner-data.ts  # NEW - Partner CRUD functions
+// AFTER (shows only approved)
+const { data: partners } = await supabase
+  .from('partners')
+  .select('*')
+  .eq('status', 'approved')  // ← ADD THIS
+  .eq('is_active', true);     // ← AND THIS (for partner self-disable)
 ```
 
-**Total New Files**: ~25 files  
-**Reused Components**: ~15 from customer UI  
-**DRY Ratio**: 60-70% code reuse
+**Files to Update**:
+- `src/pages/customer/CustomerHome.tsx` (line ~70)
+- `src/pages/customer/Search.tsx` (line ~50)
+- `src/lib/integrations/supabase-data.ts` - `searchPartners()` function
+
+**Time**: 30 mins
 
 ---
 
-## Success Criteria
+#### 4. Orders - Add Partner Status
 
-### MVP Launch Checklist
+**Change needed in**: Orders table already has structure, just add partner workflow
 
-- [ ] Partner can signup with email+password
-- [ ] Partner completes 4-step onboarding (conditional FSSAI)
-- [ ] Admin reviews KYC documents
-- [ ] Admin approves/rejects with reason
-- [ ] Approved partner accesses full dashboard
-- [ ] Partner adds 5 products with images
-- [ ] Customer UI shows partner products
-- [ ] Partner receives real-time order notifications
-- [ ] Partner accepts/rejects orders
-- [ ] Stock alerts work (low stock notifications)
-- [ ] All pages mobile-responsive (320px)
-- [ ] No console errors
-- [ ] Lighthouse score ≥80
+```typescript
+// Order flow:
+// Customer places order → partner_status = 'pending'
+// Partner accepts → partner_status = 'accepted'
+// Partner prepares → partner_status = 'preparing'
+// Partner ships → partner_status = 'ready'
+```
 
----
+**Customer UI Changes**:
+- `src/pages/customer/Track.tsx` - Show partner preparation status
+- No other changes needed (order structure already good)
 
-## Risk Mitigation
-
-| Risk | Mitigation |
-|------|------------|
-| Manual KYC slow at scale | Set SLA (24-48h), hire part-time reviewer, add IDfy when >50/month |
-| Partners don't complete onboarding | Save-as-you-go, reminder emails, simplify steps |
-| Stock overselling | Real-time stock checks, decrement on order, alerts at threshold |
-| Bad actors (fake partners) | Manual KYC review, GST verification, bank verification |
-| UI inconsistency across platforms | DRY shared components, design system tokens |
+**Time**: 1 hour
 
 ---
 
-## Next Steps
+## 📊 FINAL RECOMMENDATION
 
-**I recommend starting with**: Partner Authentication + Database Schema (Day 1)
+### Option A: MVP First (Recommended)
 
-**Ready to proceed?** I can generate:
-1. Complete database migration (005_partner_platform.sql)
-2. Partner Login/Signup pages (reusing customer pattern)
-3. Protected routing with role checks
-4. Partner layout with mobile-first bottom nav
+**Build Only**:
+1. Partner Dashboard (5 pages, DRY approach) - **5 days**
+2. Onboarding (4 steps, manual KYC) - **3 days**
+3. Admin Approvals (1 page) - **2 days**
 
-**Shall I begin building?** 🚀
+**Skip for MVP**:
+- Bulk Pricing (your PROMPT 1)
+- Disputes (PROMPT 2)
+- Returns (PROMPT 3)
+- All WEEK 1 features (PROMPTS 4-12)
 
+**Total**: **10 days = 2 weeks**
+
+**Then**: Launch with 5-10 manually approved partners, validate model, add features based on feedback
+
+---
+
+### Your 12 Prompts - Use in Phase 2
+
+**Save your prompts for later!** They're excellent but:
+- Too complex for MVP (6-8 weeks)
+- Some features need real data to test (e.g., disputes need actual orders)
+- Better to launch simple, iterate based on partner feedback
+
+**Phase 2 Priority** (Post-MVP):
+1. PROMPT 10: Stock Alerts (1 day) - Quick win, prevents overselling
+2. PROMPT 1: Bulk Pricing (3 days) - Requested by partners
+3. PROMPT 9: Reviews Management (2 days) - Trust signal
+4. PROMPT 8: Bulk Operations (2 days) - Efficiency for partners
+5. PROMPT 7: Referral (2 days) - Growth driver
+6. ... rest based on partner requests
+
+---
+
+## ✅ WHAT I'LL BUILD (If You Approve)
+
+### Phase 1 MVP (2 Weeks):
+
+**Week 1:**
+1. Partner authentication (Login, Signup) - Email+Password only
+2. PartnerLayout with sidebar (desktop) + bottom nav (mobile)
+3. Dashboard Home - Stats cards (today's orders, revenue, rating)
+4. Products page - DataTable with add/edit/delete
+5. Orders page - Real-time with accept/reject
+
+**Week 2:**
+6. Earnings page - Simple transactions view
+7. Profile page - Edit business details
+8. Onboarding flow - 4 steps with conditional FSSAI
+9. Admin approvals - Review & approve/reject
+10. Customer UI updates - Filter approved partners only
+
+**DRY Approach**:
+- Extract `MobileBottomNav`, `MobileHeader`, `StatsCard`, `ImageUploader` to `components/shared/`
+- Reuse 90% of customer UI components
+- Same design system (colors, spacing, typography)
+- Same mobile-first approach (320px base)
+
+**No IDfy Integration**: Manual KYC review for MVP (save ₹30-45 per partner)
+
+**Timeline**: 10 working days = 2 calendar weeks
+
+---
+
+## ❓ Your Decision
+
+**Option 1: Build MVP Now** (My Recommendation)
+- 2 weeks to functional partner platform
+- Reuses 90% of customer UI
+- No over-engineering (manual KYC, simple features)
+- Your 12 prompts used in Phase 2 (after launch)
+
+**Option 2: Build Full Feature Set** (Your 12 Prompts)
+- 6-8 weeks to complete all features
+- Risk of over-building before validation
+- But comprehensive from day 1
+
+**Option 3: Hybrid Approach**
+- Week 1: Core dashboard (5 pages)
+- Week 2: Pick 3 features from your 12 prompts
+- Week 3: Onboarding + Admin
+
+Which approach do you prefer? 🚀
