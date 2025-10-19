@@ -44,6 +44,19 @@ const App = () => (
               <Route path="profile" element={<LazyPages.Profile />} />
             </Route>
 
+            {/* Partner Routes - Business Dashboard */}
+            <Route path="/partner">
+              <Route index element={<Navigate to="login" replace />} />
+              <Route path="login" element={<LazyPages.PartnerLogin />} />
+              <Route path="signup" element={<LazyPages.PartnerSignup />} />
+              <Route path="verify-email" element={<LazyPages.PartnerVerifyEmail />} />
+              <Route path="dashboard" element={<LazyPages.PartnerDashboard />} />
+              <Route path="products" element={<LazyPages.PartnerDashboard />} />
+              <Route path="orders" element={<LazyPages.PartnerDashboard />} />
+              <Route path="earnings" element={<LazyPages.PartnerDashboard />} />
+              <Route path="profile" element={<LazyPages.PartnerDashboard />} />
+            </Route>
+
             {/* Utility Routes */}
             <Route path="/unauthorized" element={<LazyPages.Unauthorized />} />
             <Route path="*" element={<LazyPages.NotFound />} />

@@ -12,6 +12,12 @@ export { Track } from '../pages/customer/Track';
 export { Profile } from '../pages/customer/Profile';
 export { CustomerMobileSearch as Search } from '../pages/customer/Search';
 
+// Partner Pages - Business Dashboard
+export { PartnerLogin } from '../pages/partner/Login';
+export { PartnerSignup } from '../pages/partner/Signup';
+export { PartnerVerifyEmail } from '../pages/partner/VerifyEmail';
+export { PartnerLayout as PartnerDashboard } from '../components/partner/PartnerLayout';
+
 // Utility Pages
 export { default as NotFound } from '../pages/NotFound';
 export { default as Unauthorized } from '../pages/Unauthorized';
