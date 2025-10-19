@@ -31,6 +31,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { Product, AddOn } from "@/pages/partner/Products";
 import { Loader2 } from "lucide-react";
+import { ImageUploader } from "@/components/shared/ImageUploader";
+import { BulkPricingTiers } from "@/components/products/BulkPricingTiers";
+import { BulkTier } from "@/types/products";
 
 // Form validation schema
 const productFormSchema = z.object({
@@ -64,6 +67,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
   const [images, setImages] = useState<string[]>(product?.images || []);
   const [addOns, setAddOns] = useState<AddOn[]>(product?.add_ons || []);
   const [isCustomizable, setIsCustomizable] = useState(product?.is_customizable || false);
+  const [bulkTiers, setBulkTiers] = useState<BulkTier[]>(product?.bulk_pricing || []);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -145,6 +149,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         images,
         is_customizable: isCustomizable,
         add_ons: isCustomizable ? addOns : [],
+        bulk_pricing: bulkTiers.length > 0 ? bulkTiers : null,  // Bulk pricing tiers
         category: values.category,
         estimated_delivery_days: values.estimated_delivery_days,
         is_active: true,
@@ -300,30 +305,25 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         </div>
 
         {/* Images */}
+        {/* Product Images - Shared Component (DRY) */}
         <div className="space-y-4">
           <h3 className="font-semibold">Product Images</h3>
-          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-            <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground mb-2">
-              Drag & drop images or click to upload
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Max 5 images, 5MB each, JPG/PNG
-            </p>
-            <Button type="button" variant="outline" className="mt-4" size="sm">
-              Select Images
-            </Button>
-          </div>
-          {images.length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              {images.map((img, index) => (
-                <div key={index} className="relative w-20 h-20 rounded-lg overflow-hidden border">
-                  <img src={img} alt={`Product ${index + 1}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          )}
+          <ImageUploader
+            images={images}
+            onImagesChange={setImages}
+            maxImages={5}
+            maxSizeMB={5}
+            disabled={loading}
+          />
         </div>
+
+        {/* Bulk Pricing Tiers - PROMPT 1 Feature */}
+        <BulkPricingTiers
+          basePrice={Math.round((form.watch('price') || 0) * 100)}
+          initialTiers={bulkTiers}
+          onTiersChange={setBulkTiers}
+          disabled={loading}
+        />
 
         {/* CUSTOMIZATION & ADD-ONS (Swiggy/Zomato Pattern) */}
         <Accordion type="single" collapsible className="border rounded-lg">
