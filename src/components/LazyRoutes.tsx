@@ -20,6 +20,7 @@ export { PartnerOnboarding } from '../pages/partner/Onboarding';
 export { PartnerLayout } from '../components/partner/PartnerLayout';
 export { PartnerHome } from '../pages/partner/Home';
 export { PartnerProducts } from '../pages/partner/Products';
+export { ReviewsManagement } from '../pages/partner/ReviewsManagement';
 export { PartnerOrders } from '../pages/partner/Orders';
 export { PartnerEarnings } from '../pages/partner/Earnings';
 export { PartnerProfile } from '../pages/partner/Profile';
