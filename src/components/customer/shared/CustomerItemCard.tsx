@@ -106,13 +106,18 @@ export const CustomerItemCard = ({
           
           {/* Price and Rating */}
           <div className="flex items-center justify-between">
-            {/* Price - 14px bold per spec */}
-            <p className="text-sm font-bold text-primary">
-              ₹{price.toLocaleString('en-IN')}
-            </p>
+            {/* Price - 14px bold per spec (hide for partners with price -1 or 0) */}
+            {price > 0 && (
+              <p className="text-sm font-bold text-primary">
+                ₹{price.toLocaleString('en-IN')}
+              </p>
+            )}
             {/* Rating - 12px with count per spec */}
             {rating && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className={cn(
+                "flex items-center gap-1 text-xs text-muted-foreground",
+                price <= 0 && "ml-auto" // Right-align if no price shown
+              )}>
                 <span>★</span>
                 <span>{rating}</span>
                 {ratingCount && <span>({ratingCount})</span>}

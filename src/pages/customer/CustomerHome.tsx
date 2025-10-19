@@ -112,14 +112,23 @@ export const CustomerHome = () => {
 
     activeFilters.forEach(filter => {
       if (filter.category === 'price') {
-        // Price filtering would need actual price data from partners
-        // For now, just showing all
+        // Filter partners by their category's typical price range
+        const priceRanges: Record<string, (partner: Partner) => boolean> = {
+          'Under ₹500': (p) => ['Chocolates', 'Food & Beverage'].includes(p.category || ''),
+          '₹500-₹1000': (p) => ['Personalized', 'Chocolates'].includes(p.category || ''),
+          '₹1000-₹2500': (p) => ['Tech Gifts', 'Gourmet'].includes(p.category || ''),
+          'Above ₹2500': (p) => ['Premium', 'Tech Gifts'].includes(p.category || ''),
+        };
+        const filterFn = priceRanges[filter.label];
+        if (filterFn) {
+          filtered = filtered.filter(filterFn);
+        }
       } else if (filter.category === 'occasion') {
-        // Filter by occasion tag
-        // For now, just showing all
+        // Filter by category match (Birthday, Anniversary, etc. → show all for now)
+        // In production, would check partner.occasionTags array
       } else if (filter.category === 'category') {
-        // Filter by category tag
-        // For now, just showing all
+        // Filter by exact category match
+        filtered = filtered.filter(p => p.category === filter.label);
       }
     });
 
@@ -272,7 +281,7 @@ export const CustomerHome = () => {
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
-                onClick={() => navigate(`/customer/occasions/${occasion.id}`)}
+                onClick={() => navigate(`/customer/search?occasion=${occasion.name.toLowerCase()}`)}
                 className="snap-start flex flex-col items-center gap-2 min-w-[80px] shrink-0 md:min-w-0"
                 aria-label={`Browse ${occasion.name} gifts`}
               >
@@ -304,7 +313,7 @@ export const CustomerHome = () => {
             <Button
               variant="link"
               className="text-primary p-0 h-auto"
-              onClick={() => navigate("/customer/partners")}
+              onClick={() => navigate("/customer/search?view=partners")}
             >
               View All
             </Button>

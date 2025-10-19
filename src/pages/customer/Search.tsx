@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search as SearchIcon, ArrowLeft, X, TrendingUp, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,9 +27,14 @@ const MAX_RECENT_SEARCHES = 5;
 
 export const CustomerMobileSearch = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  // Get query params
+  const occasionParam = searchParams.get('occasion');
+  const viewParam = searchParams.get('view');
 
   // Mock trending searches
   const trendingSearches = [
@@ -39,6 +44,17 @@ export const CustomerMobileSearch = () => {
     'Corporate Gifts',
     'Wedding Favors',
   ];
+
+  // Handle query parameters (occasion or view=partners)
+  useEffect(() => {
+    if (occasionParam) {
+      // Auto-search for occasion
+      setSearchQuery(occasionParam);
+    } else if (viewParam === 'partners') {
+      // Show all partners
+      setSearchQuery(''); // Will show trending instead
+    }
+  }, [occasionParam, viewParam]);
 
   // Backend search with debouncing
   useEffect(() => {
@@ -70,7 +86,7 @@ export const CustomerMobileSearch = () => {
             id: partner.id,
             name: partner.name,
             image: partner.image,
-            price: 0, // Partners don't have price
+            price: -1, // Use -1 to indicate "no price" for partners (will be hidden in UI)
             rating: partner.rating,
             ratingCount: partner.ratingCount,
             type: 'partner' as const,
