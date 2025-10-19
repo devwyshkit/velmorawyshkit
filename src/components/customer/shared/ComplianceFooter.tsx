@@ -66,16 +66,6 @@ export const ComplianceFooter = () => {
             </a>
           </div>
           <div className="flex justify-center gap-3">
-            <a href="/partner/signup" className="font-medium text-foreground hover:text-primary transition-colors">
-              Partner with Wyshkit
-            </a>
-          </div>
-          <div className="flex justify-center gap-3">
-            <a href="/partner/login" className="hover:text-primary transition-colors">Partner Login</a>
-            <span>•</span>
-            <a href="/partner/login" className="hover:text-primary transition-colors">Admin Login</a>
-          </div>
-          <div className="flex justify-center gap-3">
             <a href="/terms" className="hover:text-primary transition-colors">Terms</a>
             <span>•</span>
             <a href="/privacy" className="hover:text-primary transition-colors">Privacy</a>
@@ -97,20 +87,6 @@ export const ComplianceFooter = () => {
               Operating as <span className="font-medium text-foreground">Wyshkit</span>
             </p>
             <p>CIN: U47730DL2025PTC453280</p>
-          </div>
-
-          {/* For Partners - Swiggy/Zomato Pattern */}
-          <div className="space-y-2">
-            <p className="font-semibold text-foreground text-sm">For Partners</p>
-            <a href="/partner/signup" className="block hover:text-primary transition-colors">
-              Partner with Us
-            </a>
-            <a href="/partner/login" className="block hover:text-primary transition-colors">
-              Partner Login
-            </a>
-            <a href="/partner/help" className="block hover:text-primary transition-colors">
-              Partner Support
-            </a>
           </div>
 
           {/* Tax Details */}

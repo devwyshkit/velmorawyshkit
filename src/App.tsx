@@ -10,7 +10,6 @@ import { LocationProvider } from "@/contexts/LocationContext";
 
 // Lazy Loaded Pages - Code Splitting
 import * as LazyPages from "./components/LazyRoutes";
-import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -43,34 +42,6 @@ const App = () => (
               <Route path="confirmation" element={<LazyPages.Confirmation />} />
               <Route path="track/:orderId?" element={<LazyPages.Track />} />
               <Route path="profile" element={<LazyPages.Profile />} />
-            </Route>
-
-            {/* Partner Routes - Mobile-First UI (same design system) */}
-            <Route path="/partner">
-              <Route path="login" element={<LazyPages.PartnerLogin />} />
-              <Route path="signup" element={<LazyPages.PartnerSignup />} />
-              
-              {/* Protected Partner Routes */}
-              <Route element={<ProtectedRoute requireAuth={true}><LazyPages.PartnerDashboard /></ProtectedRoute>}>
-                <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<LazyPages.PartnerHome />} />
-                <Route path="catalog" element={<LazyPages.PartnerCatalog />} />
-                <Route path="orders" element={<LazyPages.PartnerOrders />} />
-                <Route path="earnings" element={<LazyPages.PartnerEarnings />} />
-                <Route path="profile" element={<LazyPages.PartnerProfile />} />
-              </Route>
-              <Route path="onboarding" element={<ProtectedRoute requireAuth={true}><LazyPages.PartnerOnboarding /></ProtectedRoute>} />
-              <Route path="pending" element={<ProtectedRoute requireAuth={true}><LazyPages.PartnerPending /></ProtectedRoute>} />
-            </Route>
-
-            {/* Admin Routes - Requires login + admin role */}
-            <Route path="/admin">
-              <Route element={<ProtectedRoute requireAuth={true} allowedRoles={['admin']}><LazyPages.AdminDashboard /></ProtectedRoute>}>
-                <Route index element={<Navigate to="overview" replace />} />
-                <Route path="overview" element={<LazyPages.AdminOverview />} />
-                <Route path="partners" element={<LazyPages.AdminPartnerApprovals />} />
-                <Route path="orders" element={<LazyPages.AdminOrders />} />
-              </Route>
             </Route>
 
             {/* Utility Routes */}
