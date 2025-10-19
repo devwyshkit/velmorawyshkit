@@ -73,7 +73,7 @@ export const PartnerLayout = () => {
             <div className="p-6 border-b border-border">
               <Link to="/partner/dashboard">
                 <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-business-logo.png"}
+                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"}
                   alt="Wyshkit Partner"
                   className="h-8"
                 />
@@ -160,7 +160,7 @@ export const PartnerLayout = () => {
             <div className="flex items-center justify-between h-14 px-4">
               <Link to="/partner/dashboard">
                 <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-business-logo.png"}
+                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"}
                   alt="Wyshkit Partner"
                   className="h-8"
                 />
