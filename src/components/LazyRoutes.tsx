@@ -19,6 +19,7 @@ export { PartnerVerifyEmail } from '../pages/partner/VerifyEmail';
 export { PartnerLayout } from '../components/partner/PartnerLayout';
 export { PartnerHome } from '../pages/partner/Home';
 export { PartnerProducts } from '../pages/partner/Products';
+export { PartnerOrders } from '../pages/partner/Orders';
 
 // Utility Pages
 export { default as NotFound } from '../pages/NotFound';
