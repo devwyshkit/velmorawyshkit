@@ -50,6 +50,7 @@ const App = () => (
               <Route path="login" element={<LazyPages.PartnerLogin />} />
               <Route path="signup" element={<LazyPages.PartnerSignup />} />
               <Route path="verify-email" element={<LazyPages.PartnerVerifyEmail />} />
+              <Route path="onboarding" element={<LazyPages.PartnerOnboarding />} />
               
               {/* Protected Dashboard Routes (wrapped in PartnerLayout) */}
               <Route element={<LazyPages.PartnerLayout />}>

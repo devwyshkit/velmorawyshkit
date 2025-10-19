@@ -16,6 +16,7 @@ export { CustomerMobileSearch as Search } from '../pages/customer/Search';
 export { PartnerLogin } from '../pages/partner/Login';
 export { PartnerSignup } from '../pages/partner/Signup';
 export { PartnerVerifyEmail } from '../pages/partner/VerifyEmail';
+export { PartnerOnboarding } from '../pages/partner/Onboarding';
 export { PartnerLayout } from '../components/partner/PartnerLayout';
 export { PartnerHome } from '../pages/partner/Home';
 export { PartnerProducts } from '../pages/partner/Products';
