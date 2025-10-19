@@ -432,7 +432,7 @@ INSERT INTO auth.users (
   '{"provider":"email","providers":["email"]}',
   '{"role":"customer","name":"Test Customer"}',
   NOW(), NOW(), '', '', '', ''
-);
+) ON CONFLICT (id) DO NOTHING;
 
 -- ACCOUNT 2: PARTNER (APPROVED) (partner@wyshkit.com / Partner@123)
 INSERT INTO auth.users (
@@ -447,14 +447,14 @@ INSERT INTO auth.users (
   '{"provider":"email","providers":["email"]}',
   '{"role":"partner","business_name":"Test Partner Store"}',
   NOW(), NOW(), '', '', '', ''
-);
+) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.partner_profiles (
   id, business_name, category, status, phone, created_at, approved_at
 ) VALUES (
   'aaaaaaaa-bbbb-cccc-dddd-111111111111'::uuid,
   'Test Partner Store', 'tech_gifts', 'approved', '9876543210', NOW(), NOW()
-);
+) ON CONFLICT (id) DO NOTHING;
 
 -- ACCOUNT 3: ADMIN (admin@wyshkit.com / Admin@123)
 INSERT INTO auth.users (
@@ -469,7 +469,7 @@ INSERT INTO auth.users (
   '{"provider":"email","providers":["email"]}',
   '{"role":"admin"}',
   NOW(), NOW(), '', '', '', ''
-);
+) ON CONFLICT (id) DO NOTHING;
 
 -- ACCOUNT 4: PENDING PARTNER (pending@wyshkit.com / Pending@123)
 INSERT INTO auth.users (
@@ -484,7 +484,7 @@ INSERT INTO auth.users (
   '{"provider":"email","providers":["email"]}',
   '{"role":"partner","business_name":"Pending Food Partner"}',
   NOW(), NOW(), '', '', '', ''
-);
+) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.partner_profiles (
   id, business_name, category, status, phone, pan_number, gst_number, fssai_number, created_at, submitted_at
@@ -492,7 +492,7 @@ INSERT INTO public.partner_profiles (
   'cccccccc-dddd-eeee-ffff-333333333333'::uuid,
   'Pending Food Partner', 'food', 'pending', '9876543211',
   'ABCDE1234F', '22ABCDE1234F1Z5', '12345678901234', NOW(), NOW()
-);
+) ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
 -- PART 7: SAMPLE DATA (So everything works together)
@@ -502,19 +502,22 @@ INSERT INTO public.partner_profiles (
 INSERT INTO public.partners (id, name, category, rating, delivery_time, image, location) VALUES
   ('99999999-1111-1111-1111-111111111111'::uuid, 'GiftCraft Co', 'Tech Gifts', 4.8, '3-5 days', '/partner-1.jpg', 'Bangalore'),
   ('99999999-2222-2222-2222-222222222222'::uuid, 'Sweet Delights', 'Chocolates', 4.6, '1-2 days', '/partner-2.jpg', 'Mumbai'),
-  ('99999999-3333-3333-3333-333333333333'::uuid, 'Personalized Gifts Hub', 'Personalized', 4.7, '5-7 days', '/partner-3.jpg', 'Delhi');
+  ('99999999-3333-3333-3333-333333333333'::uuid, 'Personalized Gifts Hub', 'Personalized', 4.7, '5-7 days', '/partner-3.jpg', 'Delhi')
+ON CONFLICT (id) DO NOTHING;
 
 -- Sample items (for customer UI)
-INSERT INTO public.items (partner_id, name, description, price, category, image) VALUES
-  ('99999999-1111-1111-1111-111111111111'::uuid, 'Wireless Earbuds', 'Premium sound quality', 299900, 'Electronics', '/item-1.jpg'),
-  ('99999999-1111-1111-1111-111111111111'::uuid, 'Smart Watch', 'Fitness tracking', 499900, 'Electronics', '/item-2.jpg'),
-  ('99999999-2222-2222-2222-222222222222'::uuid, 'Chocolate Gift Box', 'Assorted chocolates', 89900, 'Food', '/item-3.jpg'),
-  ('99999999-3333-3333-3333-333333333333'::uuid, 'Custom Mug', 'Photo printed', 39900, 'Personalized', '/item-4.jpg');
+INSERT INTO public.items (id, partner_id, name, description, price, category, image) VALUES
+  ('88888888-1111-1111-1111-111111111111'::uuid, '99999999-1111-1111-1111-111111111111'::uuid, 'Wireless Earbuds', 'Premium sound quality', 299900, 'Electronics', '/item-1.jpg'),
+  ('88888888-2222-2222-2222-222222222222'::uuid, '99999999-1111-1111-1111-111111111111'::uuid, 'Smart Watch', 'Fitness tracking', 499900, 'Electronics', '/item-2.jpg'),
+  ('88888888-3333-3333-3333-333333333333'::uuid, '99999999-2222-2222-2222-222222222222'::uuid, 'Chocolate Gift Box', 'Assorted chocolates', 89900, 'Food', '/item-3.jpg'),
+  ('88888888-4444-4444-4444-444444444444'::uuid, '99999999-3333-3333-3333-333333333333'::uuid, 'Custom Mug', 'Photo printed', 39900, 'Personalized', '/item-4.jpg')
+ON CONFLICT (id) DO NOTHING;
 
 -- Sample partner products (for partner dashboard)
 INSERT INTO public.partner_products (
-  partner_id, name, description, price, stock, is_customizable, add_ons, category, is_active
+  id, partner_id, name, description, price, stock, is_customizable, add_ons, category, is_active
 ) VALUES (
+  '77777777-1111-1111-1111-111111111111'::uuid,
   'aaaaaaaa-bbbb-cccc-dddd-111111111111'::uuid,
   'Premium Gift Hamper',
   'Curated gift hamper with premium items',
@@ -527,12 +530,13 @@ INSERT INTO public.partner_products (
   ]'::jsonb,
   'Hampers',
   true
-);
+) ON CONFLICT (id) DO NOTHING;
 
 -- Sample order (links customer & partner)
 INSERT INTO public.orders (
-  customer_id, partner_id, order_number, customer_name, items, total, status
+  id, customer_id, partner_id, order_number, customer_name, items, total, status
 ) VALUES (
+  '66666666-1111-1111-1111-111111111111'::uuid,
   '11111111-1111-1111-1111-111111111111'::uuid,
   'aaaaaaaa-bbbb-cccc-dddd-111111111111'::uuid,
   'ORD-12345',
@@ -540,7 +544,7 @@ INSERT INTO public.orders (
   'Premium Gift Hamper x1',
   299900,
   'pending'
-);
+) ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
 -- FINAL VERIFICATION & SUCCESS MESSAGE
