@@ -33,6 +33,7 @@ import { Product, AddOn } from "@/pages/partner/Products";
 import { Loader2 } from "lucide-react";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { BulkPricingTiers } from "@/components/products/BulkPricingTiers";
+import { SponsoredToggle } from "@/components/products/SponsoredToggle";
 import { BulkTier } from "@/types/products";
 
 // Form validation schema
@@ -68,6 +69,8 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
   const [addOns, setAddOns] = useState<AddOn[]>(product?.add_ons || []);
   const [isCustomizable, setIsCustomizable] = useState(product?.is_customizable || false);
   const [bulkTiers, setBulkTiers] = useState<BulkTier[]>(product?.bulk_pricing || []);
+  const [isSponsored, setIsSponsored] = useState(false);
+  const [sponsoredConfig, setSponsoredConfig] = useState<{ start_date: string; end_date: string } | undefined>();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -324,6 +327,19 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
           onTiersChange={setBulkTiers}
           disabled={loading}
         />
+
+        {/* SPONSORED LISTINGS (Feature 6) */}
+        <div className="space-y-4">
+          <h3 className="font-semibold">📢 Sponsored Listing (Optional)</h3>
+          <SponsoredToggle
+            enabled={isSponsored}
+            onChange={(enabled, config) => {
+              setIsSponsored(enabled);
+              setSponsoredConfig(config);
+            }}
+            productPrice={Math.round((form.watch('price') || 0) * 100)}
+          />
+        </div>
 
         {/* CUSTOMIZATION & ADD-ONS (Swiggy/Zomato Pattern) */}
         <Accordion type="single" collapsible className="border rounded-lg">
