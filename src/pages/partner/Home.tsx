@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
+import { StockAlertsWidget } from "@/components/dashboard/StockAlertsWidget";
 
 interface DashboardStats {
   todayOrders: number;
@@ -185,48 +186,54 @@ export const PartnerHome = () => {
         />
       </div>
 
-      {/* Quick Actions (Zomato pattern) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex-col gap-2"
-              onClick={() => navigate("/partner/products")}
-            >
-              <Plus className="h-5 w-5" />
-              <span className="text-sm">Add Product</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex-col gap-2"
-              onClick={() => navigate("/partner/orders")}
-            >
-              <ShoppingBag className="h-5 w-5" />
-              <span className="text-sm">View Orders</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex-col gap-2"
-              onClick={() => navigate("/partner/earnings")}
-            >
-              <DollarSign className="h-5 w-5" />
-              <span className="text-sm">Earnings</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex-col gap-2"
-              onClick={() => navigate("/partner/profile")}
-            >
-              <TrendingUp className="h-5 w-5" />
-              <span className="text-sm">Analytics</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Quick Actions and Stock Alerts (2-column on desktop) */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Quick Actions (Zomato pattern) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate("/partner/products")}
+              >
+                <Plus className="h-5 w-5" />
+                <span className="text-sm">Add Product</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate("/partner/orders")}
+              >
+                <ShoppingBag className="h-5 w-5" />
+                <span className="text-sm">View Orders</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate("/partner/earnings")}
+              >
+                <DollarSign className="h-5 w-5" />
+                <span className="text-sm">Earnings</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate("/partner/profile")}
+              >
+                <TrendingUp className="h-5 w-5" />
+                <span className="text-sm">Analytics</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stock Alerts Widget (Feature 3) */}
+        <StockAlertsWidget />
+      </div>
 
       {/* Pending Orders (Real-time in production) */}
       {stats.pendingOrders > 0 && (
