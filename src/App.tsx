@@ -50,11 +50,15 @@ const App = () => (
               <Route path="login" element={<LazyPages.PartnerLogin />} />
               <Route path="signup" element={<LazyPages.PartnerSignup />} />
               <Route path="verify-email" element={<LazyPages.PartnerVerifyEmail />} />
-              <Route path="dashboard" element={<LazyPages.PartnerDashboard />} />
-              <Route path="products" element={<LazyPages.PartnerDashboard />} />
-              <Route path="orders" element={<LazyPages.PartnerDashboard />} />
-              <Route path="earnings" element={<LazyPages.PartnerDashboard />} />
-              <Route path="profile" element={<LazyPages.PartnerDashboard />} />
+              
+              {/* Protected Dashboard Routes (wrapped in PartnerLayout) */}
+              <Route element={<LazyPages.PartnerLayout />}>
+                <Route path="dashboard" element={<LazyPages.PartnerHome />} />
+                <Route path="products" element={<div className="p-8 text-center text-muted-foreground">Products page coming soon...</div>} />
+                <Route path="orders" element={<div className="p-8 text-center text-muted-foreground">Orders page coming soon...</div>} />
+                <Route path="earnings" element={<div className="p-8 text-center text-muted-foreground">Earnings page coming soon...</div>} />
+                <Route path="profile" element={<div className="p-8 text-center text-muted-foreground">Profile page coming soon...</div>} />
+              </Route>
             </Route>
 
             {/* Utility Routes */}
