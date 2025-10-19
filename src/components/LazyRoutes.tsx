@@ -20,6 +20,8 @@ export { PartnerLayout } from '../components/partner/PartnerLayout';
 export { PartnerHome } from '../pages/partner/Home';
 export { PartnerProducts } from '../pages/partner/Products';
 export { PartnerOrders } from '../pages/partner/Orders';
+export { PartnerEarnings } from '../pages/partner/Earnings';
+export { PartnerProfile } from '../pages/partner/Profile';
 
 // Utility Pages
 export { default as NotFound } from '../pages/NotFound';

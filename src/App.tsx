@@ -56,8 +56,8 @@ const App = () => (
                 <Route path="dashboard" element={<LazyPages.PartnerHome />} />
                 <Route path="products" element={<LazyPages.PartnerProducts />} />
                 <Route path="orders" element={<LazyPages.PartnerOrders />} />
-                <Route path="earnings" element={<div className="p-8 text-center text-muted-foreground">Earnings page coming soon...</div>} />
-                <Route path="profile" element={<div className="p-8 text-center text-muted-foreground">Profile page coming soon...</div>} />
+                <Route path="earnings" element={<LazyPages.PartnerEarnings />} />
+                <Route path="profile" element={<LazyPages.PartnerProfile />} />
               </Route>
             </Route>
 
