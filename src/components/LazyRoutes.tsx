@@ -18,6 +18,7 @@ export { PartnerSignup } from '../pages/partner/Signup';
 export { PartnerVerifyEmail } from '../pages/partner/VerifyEmail';
 export { PartnerLayout } from '../components/partner/PartnerLayout';
 export { PartnerHome } from '../pages/partner/Home';
+export { PartnerProducts } from '../pages/partner/Products';
 
 // Utility Pages
 export { default as NotFound } from '../pages/NotFound';

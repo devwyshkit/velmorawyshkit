@@ -54,7 +54,7 @@ const App = () => (
               {/* Protected Dashboard Routes (wrapped in PartnerLayout) */}
               <Route element={<LazyPages.PartnerLayout />}>
                 <Route path="dashboard" element={<LazyPages.PartnerHome />} />
-                <Route path="products" element={<div className="p-8 text-center text-muted-foreground">Products page coming soon...</div>} />
+                <Route path="products" element={<LazyPages.PartnerProducts />} />
                 <Route path="orders" element={<div className="p-8 text-center text-muted-foreground">Orders page coming soon...</div>} />
                 <Route path="earnings" element={<div className="p-8 text-center text-muted-foreground">Earnings page coming soon...</div>} />
                 <Route path="profile" element={<div className="p-8 text-center text-muted-foreground">Profile page coming soon...</div>} />
