@@ -187,22 +187,6 @@ export const CampaignsList = ({ campaigns, onEdit, onRefresh }: CampaignsListPro
           </CardContent>
         </Card>
       ))}
-
-      {/* Create/Edit Sheet */}
-      {showCreateDialog && (
-        <CreateCampaign
-          campaign={editingCampaign}
-          onClose={() => {
-            setShowCreateDialog(false);
-            setEditingCampaign(null);
-          }}
-          onSuccess={() => {
-            setShowCreateDialog(false);
-            setEditingCampaign(null);
-            onRefresh();
-          }}
-        />
-      )}
     </div>
   );
 };
