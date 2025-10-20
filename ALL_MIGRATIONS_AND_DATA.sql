@@ -1148,7 +1148,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
 -- Partner 1: GiftCraft (Premium Hampers)
 INSERT INTO partner_profiles (
   id,
-  user_id,
   business_name,
   email,
   phone,
@@ -1165,7 +1164,6 @@ INSERT INTO partner_profiles (
   created_at
 ) VALUES (
   'f892886a-beb7-4f7f-a5f3-c6ac26892b71',
-  'f892886a-beb7-4f7f-a5f3-c6ac26892b71', -- Assumes auth user created
   'GiftCraft Premium',
   'partner@giftcraft.com',
   '+919876543210',
@@ -1185,7 +1183,6 @@ INSERT INTO partner_profiles (
 -- Partner 2: BoatAudio (Electronics - for sourcing test)
 INSERT INTO partner_profiles (
   id,
-  user_id,
   business_name,
   email,
   phone,
@@ -1201,7 +1198,6 @@ INSERT INTO partner_profiles (
   is_active,
   created_at
 ) VALUES (
-  'ff63c864-c2f4-4323-aac8-5224576531b6',
   'ff63c864-c2f4-4323-aac8-5224576531b6',
   'Boat Audio India',
   'partner@boat.com',
