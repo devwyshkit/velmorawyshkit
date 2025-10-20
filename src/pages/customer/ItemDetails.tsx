@@ -74,11 +74,12 @@ export const ItemDetails = () => {
     loadItemData();
   }, [id, toast]);
 
-  const addOns: AddOn[] = [
-    { id: '1', name: 'Greeting Card (+₹99)', price: 99 },
-    { id: '2', name: 'Gift Wrapping (+₹149)', price: 149 },
-    { id: '3', name: 'Express Delivery (+₹199)', price: 199 },
-  ];
+  // Get add-ons from product data (from partner ProductForm)
+  const addOns: AddOn[] = item?.add_ons?.map((addon: any) => ({
+    id: addon.id,
+    name: `${addon.name} (+₹${addon.price / 100})`,
+    price: addon.price / 100,
+  })) || [];
 
   const handleAddOnToggle = (addOnId: string) => {
     setSelectedAddOns(prev =>
@@ -264,6 +265,23 @@ export const ItemDetails = () => {
               </span>
               <span className="text-sm text-muted-foreground">(incl. GST)</span>
             </div>
+            
+            {/* Bulk Pricing Display - From Partner ProductForm */}
+            {item.bulk_pricing && item.bulk_pricing.length > 0 && (
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <p className="text-sm font-medium text-primary mb-2">💰 Bulk Pricing Available!</p>
+                <div className="space-y-1">
+                  {item.bulk_pricing.map((tier: any, idx: number) => (
+                    <p key={idx} className="text-xs text-muted-foreground">
+                      <span className="font-medium">{tier.minQty}+ units:</span> ₹{(tier.price / 100).toLocaleString('en-IN')} each
+                      {tier.discountPercent && (
+                        <span className="text-primary font-medium"> ({tier.discountPercent}% off)</span>
+                      )}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Description */}
@@ -277,7 +295,32 @@ export const ItemDetails = () => {
           {/* Quantity Stepper */}
           <div>
             <Label className="text-base font-semibold mb-3 block">Quantity</Label>
-            <Stepper value={quantity} onChange={setQuantity} min={1} max={99} />
+            <Stepper 
+              value={quantity} 
+              onChange={(newQty) => {
+                const oldQty = quantity;
+                setQuantity(newQty);
+                
+                // Auto-apply bulk pricing if tiers exist
+                if (item?.bulk_pricing && item.bulk_pricing.length > 0) {
+                  const sortedTiers = [...item.bulk_pricing].sort((a, b) => b.minQty - a.minQty);
+                  const applicableTier = sortedTiers.find((tier: any) => newQty >= tier.minQty);
+                  const oldTier = sortedTiers.find((tier: any) => oldQty >= tier.minQty);
+                  
+                  // Show toast only if tier changed
+                  if (applicableTier && applicableTier !== oldTier) {
+                    const savings = ((item.price - applicableTier.price) * newQty) / 100;
+                    toast({
+                      title: "Bulk pricing applied!",
+                      description: `Save ₹${savings.toLocaleString('en-IN')} on ${newQty} units`,
+                      duration: 3000,
+                    });
+                  }
+                }
+              }} 
+              min={1} 
+              max={99} 
+            />
           </div>
 
           {/* Add-ons */}
