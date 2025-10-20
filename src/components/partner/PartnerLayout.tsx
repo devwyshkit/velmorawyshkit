@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MobileBottomNav } from "@/components/shared/MobileBottomNav";
+import { PartnerBottomNav } from "@/components/partner/PartnerBottomNav";
 import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
 import { StockAlertListener } from "@/components/StockAlertListener";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -220,8 +220,8 @@ export const PartnerLayout = () => {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav items={navItems} />
+      {/* Mobile Bottom Navigation - Optimized to 5 items */}
+      <PartnerBottomNav />
 
       {/* Stock Alert Listener - Feature 3 (PROMPT 10) */}
       <StockAlertListener />
