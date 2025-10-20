@@ -30,7 +30,20 @@ export { Returns as PartnerReturns } from '../pages/partner/Returns';
 export { HelpCenter as PartnerHelp } from '../pages/partner/HelpCenter';
 export { PartnerProfile } from '../pages/partner/Profile';
 
-// Admin Pages
+// Admin Pages - Internal Console
+export { AdminLogin } from '../pages/admin/Login';
+export { AdminLayout } from '../components/admin/AdminLayout';
+export { AdminDashboard } from '../pages/admin/Dashboard';
+export { AdminPartners } from '../pages/admin/Partners';
+export { AdminOrders } from '../pages/admin/Orders';
+export { AdminDisputes } from '../pages/admin/Disputes';
+export { AdminPayouts } from '../pages/admin/Payouts';
+export { AdminAnalytics } from '../pages/admin/Analytics';
+export { AdminContent } from '../pages/admin/ContentManagement';
+export { AdminSettings } from '../pages/admin/Settings';
+export { AdminUsers } from '../pages/admin/AdminUsers';
+export { AdminAudit } from '../pages/admin/AuditLogs';
+// Legacy
 export { AdminPartnerApprovals } from '../pages/admin/PartnerApprovals';
 
 // Utility Pages

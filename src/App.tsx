@@ -68,10 +68,24 @@ const App = () => (
               </Route>
             </Route>
 
-            {/* Admin Routes - Internal Console */}
+            {/* Admin Routes - Internal Console (Desktop-only) */}
             <Route path="/admin">
-              <Route index element={<Navigate to="partner-approvals" replace />} />
-              <Route path="partner-approvals" element={<LazyPages.AdminPartnerApprovals />} />
+              <Route path="login" element={<LazyPages.AdminLogin />} />
+              <Route element={<LazyPages.AdminLayout />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<LazyPages.AdminDashboard />} />
+                <Route path="partners" element={<LazyPages.AdminPartners />} />
+                <Route path="orders" element={<LazyPages.AdminOrders />} />
+                <Route path="disputes" element={<LazyPages.AdminDisputes />} />
+                <Route path="payouts" element={<LazyPages.AdminPayouts />} />
+                <Route path="analytics" element={<LazyPages.AdminAnalytics />} />
+                <Route path="content" element={<LazyPages.AdminContent />} />
+                <Route path="settings" element={<LazyPages.AdminSettings />} />
+                <Route path="users" element={<LazyPages.AdminUsers />} />
+                <Route path="audit" element={<LazyPages.AdminAudit />} />
+                {/* Legacy route redirect */}
+                <Route path="partner-approvals" element={<Navigate to="/admin/partners" replace />} />
+              </Route>
             </Route>
 
             {/* Utility Routes */}
