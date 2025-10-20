@@ -9,6 +9,7 @@ import { PackageX, Truck, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ReturnDetail } from "@/components/returns/ReturnDetail";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import type { Return } from "@/types/returns";
@@ -16,6 +17,7 @@ import type { Return } from "@/types/returns";
 export const Returns = () => {
   const { user } = useAuth();
   const [returns, setReturns] = useState<Return[]>([]);
+  const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
 
   useEffect(() => {
     if (user) loadReturns();
@@ -75,16 +77,34 @@ export const Returns = () => {
                       <p className="font-medium">{ret.customer_name}</p>
                       {getStatusBadge(ret.status)}
                     </div>
-                    <p className="text-sm text-muted-foreground">{ret.product_name}</p>
-                  </div>
-                  <Button variant="outline" size="sm">View</Button>
+                  <p className="text-sm text-muted-foreground">{ret.product_name}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setSelectedReturn(ret)}
+                >
+                  View
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )}
+
+    {/* Return Detail Sheet */}
+    {selectedReturn && (
+      <ReturnDetail
+        returnRequest={selectedReturn}
+        onClose={() => setSelectedReturn(null)}
+        onSuccess={() => {
+          setSelectedReturn(null);
+          loadReturns();
+        }}
+      />
+    )}
+  </div>
+);
 };
 

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DisputeDetail } from "@/components/disputes/DisputeDetail";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import type { Dispute, DisputeStats } from "@/types/disputes";
@@ -18,6 +19,7 @@ export const DisputeResolution = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [stats, setStats] = useState<DisputeStats>({
     open_count: 0,
     avg_resolution_time_hours: 0,
@@ -138,7 +140,11 @@ export const DisputeResolution = () => {
                     <p className="text-sm text-muted-foreground mb-2">{dispute.customer_name}</p>
                     <p className="text-sm line-clamp-2">{dispute.issue}</p>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setSelectedDispute(dispute)}
+                  >
                     View Details
                   </Button>
                 </div>
@@ -146,6 +152,18 @@ export const DisputeResolution = () => {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Dispute Detail Sheet */}
+      {selectedDispute && (
+        <DisputeDetail
+          dispute={selectedDispute}
+          onClose={() => setSelectedDispute(null)}
+          onSuccess={() => {
+            setSelectedDispute(null);
+            loadDisputes();
+          }}
+        />
       )}
     </div>
   );

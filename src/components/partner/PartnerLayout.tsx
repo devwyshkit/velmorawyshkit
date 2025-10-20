@@ -70,13 +70,13 @@ export const PartnerLayout = () => {
       {!isMobile && (
         <aside className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border z-40">
           <div className="flex flex-col h-full">
-            {/* Logo */}
-            <div className="p-6 border-b border-border">
-              <Link to="/partner/dashboard">
+            {/* Logo - Using Customer UI Logo (Consistent Branding) */}
+            <div className="p-6 border-b border-border flex items-center">
+              <Link to="/partner/dashboard" className="flex items-center">
                 <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-business-logo.png"}
+                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
                   alt="Wyshkit Partner"
-                  className="h-8"
+                  className="h-10"
                 />
               </Link>
             </div>
@@ -155,15 +155,15 @@ export const PartnerLayout = () => {
         !isMobile && "ml-64",  // Offset for desktop sidebar
         isMobile && "pb-20"     // Offset for mobile bottom nav
       )}>
-        {/* Mobile Header */}
+        {/* Mobile Header - Fixed with Customer UI Logo */}
         {isMobile && (
-          <header className="sticky top-0 z-40 bg-white dark:bg-card border-b border-border">
-            <div className="flex items-center justify-between h-14 px-4">
-              <Link to="/partner/dashboard">
+          <header className="sticky top-0 z-40 bg-background border-b border-border">
+            <div className="flex items-center justify-between h-16 px-4">
+              <Link to="/partner/dashboard" className="flex items-center">
                 <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-business-logo.png"}
+                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
                   alt="Wyshkit Partner"
-                  className="h-8"
+                  className="h-10"
                 />
               </Link>
               <div className="flex items-center gap-2">
@@ -193,17 +193,14 @@ export const PartnerLayout = () => {
           </header>
         )}
 
-        {/* Desktop Header */}
+        {/* Desktop Header - Professional Layout */}
         {!isMobile && (
-          <header className="sticky top-0 z-30 bg-white dark:bg-card border-b border-border">
-            <div className="flex items-center justify-between h-16 px-6">
-              <h1 className="text-lg font-semibold">Partner Dashboard</h1>
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <Button variant="ghost" size="icon">
-                  <Bell className="h-5 w-5" />
-                </Button>
-              </div>
+          <header className="sticky top-0 z-30 bg-background border-b border-border">
+            <div className="flex items-center justify-end h-16 px-6 gap-4">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon">
+                <Bell className="h-5 w-5" />
+              </Button>
             </div>
           </header>
         )}
