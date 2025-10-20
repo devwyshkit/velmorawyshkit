@@ -154,15 +154,20 @@ END $$;
 DO $$ 
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'partner_profiles') THEN
-    ALTER TABLE partner_profiles
-    ADD CONSTRAINT IF NOT EXISTS chk_fssai_format 
-    CHECK (fssai_number IS NULL OR fssai_number ~ '^[0-9]{14}$');
+    -- Add constraint only if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_fssai_format' AND conrelid = 'partner_profiles'::regclass) THEN
+      ALTER TABLE partner_profiles
+      ADD CONSTRAINT chk_fssai_format 
+      CHECK (fssai_number IS NULL OR fssai_number ~ '^[0-9]{14}$');
+    END IF;
   END IF;
   
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'partners') THEN
-    ALTER TABLE partners
-    ADD CONSTRAINT IF NOT EXISTS chk_fssai_format 
-    CHECK (fssai_number IS NULL OR fssai_number ~ '^[0-9]{14}$');
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_fssai_format' AND conrelid = 'partners'::regclass) THEN
+      ALTER TABLE partners
+      ADD CONSTRAINT chk_fssai_format 
+      CHECK (fssai_number IS NULL OR fssai_number ~ '^[0-9]{14}$');
+    END IF;
   END IF;
 END $$;
 
