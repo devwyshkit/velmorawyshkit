@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StockAlertsWidget } from "@/components/dashboard/StockAlertsWidget";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
@@ -227,6 +228,9 @@ export const PartnerHome = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Stock Alerts Widget - Feature 3 (PROMPT 10) */}
+      <StockAlertsWidget />
 
       {/* Pending Orders (Real-time in production) */}
       {stats.pendingOrders > 0 && (
