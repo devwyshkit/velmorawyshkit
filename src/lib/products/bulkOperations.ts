@@ -1,75 +1,109 @@
 /**
- * Bulk Operations Logic for Partner Products
- * Handles batch updates, deletes, and impact validation
+ * Bulk Operations Logic
+ * Feature 2: PROMPT 8
+ * Handles batch updates for multiple products
  */
 
 import { supabase } from '@/lib/integrations/supabase-client';
-import { Product } from '@/pages/partner/Products';
-import { PriceUpdate, StockUpdate, StatusUpdate, TagsUpdate } from '@/types/bulkOperations';
+import type { 
+  PriceUpdate, 
+  StockUpdate, 
+  StatusUpdate, 
+  TagsUpdate,
+  BulkOperationResult 
+} from '@/types/bulkOperations';
 
 /**
  * Update prices for multiple products
  */
 export const bulkUpdatePrices = async (
   productIds: string[],
-  update: PriceUpdate
-): Promise<{ success: boolean; updated: number; errors?: string[] }> => {
+  update: PriceUpdate,
+  partnerId: string
+): Promise<BulkOperationResult> => {
+  const result: BulkOperationResult = {
+    success: 0,
+    failed: 0,
+    errors: []
+  };
+
   try {
-    // Fetch current products
+    // Fetch products to calculate new prices
     const { data: products, error: fetchError } = await supabase
       .from('partner_products')
-      .select('id, price')
-      .in('id', productIds);
+      .select('id, name, price, wholesale_price')
+      .in('id', productIds)
+      .eq('partner_id', partnerId);
 
     if (fetchError) throw fetchError;
     if (!products) throw new Error('No products found');
 
-    const errors: string[] = [];
-    let updated = 0;
-
-    // Calculate new prices and update
+    // Calculate new prices for each product
     for (const product of products) {
-      let newPrice = product.price;
+      try {
+        let newPrice = product.price;
+        let newWholesale = product.wholesale_price || product.price;
 
-      if (update.operation === 'increase') {
-        newPrice = update.type === 'percentage'
-          ? Math.round(product.price * (1 + update.value / 100))
-          : product.price + Math.round(update.value * 100); // Convert to paise
-      } else {
-        newPrice = update.type === 'percentage'
-          ? Math.round(product.price * (1 - update.value / 100))
-          : product.price - Math.round(update.value * 100);
-      }
+        if (update.applyTo === 'retail' || update.applyTo === 'both') {
+          newPrice = calculateNewPrice(product.price, update);
+        }
 
-      // Validate price doesn't go negative
-      if (newPrice <= 0) {
-        errors.push(`${product.id}: Price would become negative or zero`);
-        continue;
-      }
+        if (update.applyTo === 'wholesale' || update.applyTo === 'both') {
+          newWholesale = calculateNewPrice(product.wholesale_price || product.price, update);
+        }
 
-      const { error: updateError } = await supabase
-        .from('partner_products')
-        .update({ price: newPrice })
-        .eq('id', product.id);
+        // Validate: retail should be greater than wholesale
+        if (newWholesale >= newPrice) {
+          result.failed++;
+          result.errors.push({
+            productId: product.id,
+            productName: product.name,
+            error: 'Wholesale price cannot be greater than or equal to retail price'
+          });
+          continue;
+        }
 
-      if (updateError) {
-        errors.push(`${product.id}: ${updateError.message}`);
-      } else {
-        updated++;
+        // Update in database
+        const { error: updateError } = await supabase
+          .from('partner_products')
+          .update({
+            price: Math.round(newPrice),
+            wholesale_price: Math.round(newWholesale)
+          })
+          .eq('id', product.id);
+
+        if (updateError) throw updateError;
+        result.success++;
+      } catch (error: any) {
+        result.failed++;
+        result.errors.push({
+          productId: product.id,
+          productName: product.name,
+          error: error.message
+        });
       }
     }
-
-    return {
-      success: errors.length === 0,
-      updated,
-      errors: errors.length > 0 ? errors : undefined
-    };
   } catch (error: any) {
-    return {
-      success: false,
-      updated: 0,
-      errors: [error.message]
-    };
+    throw new Error(`Bulk price update failed: ${error.message}`);
+  }
+
+  return result;
+};
+
+/**
+ * Calculate new price based on update operation
+ */
+const calculateNewPrice = (currentPrice: number, update: PriceUpdate): number => {
+  if (update.operation === 'increase') {
+    if (update.type === 'percentage') {
+      return currentPrice * (1 + update.value / 100);
+    }
+    return currentPrice + (update.value * 100); // Convert rupees to paise
+  } else {
+    if (update.type === 'percentage') {
+      return currentPrice * (1 - update.value / 100);
+    }
+    return Math.max(100, currentPrice - (update.value * 100)); // Minimum 1 rupee
   }
 };
 
@@ -78,65 +112,62 @@ export const bulkUpdatePrices = async (
  */
 export const bulkUpdateStock = async (
   productIds: string[],
-  update: StockUpdate
-): Promise<{ success: boolean; updated: number; errors?: string[] }> => {
+  update: StockUpdate,
+  partnerId: string
+): Promise<BulkOperationResult> => {
+  const result: BulkOperationResult = {
+    success: 0,
+    failed: 0,
+    errors: []
+  };
+
   try {
     const { data: products, error: fetchError } = await supabase
       .from('partner_products')
-      .select('id, stock')
-      .in('id', productIds);
+      .select('id, name, stock')
+      .in('id', productIds)
+      .eq('partner_id', partnerId);
 
     if (fetchError) throw fetchError;
     if (!products) throw new Error('No products found');
 
-    const errors: string[] = [];
-    let updated = 0;
-
     for (const product of products) {
-      let newStock = product.stock;
+      try {
+        let newStock = product.stock;
 
-      switch (update.operation) {
-        case 'set':
-          newStock = update.value;
-          break;
-        case 'increase':
-          newStock = product.stock + update.value;
-          break;
-        case 'decrease':
-          newStock = product.stock - update.value;
-          break;
-      }
+        switch (update.operation) {
+          case 'set':
+            newStock = update.value;
+            break;
+          case 'increase':
+            newStock = product.stock + update.value;
+            break;
+          case 'decrease':
+            newStock = Math.max(0, product.stock - update.value);
+            break;
+        }
 
-      // Validate stock doesn't go negative
-      if (newStock < 0) {
-        errors.push(`${product.id}: Stock would become negative`);
-        continue;
-      }
+        const { error: updateError } = await supabase
+          .from('partner_products')
+          .update({ stock: newStock })
+          .eq('id', product.id);
 
-      const { error: updateError } = await supabase
-        .from('partner_products')
-        .update({ stock: newStock })
-        .eq('id', product.id);
-
-      if (updateError) {
-        errors.push(`${product.id}: ${updateError.message}`);
-      } else {
-        updated++;
+        if (updateError) throw updateError;
+        result.success++;
+      } catch (error: any) {
+        result.failed++;
+        result.errors.push({
+          productId: product.id,
+          productName: product.name,
+          error: error.message
+        });
       }
     }
-
-    return {
-      success: errors.length === 0,
-      updated,
-      errors: errors.length > 0 ? errors : undefined
-    };
   } catch (error: any) {
-    return {
-      success: false,
-      updated: 0,
-      errors: [error.message]
-    };
+    throw new Error(`Bulk stock update failed: ${error.message}`);
   }
+
+  return result;
 };
 
 /**
@@ -144,116 +175,141 @@ export const bulkUpdateStock = async (
  */
 export const bulkChangeStatus = async (
   productIds: string[],
-  update: StatusUpdate
-): Promise<{ success: boolean; updated: number; errors?: string[] }> => {
+  update: StatusUpdate,
+  partnerId: string
+): Promise<BulkOperationResult> => {
+  const result: BulkOperationResult = {
+    success: 0,
+    failed: 0,
+    errors: []
+  };
+
   try {
     const isActive = update.status === 'active';
+    const stock = update.status === 'out_of_stock' ? 0 : undefined;
+
+    const updateData: any = { is_active: isActive };
+    if (stock !== undefined) {
+      updateData.stock = stock;
+    }
 
     const { error } = await supabase
       .from('partner_products')
-      .update({ is_active: isActive })
-      .in('id', productIds);
+      .update(updateData)
+      .in('id', productIds)
+      .eq('partner_id', partnerId);
 
     if (error) throw error;
-
-    return {
-      success: true,
-      updated: productIds.length
-    };
+    result.success = productIds.length;
   } catch (error: any) {
-    return {
-      success: false,
-      updated: 0,
-      errors: [error.message]
-    };
+    result.failed = productIds.length;
+    throw new Error(`Bulk status change failed: ${error.message}`);
   }
+
+  return result;
 };
 
 /**
- * Add tags to multiple products
+ * Update tags for multiple products
  */
-export const bulkAddTags = async (
+export const bulkUpdateTags = async (
   productIds: string[],
-  update: TagsUpdate
-): Promise<{ success: boolean; updated: number; errors?: string[] }> => {
+  update: TagsUpdate,
+  partnerId: string
+): Promise<BulkOperationResult> => {
+  const result: BulkOperationResult = {
+    success: 0,
+    failed: 0,
+    errors: []
+  };
+
   try {
-    // Fetch current products to merge tags
-    const { data: products, error: fetchError } = await supabase
-      .from('partner_products')
-      .select('id, tags')
-      .in('id', productIds);
-
-    if (fetchError) throw fetchError;
-    if (!products) throw new Error('No products found');
-
-    let updated = 0;
-
-    for (const product of products) {
-      const currentTags = product.tags || [];
-      const newTags = [...new Set([...currentTags, ...update.tags])]; // Merge and deduplicate
-
-      const { error: updateError } = await supabase
+    if (update.operation === 'replace') {
+      // Simple replace - same tags for all products
+      const { error } = await supabase
         .from('partner_products')
-        .update({ tags: newTags })
-        .eq('id', product.id);
+        .update({ tags: update.tags })
+        .in('id', productIds)
+        .eq('partner_id', partnerId);
 
-      if (!updateError) {
-        updated++;
+      if (error) throw error;
+      result.success = productIds.length;
+    } else {
+      // Add or remove - need to fetch existing tags first
+      const { data: products, error: fetchError } = await supabase
+        .from('partner_products')
+        .select('id, name, tags')
+        .in('id', productIds)
+        .eq('partner_id', partnerId);
+
+      if (fetchError) throw fetchError;
+      if (!products) throw new Error('No products found');
+
+      for (const product of products) {
+        try {
+          const currentTags = product.tags || [];
+          let newTags: string[] = [];
+
+          if (update.operation === 'add') {
+            newTags = [...new Set([...currentTags, ...update.tags])];
+          } else if (update.operation === 'remove') {
+            newTags = currentTags.filter(tag => !update.tags.includes(tag));
+          }
+
+          const { error: updateError } = await supabase
+            .from('partner_products')
+            .update({ tags: newTags })
+            .eq('id', product.id);
+
+          if (updateError) throw updateError;
+          result.success++;
+        } catch (error: any) {
+          result.failed++;
+          result.errors.push({
+            productId: product.id,
+            productName: product.name,
+            error: error.message
+          });
+        }
       }
     }
-
-    return {
-      success: true,
-      updated
-    };
   } catch (error: any) {
-    return {
-      success: false,
-      updated: 0,
-      errors: [error.message]
-    };
+    throw new Error(`Bulk tags update failed: ${error.message}`);
   }
+
+  return result;
 };
 
 /**
- * Delete multiple products with impact check
+ * Delete multiple products
  */
 export const bulkDeleteProducts = async (
-  productIds: string[]
-): Promise<{ success: boolean; deleted: number; errors?: string[]; warnings?: string[] }> => {
-  try {
-    // TODO: Check impact on hampers (when hamper feature exists)
-    // const { data: affectedHampers } = await supabase
-    //   .from('hamper_components')
-    //   .select('hamper_id')
-    //   .in('component_id', productIds);
-    // 
-    // if (affectedHampers && affectedHampers.length > 0) {
-    //   return {
-    //     success: false,
-    //     deleted: 0,
-    //     errors: [`Cannot delete: ${affectedHampers.length} hampers depend on these products`]
-    //   };
-    // }
+  productIds: string[],
+  partnerId: string
+): Promise<BulkOperationResult> => {
+  const result: BulkOperationResult = {
+    success: 0,
+    failed: 0,
+    errors: []
+  };
 
-    // Proceed with deletion
+  try {
+    // TODO: Check if products are used in active orders/hampers
+    // For now, proceed with deletion
+
     const { error } = await supabase
       .from('partner_products')
       .delete()
-      .in('id', productIds);
+      .in('id', productIds)
+      .eq('partner_id', partnerId);
 
     if (error) throw error;
-
-    return {
-      success: true,
-      deleted: productIds.length
-    };
+    result.success = productIds.length;
   } catch (error: any) {
-    return {
-      success: false,
-      deleted: 0,
-      errors: [error.message]
-    };
+    result.failed = productIds.length;
+    throw new Error(`Bulk delete failed: ${error.message}`);
   }
+
+  return result;
 };
 

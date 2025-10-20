@@ -17,6 +17,7 @@ interface ProductColumnsProps {
 }
 
 export const productColumns = ({ onEdit, onDelete }: ProductColumnsProps): ColumnDef<Product>[] => [
+  // Selection checkbox column
   {
     id: "select",
     header: ({ table }) => (

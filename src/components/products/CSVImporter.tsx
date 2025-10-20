@@ -1,25 +1,29 @@
 /**
- * CSV Import Component
- * Allows bulk product import from CSV file
- * Includes validation and preview
+ * CSV Importer
+ * Feature 2: PROMPT 8
+ * Import products from CSV file
  */
 
 import { useState, useRef } from "react";
-import { Upload, FileText, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { Upload, Download, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/integrations/supabase-client";
 import { useAuth } from "@/contexts/AuthContext";
-import { importProductsFromCSV, downloadCSVTemplate, CSVImportResult } from "@/lib/products/csvUtils";
-import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/integrations/supabase-client";
+import { 
+  parseProductsCSV, 
+  downloadCSVTemplate,
+  type CSVParseResult 
+} from "@/lib/products/csvUtils";
 
 interface CSVImporterProps {
   open: boolean;
@@ -27,7 +31,7 @@ interface CSVImporterProps {
   onSuccess: () => void;
 }
 
-export const CSVImporterDialog = ({
+export const CSVImporter = ({
   open,
   onOpenChange,
   onSuccess
@@ -35,12 +39,13 @@ export const CSVImporterDialog = ({
   const { toast } = useToast();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<CSVImportResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [parseResult, setParseResult] = useState<CSVParseResult | null>(null);
   const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
@@ -54,61 +59,78 @@ export const CSVImporterDialog = ({
     }
 
     setFile(selectedFile);
-    setLoading(true);
-
+    
     try {
-      const importResult = await importProductsFromCSV(selectedFile);
-      setResult(importResult);
-
-      if (!importResult.success) {
+      const result = await parseProductsCSV(selectedFile);
+      setParseResult(result);
+      
+      if (!result.valid) {
         toast({
-          title: "Validation errors found",
-          description: `Found ${importResult.errors?.length} error(s) in CSV`,
+          title: "Validation errors",
+          description: `Found ${result.errors.length} error${result.errors.length !== 1 ? 's' : ''} in CSV file`,
           variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "CSV validated",
-          description: `Ready to import ${importResult.count} product(s)`,
         });
       }
     } catch (error: any) {
       toast({
-        title: "Import failed",
+        title: "Parse error",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      setFile(null);
+      setParseResult(null);
     }
   };
 
   const handleImport = async () => {
-    if (!result?.success || !result.data || !user) return;
+    if (!user || !parseResult || !parseResult.valid) return;
 
     setImporting(true);
+    setProgress(0);
+
     try {
-      // Add partner_id to each product
-      const productsWithPartnerId = result.data.map(p => ({
-        ...p,
-        partner_id: user.id,
-        created_at: new Date().toISOString()
-      }));
+      const total = parseResult.data.length;
+      let imported = 0;
 
-      const { error } = await supabase
-        .from('partner_products')
-        .insert(productsWithPartnerId);
+      // Import products in batches of 10
+      const batchSize = 10;
+      for (let i = 0; i < total; i += batchSize) {
+        const batch = parseResult.data.slice(i, i + batchSize);
+        
+        const productsToInsert = batch.map(row => ({
+          partner_id: user.id,
+          name: row.name,
+          sku: row.sku || null,
+          description: row.description || '',
+          price: Math.round(row.price * 100), // Convert to paise
+          wholesale_price: row.wholesale_price ? Math.round(row.wholesale_price * 100) : null,
+          stock: row.stock,
+          category: row.category || null,
+          tags: row.tags ? row.tags.split(',').map(t => t.trim()) : [],
+          is_active: row.is_active !== false,
+          images: [],
+          is_customizable: false,
+          add_ons: [],
+        }));
 
-      if (error) throw error;
+        const { error } = await supabase
+          .from('partner_products')
+          .insert(productsToInsert);
+
+        if (error) throw error;
+
+        imported += batch.length;
+        setProgress((imported / total) * 100);
+      }
 
       toast({
         title: "Import successful",
-        description: `Imported ${result.count} product(s)`,
+        description: `Imported ${imported} product${imported !== 1 ? 's' : ''} successfully.`,
       });
 
       onSuccess();
+      handleReset();
       onOpenChange(false);
-      resetState();
     } catch (error: any) {
       toast({
         title: "Import failed",
@@ -117,24 +139,21 @@ export const CSVImporterDialog = ({
       });
     } finally {
       setImporting(false);
+      setProgress(0);
     }
   };
 
-  const resetState = () => {
+  const handleReset = () => {
     setFile(null);
-    setResult(null);
-    setLoading(false);
-    setImporting(false);
+    setParseResult(null);
+    setProgress(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(open) => {
-      onOpenChange(open);
-      if (!open) resetState();
-    }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Import Products from CSV</DialogTitle>
@@ -143,113 +162,131 @@ export const CSVImporterDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Template Download */}
-          <div className="flex items-center gap-2">
+        <div className="space-y-6">
+          {/* Download Template */}
+          <div className="flex items-center justify-between p-4 border rounded-md">
+            <div>
+              <p className="font-medium">Need a template?</p>
+              <p className="text-sm text-muted-foreground">
+                Download sample CSV with required columns
+              </p>
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={downloadCSVTemplate}
-              className="gap-2"
             >
-              <FileText className="h-4 w-4" />
+              <Download className="mr-2 h-4 w-4" />
               Download Template
             </Button>
-            <p className="text-sm text-muted-foreground">
-              Download sample CSV format
-            </p>
           </div>
 
           {/* File Upload */}
-          <div
-            className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-              file ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-muted-foreground/50"
-            )}
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <div className="space-y-2">
             <input
               ref={fileInputRef}
               type="file"
               accept=".csv"
-              onChange={handleFileChange}
+              onChange={handleFileSelect}
               className="hidden"
               aria-label="Upload CSV file"
             />
             
-            {loading ? (
-              <div className="flex flex-col items-center gap-2">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Validating CSV...</p>
-              </div>
-            ) : file ? (
-              <div className="flex flex-col items-center gap-2">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-                <p className="font-medium">{file.name}</p>
-                <p className="text-sm text-muted-foreground">Click to change file</p>
-              </div>
-            ) : (
+            <Button
+              variant="outline"
+              className="w-full h-32 border-dashed"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+            >
               <div className="flex flex-col items-center gap-2">
                 <Upload className="h-8 w-8 text-muted-foreground" />
-                <p className="font-medium">Click to upload CSV</p>
-                <p className="text-sm text-muted-foreground">or drag and drop</p>
+                <div className="text-center">
+                  <p className="text-sm font-medium">
+                    {file ? file.name : 'Click to upload CSV'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {file ? 'Click to select a different file' : 'Or drag and drop your file here'}
+                  </p>
+                </div>
               </div>
-            )}
+            </Button>
           </div>
 
           {/* Validation Results */}
-          {result && !result.success && result.errors && (
-            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md max-h-48 overflow-y-auto">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="h-4 w-4 text-destructive" />
-                <p className="text-sm font-medium text-destructive">
-                  {result.errors.length} Validation Error(s)
-                </p>
-              </div>
-              <ul className="text-sm space-y-1">
-                {result.errors.map((err, idx) => (
-                  <li key={idx} className="text-muted-foreground">
-                    Row {err.row}: {err.message}
-                  </li>
-                ))}
-              </ul>
+          {parseResult && (
+            <div className="space-y-2">
+              {parseResult.valid ? (
+                <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-md">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <div>
+                    <p className="font-medium">Ready to import</p>
+                    <p className="text-sm">
+                      {parseResult.data.length} product{parseResult.data.length !== 1 ? 's' : ''} found
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-md">
+                    <AlertCircle className="h-5 w-5" />
+                    <div>
+                      <p className="font-medium">Validation errors found</p>
+                      <p className="text-sm">
+                        {parseResult.errors.length} error{parseResult.errors.length !== 1 ? 's' : ''} must be fixed before importing
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <ScrollArea className="h-48 rounded-md border p-3">
+                    <div className="space-y-2">
+                      {parseResult.errors.map((error, idx) => (
+                        <div key={idx} className="text-sm">
+                          <span className="font-medium">Row {error.row}</span>
+                          {' - '}
+                          <span className="text-muted-foreground">{error.field}:</span>
+                          {' '}
+                          <span className="text-red-600">{error.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Success Preview */}
-          {result && result.success && (
-            <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <p className="text-sm font-medium text-green-700 dark:text-green-400">
-                  Ready to import {result.count} product(s)
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Preview: {result.data?.slice(0, 3).map(p => p.name).join(', ')}
-                {(result.count || 0) > 3 && ` ...and ${(result.count || 0) - 3} more`}
+          {/* Import Progress */}
+          {importing && (
+            <div className="space-y-2">
+              <Progress value={progress} />
+              <p className="text-sm text-center text-muted-foreground">
+                Importing products... {Math.round(progress)}%
               </p>
             </div>
           )}
-        </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={importing}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleImport}
-            disabled={!result?.success || importing}
-          >
-            {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Import {result?.count || 0} Products
-          </Button>
-        </DialogFooter>
+          {/* Actions */}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                handleReset();
+                onOpenChange(false);
+              }}
+              disabled={importing}
+            >
+              Cancel
+            </Button>
+            {file && parseResult && (
+              <Button
+                onClick={handleImport}
+                disabled={!parseResult.valid || importing}
+              >
+                {importing ? 'Importing...' : `Import ${parseResult.data.length} Products`}
+              </Button>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

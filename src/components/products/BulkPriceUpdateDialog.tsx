@@ -1,14 +1,13 @@
 /**
  * Bulk Price Update Dialog
- * Allows updating prices by percentage or flat amount
- * Shows preview of changes before applying
+ * Feature 2: PROMPT 8
+ * Allows updating prices for multiple products
  */
 
 import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -27,24 +25,25 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Product } from "@/pages/partner/Products";
-import { PriceUpdate } from "@/types/bulkOperations";
-import { bulkUpdatePrices } from "@/lib/products/bulkOperations";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { bulkUpdatePrices } from "@/lib/products/bulkOperations";
+import type { PriceUpdate } from "@/types/bulkOperations";
 
-const priceUpdateSchema = z.object({
-  operation: z.enum(['increase', 'decrease']),
-  type: z.enum(['percentage', 'flat']),
+const formSchema = z.object({
+  operation: z.enum(["increase", "decrease"]),
+  type: z.enum(["percentage", "flat"]),
   value: z.number().min(0.01, "Value must be greater than 0"),
-  applyTo: z.enum(['retail', 'wholesale', 'both']),
+  applyTo: z.enum(["retail", "wholesale", "both"]),
 });
 
-interface BulkPriceUpdateProps {
+interface BulkPriceUpdateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedProducts: Product[];
+  selectedProducts: any[];
   onSuccess: () => void;
 }
 
@@ -53,49 +52,57 @@ export const BulkPriceUpdateDialog = ({
   onOpenChange,
   selectedProducts,
   onSuccess
-}: BulkPriceUpdateProps) => {
+}: BulkPriceUpdateDialogProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof priceUpdateSchema>>({
-    resolver: zodResolver(priceUpdateSchema),
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      operation: 'increase',
-      type: 'percentage',
+      operation: "increase",
+      type: "percentage",
       value: 10,
-      applyTo: 'retail'
-    }
+      applyTo: "retail",
+    },
   });
 
-  const onSubmit = async (values: z.infer<typeof priceUpdateSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!user) return;
+
     setLoading(true);
     try {
+      const productIds = selectedProducts.map(p => p.id);
       const update: PriceUpdate = {
         operation: values.operation,
         type: values.type,
         value: values.value,
-        applyTo: values.applyTo
+        applyTo: values.applyTo,
       };
 
-      const result = await bulkUpdatePrices(
-        selectedProducts.map(p => p.id),
-        update
-      );
+      const result = await bulkUpdatePrices(productIds, update, user.id);
 
-      if (result.success) {
+      if (result.success > 0) {
         toast({
           title: "Prices updated",
-          description: `Successfully updated ${result.updated} product(s)`,
+          description: `Successfully updated ${result.success} product${result.success !== 1 ? 's' : ''}.${
+            result.failed > 0 ? ` ${result.failed} failed.` : ''
+          }`,
         });
-        onSuccess();
-        onOpenChange(false);
-      } else {
+      }
+
+      if (result.errors.length > 0) {
+        console.error('Price update errors:', result.errors);
         toast({
-          title: "Update failed",
-          description: result.errors?.join(', ') || "Unknown error",
+          title: "Some updates failed",
+          description: `${result.errors.length} product${result.errors.length !== 1 ? 's' : ''} could not be updated.`,
           variant: "destructive",
         });
       }
+
+      onSuccess();
+      onOpenChange(false);
+      form.reset();
     } catch (error: any) {
       toast({
         title: "Update failed",
@@ -107,22 +114,23 @@ export const BulkPriceUpdateDialog = ({
     }
   };
 
-  const watchOperation = form.watch('operation');
-  const watchType = form.watch('type');
-  const watchValue = form.watch('value');
-
-  // Calculate example preview
-  const examplePrice = 100000; // ₹1,000 in paise
+  // Calculate example price
+  const examplePrice = 1499; // ₹1,499
+  const values = form.watch();
   let exampleNewPrice = examplePrice;
   
-  if (watchOperation === 'increase') {
-    exampleNewPrice = watchType === 'percentage'
-      ? examplePrice * (1 + watchValue / 100)
-      : examplePrice + (watchValue * 100);
+  if (values.operation === 'increase') {
+    if (values.type === 'percentage') {
+      exampleNewPrice = examplePrice * (1 + values.value / 100);
+    } else {
+      exampleNewPrice = examplePrice + (values.value * 100);
+    }
   } else {
-    exampleNewPrice = watchType === 'percentage'
-      ? examplePrice * (1 - watchValue / 100)
-      : examplePrice - (watchValue * 100);
+    if (values.type === 'percentage') {
+      exampleNewPrice = examplePrice * (1 - values.value / 100);
+    } else {
+      exampleNewPrice = Math.max(100, examplePrice - (values.value * 100));
+    }
   }
 
   return (
@@ -131,13 +139,13 @@ export const BulkPriceUpdateDialog = ({
         <DialogHeader>
           <DialogTitle>Update Prices</DialogTitle>
           <DialogDescription>
-            Update prices for {selectedProducts.length} selected product(s)
+            Update prices for {selectedProducts.length} selected product{selectedProducts.length !== 1 ? 's' : ''}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Operation: Increase or Decrease */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Operation */}
             <FormField
               control={form.control}
               name="operation"
@@ -147,7 +155,7 @@ export const BulkPriceUpdateDialog = ({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      value={field.value}
+                      defaultValue={field.value}
                       className="flex gap-4"
                     >
                       <div className="flex items-center space-x-2">
@@ -165,7 +173,7 @@ export const BulkPriceUpdateDialog = ({
               )}
             />
 
-            {/* Type: Percentage or Flat */}
+            {/* Type */}
             <FormField
               control={form.control}
               name="type"
@@ -175,7 +183,7 @@ export const BulkPriceUpdateDialog = ({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      value={field.value}
+                      defaultValue={field.value}
                       className="flex gap-4"
                     >
                       <div className="flex items-center space-x-2">
@@ -200,13 +208,13 @@ export const BulkPriceUpdateDialog = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    {watchType === 'percentage' ? 'Percentage' : 'Amount (₹)'}
+                    Value {values.type === 'percentage' ? '(%)' : '(₹)'}
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
-                      step={watchType === 'percentage' ? "1" : "0.01"}
-                      min="0.01"
+                      step="0.01"
+                      min="0"
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
@@ -216,8 +224,8 @@ export const BulkPriceUpdateDialog = ({
               )}
             />
 
-            {/* Apply To (retail/wholesale/both) - Simplified for MVP */}
-            {/* <FormField
+            {/* Apply To */}
+            <FormField
               control={form.control}
               name="applyTo"
               render={({ field }) => (
@@ -226,32 +234,32 @@ export const BulkPriceUpdateDialog = ({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      value={field.value}
-                      className="flex gap-2"
+                      defaultValue={field.value}
+                      className="flex flex-col gap-2"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="retail" id="retail" />
-                        <Label htmlFor="retail">Retail</Label>
+                        <Label htmlFor="retail">Retail Price Only</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="wholesale" id="wholesale" />
-                        <Label htmlFor="wholesale">Wholesale</Label>
+                        <Label htmlFor="wholesale">Wholesale Price Only</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="both" id="both" />
-                        <Label htmlFor="both">Both</Label>
+                        <Label htmlFor="both">Both Prices</Label>
                       </div>
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
-            /> */}
+            />
 
             {/* Preview */}
-            <div className="p-3 bg-muted rounded-md">
-              <p className="text-sm text-muted-foreground mb-1">Example:</p>
-              <p className="text-sm">
+            <div className="rounded-md bg-muted p-3 text-sm">
+              <p className="font-medium mb-1">Preview Example:</p>
+              <p className="text-muted-foreground">
                 ₹{(examplePrice / 100).toFixed(2)} → ₹{(exampleNewPrice / 100).toFixed(2)}
               </p>
             </div>
@@ -266,8 +274,7 @@ export const BulkPriceUpdateDialog = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Apply Changes
+                {loading ? 'Updating...' : 'Apply Changes'}
               </Button>
             </DialogFooter>
           </form>

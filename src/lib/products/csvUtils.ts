@@ -1,11 +1,11 @@
 /**
  * CSV Import/Export Utilities
- * Uses PapaParse for robust CSV parsing
- * Includes validation and error handling
+ * Feature 2: PROMPT 8 - Bulk Operations
+ * Uses PapaParse for CSV handling
  */
 
 import Papa from 'papaparse';
-import { Product } from '@/pages/partner/Products';
+import { CSVProductRow } from '@/types/bulkOperations';
 
 export interface CSVValidationError {
   row: number;
@@ -13,120 +13,66 @@ export interface CSVValidationError {
   message: string;
 }
 
-export interface CSVImportResult {
-  success: boolean;
-  data?: Partial<Product>[];
-  errors?: CSVValidationError[];
-  count?: number;
+export interface CSVParseResult {
+  data: CSVProductRow[];
+  errors: CSVValidationError[];
+  valid: boolean;
 }
 
 /**
- * Required columns for CSV import
+ * Parse CSV file and validate data
  */
-const REQUIRED_COLUMNS = ['name', 'price', 'stock'];
-
-/**
- * Validate CSV data
- */
-const validateCSVData = (data: any[]): CSVValidationError[] => {
-  const errors: CSVValidationError[] = [];
-
-  data.forEach((row: any, idx: number) => {
-    const rowNum = idx + 2; // +2 for header and 0-index
-
-    if (!row.name || row.name.trim() === '') {
-      errors.push({ row: rowNum, field: 'name', message: 'Name is required' });
-    }
-
-    if (!row.price || isNaN(parseFloat(row.price)) || parseFloat(row.price) <= 0) {
-      errors.push({ row: rowNum, field: 'price', message: 'Invalid price (must be > 0)' });
-    }
-
-    if (row.stock !== undefined && (isNaN(parseInt(row.stock)) || parseInt(row.stock) < 0)) {
-      errors.push({ row: rowNum, field: 'stock', message: 'Invalid stock (must be >= 0)' });
-    }
-  });
-
-  return errors;
-};
-
-/**
- * Import products from CSV file
- */
-export const importProductsFromCSV = async (file: File): Promise<CSVImportResult> => {
-  return new Promise((resolve) => {
+export const parseProductsCSV = (file: File): Promise<CSVParseResult> => {
+  return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
       dynamicTyping: true,
       skipEmptyLines: true,
       complete: (results) => {
-        try {
-          // Check for required columns
-          const headers = Object.keys(results.data[0] || {});
-          const missingColumns = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
+        const data = results.data as CSVProductRow[];
+        const errors: CSVValidationError[] = [];
 
-          if (missingColumns.length > 0) {
-            resolve({
-              success: false,
-              errors: [{
-                row: 1,
-                field: 'headers',
-                message: `Missing required columns: ${missingColumns.join(', ')}`
-              }]
-            });
+        // Validate required columns
+        const requiredColumns = ['name', 'price', 'stock'];
+        if (data.length > 0) {
+          const headers = Object.keys(data[0]);
+          const missing = requiredColumns.filter(col => !headers.includes(col));
+          
+          if (missing.length > 0) {
+            reject(new Error(`Missing required columns: ${missing.join(', ')}`));
             return;
           }
-
-          // Validate data
-          const validationErrors = validateCSVData(results.data as any[]);
-
-          if (validationErrors.length > 0) {
-            resolve({
-              success: false,
-              errors: validationErrors
-            });
-            return;
-          }
-
-          // Transform data to match Product interface
-          const products = (results.data as any[]).map((row: any) => ({
-            name: row.name,
-            description: row.description || '',
-            price: Math.round(parseFloat(row.price) * 100), // Convert to paise
-            stock: parseInt(row.stock) || 0,
-            category: row.category || '',
-            tags: row.tags ? row.tags.split(',').map((t: string) => t.trim()) : [],
-            is_active: row.is_active !== false,
-            is_customizable: row.is_customizable === true,
-            images: row.images ? row.images.split(',').map((i: string) => i.trim()) : [],
-            add_ons: []
-          }));
-
-          resolve({
-            success: true,
-            data: products,
-            count: products.length
-          });
-        } catch (error: any) {
-          resolve({
-            success: false,
-            errors: [{
-              row: 0,
-              field: 'general',
-              message: `CSV parsing error: ${error.message}`
-            }]
-          });
         }
+
+        // Validate each row
+        data.forEach((row, idx) => {
+          const rowNum = idx + 2; // +2 because of header row and 0-index
+
+          if (!row.name || row.name.trim() === '') {
+            errors.push({ row: rowNum, field: 'name', message: 'Name is required' });
+          }
+
+          if (typeof row.price !== 'number' || row.price <= 0) {
+            errors.push({ row: rowNum, field: 'price', message: 'Price must be a positive number' });
+          }
+
+          if (typeof row.stock !== 'number' || row.stock < 0) {
+            errors.push({ row: rowNum, field: 'stock', message: 'Stock must be a non-negative number' });
+          }
+
+          if (row.wholesale_price && row.wholesale_price >= row.price) {
+            errors.push({ row: rowNum, field: 'wholesale_price', message: 'Wholesale price must be less than retail price' });
+          }
+        });
+
+        resolve({
+          data,
+          errors,
+          valid: errors.length === 0
+        });
       },
       error: (error) => {
-        resolve({
-          success: false,
-          errors: [{
-            row: 0,
-            field: 'general',
-            message: `File reading error: ${error.message}`
-          }]
-        });
+        reject(new Error(`CSV parsing failed: ${error.message}`));
       }
     });
   });
@@ -135,54 +81,78 @@ export const importProductsFromCSV = async (file: File): Promise<CSVImportResult
 /**
  * Export products to CSV
  */
-export const exportProductsToCSV = (products: Product[], filename?: string) => {
-  const exportData = products.map(p => ({
+export const exportProductsToCSV = (
+  products: any[],
+  filename?: string
+): void => {
+  const csvData = products.map(p => ({
     name: p.name,
-    description: p.description,
-    price: (p.price / 100).toFixed(2), // Convert from paise to rupees
+    sku: p.sku || '',
+    description: p.description || '',
+    price: p.price / 100, // Convert from paise to rupees
+    wholesale_price: p.wholesale_price ? p.wholesale_price / 100 : '',
     stock: p.stock,
     category: p.category || '',
-    tags: p.tags.join(','),
-    is_active: p.is_active,
-    is_customizable: p.is_customizable,
-    images: p.images.join(',')
+    tags: Array.isArray(p.tags) ? p.tags.join(', ') : '',
+    is_active: p.is_active ? 'Yes' : 'No'
   }));
 
-  const csv = Papa.unparse(exportData, {
-    columns: ['name', 'description', 'price', 'stock', 'category', 'tags', 'is_active', 'is_customizable', 'images']
-  });
-
-  // Create blob and download
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename || `products-${new Date().toISOString().split('T')[0]}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
-
-/**
- * Download CSV template
- */
-export const downloadCSVTemplate = () => {
-  const template = Papa.unparse({
-    fields: ['name', 'description', 'price', 'stock', 'category', 'tags', 'is_active', 'is_customizable'],
-    data: [
-      ['Sample Product', 'A great product', '999.00', '100', 'Electronics', 'trending,new', 'true', 'false']
+  const csv = Papa.unparse(csvData, {
+    columns: [
+      'name',
+      'sku',
+      'description',
+      'price',
+      'wholesale_price',
+      'stock',
+      'category',
+      'tags',
+      'is_active'
     ]
   });
 
-  const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
-  link.href = url;
-  link.download = 'product-import-template.csv';
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename || `products-${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+};
+
+/**
+ * Download CSV template for product import
+ */
+export const downloadCSVTemplate = (): void => {
+  const template = [
+    {
+      name: 'Example Product',
+      sku: 'PROD-001',
+      description: 'Product description here',
+      price: 1499,
+      wholesale_price: 1200,
+      stock: 100,
+      category: 'Electronics',
+      tags: 'trending, featured',
+      is_active: 'Yes'
+    }
+  ];
+
+  const csv = Papa.unparse(template);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'products-template.csv');
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 

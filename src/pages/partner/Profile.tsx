@@ -20,7 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { Loader2 } from "lucide-react";
-import { BadgesDisplay } from "@/components/profile/BadgesDisplay";
 
 // Form validation
 const profileFormSchema = z.object({
@@ -335,13 +334,6 @@ export const PartnerProfile = () => {
           </Button>
         </form>
       </Form>
-
-      {/* Loyalty Badges Section (Feature 7) */}
-      {user && (
-        <div className="mt-8">
-          <BadgesDisplay partnerId={user.id} />
-        </div>
-      )}
     </div>
   );
 };

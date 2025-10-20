@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Upload, Download } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -9,10 +9,6 @@ import { supabase } from "@/lib/integrations/supabase-client";
 import { ProductForm } from "@/components/partner/ProductForm";
 import { productColumns } from "@/components/partner/ProductColumns";
 import { BulkActionsDropdown } from "@/components/products/BulkActionsDropdown";
-import { BulkPriceUpdateDialog } from "@/components/products/BulkPriceUpdate";
-import { BulkStockUpdateDialog } from "@/components/products/BulkStockUpdate";
-import { BulkDeleteConfirmDialog } from "@/components/products/BulkDeleteConfirm";
-import { CSVImporterDialog } from "@/components/products/CSVImporter";
 import { exportProductsToCSV } from "@/lib/products/csvUtils";
 
 export interface Product {
@@ -52,13 +48,7 @@ export const PartnerProducts = () => {
   const [loading, setLoading] = useState(true);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-  // Bulk operations state
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
-  const [showPriceUpdate, setShowPriceUpdate] = useState(false);
-  const [showStockUpdate, setShowStockUpdate] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showCSVImporter, setShowCSVImporter] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -150,81 +140,52 @@ export const PartnerProducts = () => {
     loadProducts();
   };
 
-  // Bulk operations handlers
-  const selectedCount = selectedProducts.length;
-
-  const handleBulkAction = (action: string) => {
-    switch (action) {
-      case 'clear':
-        setSelectedProducts([]);
-        break;
-      case 'update_price':
-        setShowPriceUpdate(true);
-        break;
-      case 'update_stock':
-        setShowStockUpdate(true);
-        break;
-      case 'delete':
-        setShowDeleteConfirm(true);
-        break;
-      case 'export_selected':
-        exportProductsToCSV(selectedProducts, `selected-products-${Date.now()}.csv`);
-        toast({
-          title: "Export successful",
-          description: `Exported ${selectedCount} product(s)`,
-        });
-        break;
-    }
-  };
-
-  const handleBulkOperationSuccess = () => {
-    setSelectedProducts([]);
-    loadProducts();
-  };
-
   const handleExportAll = () => {
-    exportProductsToCSV(products);
+    exportProductsToCSV(products, `all-products-${new Date().toISOString().split('T')[0]}.csv`);
     toast({
       title: "Export successful",
-      description: `Exported ${products.length} product(s)`,
+      description: `Exported ${products.length} products to CSV`,
     });
+  };
+
+  const handleBulkActionSuccess = () => {
+    setSelectedProducts([]);
+    loadProducts();
   };
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Products</h1>
-            <p className="text-muted-foreground">
-              Manage your product catalog and add-ons
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowCSVImporter(true)} className="gap-2">
-              <Upload className="h-4 w-4" />
-              Import CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExportAll} className="gap-2">
-              <Download className="h-4 w-4" />
-              Export All
-            </Button>
-            <Button onClick={handleAddProduct} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Product
-            </Button>
-          </div>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Products</h1>
+          <p className="text-muted-foreground">
+            Manage your product catalog and add-ons
+          </p>
         </div>
-
-        {/* Bulk Actions Bar (shows when products selected) */}
-        <BulkActionsDropdown
-          selectedCount={selectedCount}
-          onAction={handleBulkAction}
-        />
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportAll} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export All
+          </Button>
+          <Button onClick={handleAddProduct} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
-      {/* Products DataTable with Row Selection */}
+      {/* Bulk Actions - Shows when products are selected */}
+      {selectedProducts.length > 0 && (
+        <BulkActionsDropdown
+          selectedProducts={selectedProducts}
+          selectedCount={selectedProducts.length}
+          onClearSelection={() => setSelectedProducts([])}
+          onSuccess={handleBulkActionSuccess}
+        />
+      )}
+
+      {/* Products DataTable with selection support */}
       <DataTable
         columns={productColumns({ onEdit: handleEditProduct, onDelete: handleDeleteProduct })}
         data={products}
@@ -248,34 +209,6 @@ export const PartnerProducts = () => {
           />
         </SheetContent>
       </Sheet>
-
-      {/* Bulk Operations Dialogs */}
-      <BulkPriceUpdateDialog
-        open={showPriceUpdate}
-        onOpenChange={setShowPriceUpdate}
-        selectedProducts={selectedProducts}
-        onSuccess={handleBulkOperationSuccess}
-      />
-
-      <BulkStockUpdateDialog
-        open={showStockUpdate}
-        onOpenChange={setShowStockUpdate}
-        selectedProducts={selectedProducts}
-        onSuccess={handleBulkOperationSuccess}
-      />
-
-      <BulkDeleteConfirmDialog
-        open={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
-        selectedProducts={selectedProducts}
-        onSuccess={handleBulkOperationSuccess}
-      />
-
-      <CSVImporterDialog
-        open={showCSVImporter}
-        onOpenChange={setShowCSVImporter}
-        onSuccess={loadProducts}
-      />
     </div>
   );
 };
