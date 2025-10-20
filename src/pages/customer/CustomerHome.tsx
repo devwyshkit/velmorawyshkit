@@ -15,7 +15,7 @@ import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobil
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
 import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { EnhancedFooter } from "@/components/customer/shared/EnhancedFooter";
 import { EmailVerificationBanner } from "@/components/customer/shared/EmailVerificationBanner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRecommendations } from "@/lib/integrations/openai";
@@ -479,7 +479,9 @@ export const CustomerHome = () => {
         </section>
       </main>
 
-      {/* Footer removed from Home for service marketplace focus - more partner cards above fold */}
+      {/* Enhanced Footer - Swiggy/Zomato Pattern */}
+      <EnhancedFooter />
+      
       <FloatingCartButton />
       <CustomerBottomNav />
     </div>
