@@ -1241,8 +1241,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   created_at
 ) VALUES (
   gen_random_uuid(),
@@ -1302,8 +1300,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   created_at
 ) VALUES (
   gen_random_uuid(),
@@ -1353,8 +1349,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   created_at
 ) VALUES (
   gen_random_uuid(),
@@ -1396,8 +1390,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   tags,
   created_at
 ) VALUES (
@@ -1442,8 +1434,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   tags,
   created_at
 ) VALUES (
@@ -1483,8 +1473,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   created_at
 ) VALUES (
   gen_random_uuid(),
@@ -1526,8 +1514,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   created_at
 ) VALUES (
   gen_random_uuid(),
@@ -1567,8 +1553,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   created_at
 ) VALUES (
   gen_random_uuid(),
@@ -1607,8 +1591,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   created_at
 ) VALUES (
   gen_random_uuid(),
@@ -1644,8 +1626,6 @@ INSERT INTO partner_products (
   category,
   estimated_delivery_days,
   is_active,
-  rating,
-  rating_count,
   created_at
 ) VALUES (
   gen_random_uuid(),
@@ -1739,7 +1719,6 @@ INSERT INTO reviews (
   customer_id,
   order_id,
   product_id,
-  rating,
   comment,
   helpful_count,
   created_at
