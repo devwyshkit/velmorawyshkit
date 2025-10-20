@@ -13,7 +13,7 @@ export const AdminDisputes = () => {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Disputes >48 hours will be displayed here with admin override powers
+            Disputes &gt;48 hours will be displayed here with admin override powers
           </p>
         </CardContent>
       </Card>
