@@ -23,6 +23,7 @@ export { PartnerProducts } from '../pages/partner/Products';
 export { PartnerOrders } from '../pages/partner/Orders';
 export { PartnerEarnings } from '../pages/partner/Earnings';
 export { ReviewsManagement as PartnerReviews } from '../pages/partner/ReviewsManagement';
+export { CampaignManager as PartnerCampaigns } from '../pages/partner/CampaignManager';
 export { PartnerProfile } from '../pages/partner/Profile';
 
 // Admin Pages
