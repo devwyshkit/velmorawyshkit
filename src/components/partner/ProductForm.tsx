@@ -35,6 +35,7 @@ import { Loader2 } from "lucide-react";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { BulkPricingTiers } from "@/components/products/BulkPricingTiers";
 import { SponsoredToggle } from "@/components/products/SponsoredToggle";
+import { SourcingLimits } from "@/components/products/SourcingLimits";
 import { BulkTier } from "@/types/products";
 
 // Form validation schema
@@ -78,6 +79,13 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
     isSponsored: product?.sponsored || false,
     startDate: product?.sponsored_start_date ? new Date(product.sponsored_start_date) : undefined,
     endDate: product?.sponsored_end_date ? new Date(product.sponsored_end_date) : undefined,
+  });
+  const [sourcingData, setSourcingData] = useState<{
+    available: boolean;
+    monthlyLimit?: number;
+  }>({
+    available: product?.sourcing_available || false,
+    monthlyLimit: product?.sourcing_limit_monthly,
   });
 
   const form = useForm<ProductFormValues>({
@@ -164,6 +172,9 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         sponsored: sponsoredData.isSponsored,
         sponsored_start_date: sponsoredData.isSponsored && sponsoredData.startDate ? sponsoredData.startDate.toISOString() : null,
         sponsored_end_date: sponsoredData.isSponsored && sponsoredData.endDate ? sponsoredData.endDate.toISOString() : null,
+        sourcing_available: sourcingData.available,
+        sourcing_limit_monthly: sourcingData.available && sourcingData.monthlyLimit ? sourcingData.monthlyLimit : null,
+        sourcing_limit_enabled: sourcingData.available && !!sourcingData.monthlyLimit,
         category: values.category,
         estimated_delivery_days: values.estimated_delivery_days,
         is_active: true,
@@ -350,6 +361,20 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
               isSponsored,
               startDate,
               endDate,
+            });
+          }}
+          disabled={loading}
+        />
+
+        {/* Sourcing Limits - PROMPT 11 Feature */}
+        <SourcingLimits
+          productId={product?.id}
+          initialAvailable={sourcingData.available}
+          initialMonthlyLimit={sourcingData.monthlyLimit}
+          onSourcingChange={(available, monthlyLimit) => {
+            setSourcingData({
+              available,
+              monthlyLimit,
             });
           }}
           disabled={loading}
