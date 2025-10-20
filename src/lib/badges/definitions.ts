@@ -1,27 +1,58 @@
 /**
- * Badge Definitions
- * Feature 7: PROMPT 6
- * Vendor-earned achievement badges
+ * Loyalty Badges Definitions
+ * Feature 6: PROMPT 6
+ * Defines all partner achievement badges and their criteria
+ * Follows Zomato Gold's trust signal pattern
  */
 
-import type { Badge } from '@/types/badges';
+export interface Badge {
+  type: string;
+  name: string;
+  description: string;
+  icon: string; // Lucide icon name
+  color: string; // Hex color for styling
+  criteria: {
+    orders?: number;
+    revenue?: number; // in paise
+    rating?: number;
+    onTimePercent?: number;
+    bulkOrders?: number; // Orders with 50+ units
+    customOrders?: number; // Orders with customization
+  };
+  benefits: string[];
+}
 
-export const BADGE_DEFINITIONS: Badge[] = [
+/**
+ * All badge definitions
+ * Criteria checked daily by Supabase cron job
+ */
+export const badgeDefinitions: Badge[] = [
+  {
+    type: 'verified_seller',
+    name: 'Verified Seller',
+    description: 'All KYC complete, 30+ days active',
+    icon: 'Shield',
+    color: '#10B981', // Green
+    criteria: {
+      // No numeric criteria - checked manually during onboarding
+    },
+    benefits: ['Trust badge on listings', 'Platform verification']
+  },
   {
     type: 'premium_partner',
     name: 'Premium Partner',
     description: '50+ orders, ₹5L+ revenue, 4.8+ rating',
     icon: 'Trophy',
-    color: '#FFD700',
+    color: '#FFD700', // Gold
     criteria: {
       orders: 50,
       revenue: 50000000, // ₹5L in paise
-      rating: 4.8,
+      rating: 4.8
     },
     benefits: [
       '15% commission (vs 20% default)',
       'Priority support',
-      'Featured placement'
+      'Featured placement in customer UI'
     ]
   },
   {
@@ -29,14 +60,14 @@ export const BADGE_DEFINITIONS: Badge[] = [
     name: '5-Star Partner',
     description: '100+ orders, 4.9+ rating',
     icon: 'Star',
-    color: '#3B82F6',
+    color: '#3B82F6', // Blue
     criteria: {
       orders: 100,
-      rating: 4.9,
+      rating: 4.9
     },
     benefits: [
-      'Top Partners carousel',
-      'Trust badge on listings'
+      'Top Partners carousel in customer home',
+      'Trust badge on all listings'
     ]
   },
   {
@@ -44,10 +75,10 @@ export const BADGE_DEFINITIONS: Badge[] = [
     name: 'Fast Fulfillment',
     description: '95%+ on-time delivery (last 100 orders)',
     icon: 'Zap',
-    color: '#10B981',
+    color: '#F59E0B', // Amber
     criteria: {
-      onTimePercent: 95,
       orders: 100,
+      onTimePercent: 95
     },
     benefits: [
       '"Lightning Fast" badge on products',
@@ -59,14 +90,14 @@ export const BADGE_DEFINITIONS: Badge[] = [
     name: 'Corporate Expert',
     description: '20+ bulk orders (50+ units each)',
     icon: 'Briefcase',
-    color: '#8B5CF6',
+    color: '#8B5CF6', // Purple
     criteria: {
-      bulkOrders: 20,
+      bulkOrders: 20
     },
     benefits: [
       'B2B dashboard access',
       'Bulk pricing tools',
-      'Corporate client leads'
+      'Corporate buyer visibility'
     ]
   },
   {
@@ -74,13 +105,14 @@ export const BADGE_DEFINITIONS: Badge[] = [
     name: 'Customization Pro',
     description: '50+ custom orders with branding',
     icon: 'Palette',
-    color: '#F59E0B',
+    color: '#EC4899', // Pink
     criteria: {
-      customOrders: 50,
+      customOrders: 50
     },
     benefits: [
       'Featured in "Custom Gifts" category',
-      'Custom design tools'
+      'Custom order boost in search',
+      'Design consultation badge'
     ]
   },
   {
@@ -88,55 +120,99 @@ export const BADGE_DEFINITIONS: Badge[] = [
     name: 'Top Seller',
     description: 'Top 10% revenue in category (monthly)',
     icon: 'Award',
-    color: '#EF4444',
+    color: '#EF4444', // Red
     criteria: {
-      // Calculated dynamically based on category
+      // Calculated dynamically - top 10% in category
+      revenue: 10000000 // ₹1L+ minimum to qualify
     },
     benefits: [
-      'Featured in category',
-      'Special promotions'
+      'Featured in category homepage',
+      'Marketing support',
+      '"Top Seller" badge'
     ]
-  },
-  {
-    type: 'verified_seller',
-    name: 'Verified Seller',
-    description: 'All KYC complete, 30+ days active',
-    icon: 'CheckCircle',
-    color: '#06B6D4',
-    criteria: {
-      activeDays: 30,
-    },
-    benefits: [
-      'Trust badge',
-      'Higher search ranking'
-    ]
-  },
+  }
 ];
 
 /**
- * Get badge by type
+ * Get badge definition by type
  */
 export const getBadgeDefinition = (type: string): Badge | undefined => {
-  return BADGE_DEFINITIONS.find(b => b.type === type);
+  return badgeDefinitions.find(badge => badge.type === type);
 };
 
 /**
- * Check if criteria is met
+ * Get badge icon by type (for rendering)
  */
-export const checkBadgeCriteria = (
-  badge: Badge,
-  partnerMetrics: Record<string, number>
-): boolean => {
-  const criteria = badge.criteria;
-  
-  return (
-    (!criteria.orders || partnerMetrics.orders >= criteria.orders) &&
-    (!criteria.revenue || partnerMetrics.revenue >= criteria.revenue) &&
-    (!criteria.rating || partnerMetrics.rating >= criteria.rating) &&
-    (!criteria.onTimePercent || partnerMetrics.onTimePercent >= criteria.onTimePercent) &&
-    (!criteria.bulkOrders || partnerMetrics.bulkOrders >= criteria.bulkOrders) &&
-    (!criteria.customOrders || partnerMetrics.customOrders >= criteria.customOrders) &&
-    (!criteria.activeDays || partnerMetrics.activeDays >= criteria.activeDays)
-  );
+export const getBadgeIcon = (type: string): string => {
+  const badge = getBadgeDefinition(type);
+  return badge?.icon || 'Shield';
 };
 
+/**
+ * Get badge color by type
+ */
+export const getBadgeColor = (type: string): string => {
+  const badge = getBadgeDefinition(type);
+  return badge?.color || '#10B981';
+};
+
+/**
+ * Calculate progress towards a badge
+ */
+export const calculateBadgeProgress = (
+  badge: Badge,
+  partnerStats: {
+    orders?: number;
+    revenue?: number;
+    rating?: number;
+    onTimePercent?: number;
+    bulkOrders?: number;
+    customOrders?: number;
+  }
+): {
+  percentage: number;
+  missing: string[];
+  canEarn: boolean;
+} => {
+  const missing: string[] = [];
+  let totalCriteria = 0;
+  let metCriteria = 0;
+
+  // Check each criterion
+  Object.entries(badge.criteria).forEach(([key, requiredValue]) => {
+    totalCriteria++;
+    const partnerValue = partnerStats[key as keyof typeof partnerStats] || 0;
+    
+    if (partnerValue >= requiredValue) {
+      metCriteria++;
+    } else {
+      const diff = requiredValue - partnerValue;
+      switch (key) {
+        case 'orders':
+          missing.push(`${diff} more orders`);
+          break;
+        case 'revenue':
+          missing.push(`₹${(diff / 100 / 100000).toFixed(1)}L more revenue`);
+          break;
+        case 'rating':
+          missing.push(`${diff.toFixed(1)} rating points`);
+          break;
+        case 'onTimePercent':
+          missing.push(`${diff}% better on-time delivery`);
+          break;
+        case 'bulkOrders':
+          missing.push(`${diff} more bulk orders`);
+          break;
+        case 'customOrders':
+          missing.push(`${diff} more custom orders`);
+          break;
+      }
+    }
+  });
+
+  return {
+    percentage: totalCriteria > 0 ? Math.round((metCriteria / totalCriteria) * 100) : 0,
+    missing,
+    canEarn: metCriteria === totalCriteria
+  };
+};
