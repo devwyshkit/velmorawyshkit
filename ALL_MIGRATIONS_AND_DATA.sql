@@ -1010,7 +1010,6 @@ INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_acti
     'Shop Now',
     '/customer/occasions/diwali',
     true,
-    1,
     NOW()
   ),
   (
@@ -1021,7 +1020,6 @@ INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_acti
     'Explore',
     '/customer/occasions/corporate',
     true,
-    2,
     NOW()
   ),
   (
@@ -1032,7 +1030,6 @@ INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_acti
     'View Collection',
     '/customer/occasions/wedding',
     true,
-    3,
     NOW()
   ),
   (
@@ -1043,7 +1040,6 @@ INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_acti
     'Browse Gifts',
     '/customer/occasions/birthday',
     true,
-    4,
     NOW()
   );
 
@@ -1060,7 +1056,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🪔',
     'https://images.unsplash.com/photo-1603910234550-7f2c0b5d9a5a?w=400&h=300&fit=crop',
     true,
-    1,
     NOW()
   ),
   (
@@ -1071,7 +1066,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🎂',
     'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=400&h=300&fit=crop',
     true,
-    2,
     NOW()
   ),
   (
@@ -1082,7 +1076,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '💼',
     'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&h=300&fit=crop',
     true,
-    3,
     NOW()
   ),
   (
@@ -1093,7 +1086,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '💍',
     'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop',
     true,
-    4,
     NOW()
   ),
   (
@@ -1104,7 +1096,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '💐',
     'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&h=300&fit=crop',
     true,
-    5,
     NOW()
   ),
   (
@@ -1115,7 +1106,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🏡',
     'https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?w=400&h=300&fit=crop',
     true,
-    6,
     NOW()
   ),
   (
@@ -1126,7 +1116,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🙏',
     'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=400&h=300&fit=crop',
     true,
-    7,
     NOW()
   ),
   (
@@ -1137,7 +1126,6 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🌻',
     'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&h=300&fit=crop',
     true,
-    8,
     NOW()
   );
 
@@ -1275,8 +1263,6 @@ INSERT INTO partner_products (
   'Hampers',
   '3-5 days',
   true,
-  4.8,
-  234,
   NOW()
 );
 
@@ -1329,8 +1315,6 @@ INSERT INTO partner_products (
   'Electronics',
   '1-2 days',
   true,
-  4.6,
-  1842,
   NOW()
 );
 
@@ -1369,8 +1353,6 @@ INSERT INTO partner_products (
   'Birthday',
   '2-3 days',
   true,
-  4.7,
-  567,
   NOW()
 );
 
@@ -1414,8 +1396,6 @@ INSERT INTO partner_products (
   'Corporate',
   '3-4 days',
   true,
-  4.9,
-  892,
   ARRAY['bestseller'],
   NOW()
 );
@@ -1452,8 +1432,6 @@ INSERT INTO partner_products (
   'Wedding',
   '5-7 days',
   true,
-  4.8,
-  345,
   ARRAY['trending'],
   NOW()
 );
@@ -1492,8 +1470,6 @@ INSERT INTO partner_products (
   'Thank You',
   '2-3 days',
   true,
-  4.6,
-  234,
   NOW()
 );
 
@@ -1533,8 +1509,6 @@ INSERT INTO partner_products (
   'Electronics',
   '1-2 days',
   true,
-  4.5,
-  1234,
   NOW()
 );
 
@@ -1572,8 +1546,6 @@ INSERT INTO partner_products (
   'Anniversary',
   '2-3 days',
   true,
-  4.7,
-  456,
   NOW()
 );
 
@@ -1607,8 +1579,6 @@ INSERT INTO partner_products (
   'Housewarming',
   '3-4 days',
   true,
-  4.6,
-  234,
   NOW()
 );
 
@@ -1642,8 +1612,6 @@ INSERT INTO partner_products (
   'Get Well Soon',
   '1-2 days',
   true,
-  4.7,
-  189,
   NOW()
 );
 
@@ -1684,8 +1652,6 @@ INSERT INTO campaigns (
     'https://images.unsplash.com/photo-1603910234550-7f2c0b5d9a5a?w=1200&h=400&fit=crop',
     'Valid for orders above ₹1,000. Not applicable with other offers.',
     'active',
-    15420,
-    234,
     58760000, -- ₹587,600 in paise
     NOW()
   ),
@@ -1703,8 +1669,6 @@ INSERT INTO campaigns (
     NULL,
     'Flat ₹500 off on purchases above ₹2,000',
     'active',
-    8920,
-    145,
     43450000, -- ₹434,500
     NOW()
   );
@@ -1731,7 +1695,6 @@ INSERT INTO reviews (
     (SELECT id FROM partner_products WHERE name = 'Diwali Premium Hamper' LIMIT 1),
     5,
     'Absolutely loved the Diwali hamper! The packaging was premium and all items were of excellent quality. Highly recommend for corporate gifting.',
-    23,
     NOW() - INTERVAL '5 days'
   ),
   (
@@ -1742,7 +1705,6 @@ INSERT INTO reviews (
     (SELECT id FROM partner_products WHERE name = 'Boat Rockerz 450 Bluetooth Headphones' LIMIT 1),
     4,
     'Great sound quality and battery life. The engraving for company logo came out perfect. Slightly delayed delivery though.',
-    15,
     NOW() - INTERVAL '3 days'
   ),
   (
@@ -1753,7 +1715,6 @@ INSERT INTO reviews (
     (SELECT id FROM partner_products WHERE name = 'Birthday Celebration Box' LIMIT 1),
     5,
     'Perfect birthday surprise! My sister loved every item in the box. The personalized card was a nice touch.',
-    8,
     NOW() - INTERVAL '1 day'
   );
 
