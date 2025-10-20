@@ -22,6 +22,7 @@ export { PartnerHome } from '../pages/partner/Home';
 export { PartnerProducts } from '../pages/partner/Products';
 export { PartnerOrders } from '../pages/partner/Orders';
 export { PartnerEarnings } from '../pages/partner/Earnings';
+export { ReviewsManagement as PartnerReviews } from '../pages/partner/ReviewsManagement';
 export { PartnerProfile } from '../pages/partner/Profile';
 
 // Admin Pages
