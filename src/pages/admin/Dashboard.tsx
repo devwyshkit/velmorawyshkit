@@ -291,7 +291,7 @@ export const AdminDashboard = () => {
             <div className="flex items-center gap-3 text-sm">
               <Badge variant="destructive" className="shrink-0">10:15 AM</Badge>
               <span className="text-muted-foreground">Dispute escalated:</span>
-              <span className="font-medium">#DSP-456 (>48 hours)</span>
+              <span className="font-medium">#DSP-456 (&gt;48 hours)</span>
             </div>
           </div>
         </CardContent>
