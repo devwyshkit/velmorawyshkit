@@ -1664,6 +1664,8 @@ INSERT INTO campaigns (
     'https://images.unsplash.com/photo-1603910234550-7f2c0b5d9a5a?w=1200&h=400&fit=crop',
     'Valid for orders above ₹1,000. Not applicable with other offers.',
     'active',
+    0, -- impressions
+    0, -- orders
     58760000, -- ₹587,600 in paise
     NOW()
   ),
@@ -1681,6 +1683,8 @@ INSERT INTO campaigns (
     NULL,
     'Flat ₹500 off on purchases above ₹2,000',
     'active',
+    0, -- impressions
+    0, -- orders
     43450000, -- ₹434,500
     NOW()
   );
@@ -1695,9 +1699,13 @@ INSERT INTO reviews (
   customer_id,
   order_id,
   product_id,
+  rating,
   comment,
+  photos,
   helpful_count,
-  created_at
+  not_helpful_count,
+  created_at,
+  updated_at
 ) VALUES
   (
     gen_random_uuid(),
@@ -1707,6 +1715,10 @@ INSERT INTO reviews (
     (SELECT id FROM partner_products WHERE name = 'Diwali Premium Hamper' LIMIT 1),
     5,
     'Absolutely loved the Diwali hamper! The packaging was premium and all items were of excellent quality. Highly recommend for corporate gifting.',
+    ARRAY[]::text[],
+    0,
+    0,
+    NOW() - INTERVAL '5 days',
     NOW() - INTERVAL '5 days'
   ),
   (
@@ -1717,6 +1729,10 @@ INSERT INTO reviews (
     (SELECT id FROM partner_products WHERE name = 'Boat Rockerz 450 Bluetooth Headphones' LIMIT 1),
     4,
     'Great sound quality and battery life. The engraving for company logo came out perfect. Slightly delayed delivery though.',
+    ARRAY[]::text[],
+    0,
+    0,
+    NOW() - INTERVAL '3 days',
     NOW() - INTERVAL '3 days'
   ),
   (
@@ -1727,6 +1743,10 @@ INSERT INTO reviews (
     (SELECT id FROM partner_products WHERE name = 'Birthday Celebration Box' LIMIT 1),
     5,
     'Perfect birthday surprise! My sister loved every item in the box. The personalized card was a nice touch.',
+    ARRAY[]::text[],
+    0,
+    0,
+    NOW() - INTERVAL '1 day',
     NOW() - INTERVAL '1 day'
   );
 
