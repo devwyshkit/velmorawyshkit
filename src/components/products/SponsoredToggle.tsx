@@ -1,171 +1,279 @@
-/**
- * Sponsored Toggle Component
- * Feature 6: PROMPT 5
- * Allows partners to sponsor products for better visibility
- */
-
-import { useState } from "react";
-import { TrendingUp, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Info, TrendingUp } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface SponsoredToggleProps {
-  enabled: boolean;
-  startDate?: Date;
-  endDate?: Date;
-  productPrice?: number; // For fee calculation
-  onChange: (config: {
-    enabled: boolean;
-    startDate: Date;
-    endDate: Date;
-  }) => void;
+  productId?: string;
+  initialSponsored?: boolean;
+  initialStartDate?: string;
+  initialEndDate?: string;
+  onSponsoredChange: (isSponsored: boolean, startDate?: Date, endDate?: Date) => void;
+  disabled?: boolean;
 }
 
+/**
+ * Sponsored Toggle Component
+ * Allows partners to activate sponsored listing for products
+ * Following Swiggy/Zomato ad platform patterns
+ */
 export const SponsoredToggle = ({
-  enabled,
-  startDate = new Date(),
-  endDate = new Date(Date.now() + 7 * 86400000),
-  productPrice = 0,
-  onChange
+  productId,
+  initialSponsored = false,
+  initialStartDate,
+  initialEndDate,
+  onSponsoredChange,
+  disabled = false,
 }: SponsoredToggleProps) => {
-  const [isEnabled, setIsEnabled] = useState(enabled);
-  const [start, setStart] = useState(startDate);
-  const [end, setEnd] = useState(endDate);
+  const [isSponsored, setIsSponsored] = useState(initialSponsored);
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    initialStartDate ? new Date(initialStartDate) : new Date()
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    initialEndDate ? new Date(initialEndDate) : addDays(new Date(), 7)
+  );
+  const [estimatedCost, setEstimatedCost] = useState(0);
 
-  const handleToggle = (checked: boolean) => {
-    setIsEnabled(checked);
-    onChange({ enabled: checked, startDate: start, endDate: end });
-  };
+  // Helper function to add days
+  function addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
 
-  const handleDateChange = (type: 'start' | 'end', date: Date) => {
-    if (type === 'start') {
-      setStart(date);
-      onChange({ enabled: isEnabled, startDate: date, endDate: end });
+  // Calculate estimated cost based on duration
+  useEffect(() => {
+    if (startDate && endDate) {
+      const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Mock calculation: ₹50/day (in real implementation, this would be based on product price and avg sales)
+      setEstimatedCost(durationDays * 50);
+    }
+  }, [startDate, endDate]);
+
+  const handleToggleChange = (checked: boolean) => {
+    setIsSponsored(checked);
+    if (checked) {
+      onSponsoredChange(true, startDate, endDate);
     } else {
-      setEnd(date);
-      onChange({ enabled: isEnabled, startDate: start, endDate: date });
+      onSponsoredChange(false);
     }
   };
 
-  // Calculate estimated daily cost (simplified)
-  const avgDailySales = 5; // Estimate
-  const estimatedDailyCost = (productPrice / 100) * avgDailySales * 0.05;
+  const handleQuickDuration = (days: number) => {
+    const newEndDate = addDays(startDate || new Date(), days);
+    setEndDate(newEndDate);
+    if (isSponsored) {
+      onSponsoredChange(true, startDate, newEndDate);
+    }
+  };
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg">
-      {/* Toggle Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="sponsored-toggle" className="text-base font-medium cursor-pointer">
-            Make this product sponsored
-          </Label>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <div className="space-y-1 text-xs">
-                  <p className="font-medium">Pay +5% fee per sale for:</p>
-                  <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Top placement in search results</li>
-                    <li>Featured in home carousel</li>
-                    <li>'Sponsored' badge on listing</li>
-                    <li>20-30% visibility increase</li>
-                  </ul>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+    <Card className="border-primary/20">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="space-y-1 flex-1">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">Sponsored Listing</CardTitle>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs" side="right">
+                    <p className="text-sm">
+                      <strong>Pay +5% fee per sale for:</strong>
+                    </p>
+                    <ul className="text-xs space-y-1 mt-2">
+                      <li>• Top placement in search results</li>
+                      <li>• Featured in home carousel</li>
+                      <li>• 'Sponsored' badge on listing</li>
+                      <li>• 20-30% visibility increase</li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <CardDescription>
+              Boost your product visibility with sponsored placement
+            </CardDescription>
+          </div>
+          <Switch
+            checked={isSponsored}
+            onCheckedChange={handleToggleChange}
+            disabled={disabled}
+          />
         </div>
-        <Switch
-          id="sponsored-toggle"
-          checked={isEnabled}
-          onCheckedChange={handleToggle}
-        />
-      </div>
+      </CardHeader>
 
-      {/* Sponsored Settings (shown when enabled) */}
-      {isEnabled && (
-        <div className="space-y-4 pl-6 border-l-2 border-primary/20">
-          {/* Fee Estimate */}
-          {productPrice > 0 && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Estimated cost:</strong> ₹{estimatedDailyCost.toFixed(0)}/day 
-                based on avg sales
-              </p>
+      {isSponsored && (
+        <CardContent className="space-y-4">
+          {/* Duration Picker */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Sponsorship Duration</Label>
+            
+            {/* Quick Duration Buttons */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickDuration(7)}
+                className="text-xs"
+              >
+                7 days
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickDuration(14)}
+                className="text-xs"
+              >
+                14 days
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickDuration(30)}
+                className="text-xs"
+              >
+                30 days
+              </Button>
             </div>
-          )}
 
-          {/* Duration */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="sponsored-start" className="text-sm">Start Date</Label>
-              <Input
-                id="sponsored-start"
-                type="date"
-                value={start.toISOString().split('T')[0]}
-                onChange={(e) => handleDateChange('start', new Date(e.target.value))}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="sponsored-end" className="text-sm">End Date</Label>
-              <Input
-                id="sponsored-end"
-                type="date"
-                value={end.toISOString().split('T')[0]}
-                min={start.toISOString().split('T')[0]}
-                onChange={(e) => handleDateChange('end', new Date(e.target.value))}
-                className="mt-1"
-              />
+            {/* Date Range Display */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Start Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                      disabled={disabled}
+                    >
+                      {startDate ? format(startDate, "MMM dd, yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => {
+                        setStartDate(date);
+                        if (isSponsored) {
+                          onSponsoredChange(true, date, endDate);
+                        }
+                      }}
+                      disabled={(date) => date < new Date() || disabled}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">End Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                      disabled={disabled}
+                    >
+                      {endDate ? format(endDate, "MMM dd, yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => {
+                        setEndDate(date);
+                        if (isSponsored) {
+                          onSponsoredChange(true, startDate, date);
+                        }
+                      }}
+                      disabled={(date) => date < (startDate || new Date()) || disabled}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
 
-          {/* Quick Duration Options */}
-          <div className="flex gap-2">
-            <Badge 
-              variant="outline" 
-              className="cursor-pointer hover:bg-accent"
-              onClick={() => handleDateChange('end', new Date(start.getTime() + 7 * 86400000))}
-            >
-              7 days
-            </Badge>
-            <Badge 
-              variant="outline" 
-              className="cursor-pointer hover:bg-accent"
-              onClick={() => handleDateChange('end', new Date(start.getTime() + 14 * 86400000))}
-            >
-              14 days
-            </Badge>
-            <Badge 
-              variant="outline" 
-              className="cursor-pointer hover:bg-accent"
-              onClick={() => handleDateChange('end', new Date(start.getTime() + 30 * 86400000))}
-            >
-              30 days
-            </Badge>
+          {/* Fee Calculator */}
+          <div className="p-3 bg-muted rounded-lg space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Estimated Cost</span>
+              </div>
+              <span className="text-lg font-bold text-primary">₹{estimatedCost}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Based on {startDate && endDate ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : 0} days at ₹50/day
+              <br />
+              <span className="text-[10px]">* Actual charges: 5% per sale during sponsorship period</span>
+            </p>
           </div>
 
           {/* Preview Badge */}
-          <div className="p-3 bg-muted rounded-lg">
-            <p className="text-xs text-muted-foreground mb-2">Customer will see:</p>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              Sponsored
-            </Badge>
+          <div className="p-3 border border-dashed rounded-lg">
+            <p className="text-xs text-muted-foreground mb-2">Preview in Customer UI:</p>
+            <div className="relative inline-block">
+              <div className="w-24 h-24 bg-muted rounded-lg"></div>
+              <Badge variant="secondary" className="absolute top-1 right-1 text-[10px]">
+                Sponsored
+              </Badge>
+            </div>
           </div>
-        </div>
+
+          {/* Info Alert */}
+          <div className="text-xs text-muted-foreground bg-primary/5 p-3 rounded-lg">
+            <p className="font-medium text-primary mb-1">How it works:</p>
+            <ul className="space-y-1">
+              <li>• Your product appears at the top of search results</li>
+              <li>• Featured in home carousel for maximum visibility</li>
+              <li>• You pay 5% fee only on sales made during sponsorship</li>
+              <li>• Can pause or extend anytime</li>
+            </ul>
+          </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 };
-

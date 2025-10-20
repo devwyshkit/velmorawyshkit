@@ -34,6 +34,7 @@ import { Product, AddOn } from "@/pages/partner/Products";
 import { Loader2 } from "lucide-react";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { BulkPricingTiers } from "@/components/products/BulkPricingTiers";
+import { SponsoredToggle } from "@/components/products/SponsoredToggle";
 import { BulkTier } from "@/types/products";
 
 // Form validation schema
@@ -69,6 +70,15 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
   const [addOns, setAddOns] = useState<AddOn[]>(product?.add_ons || []);
   const [isCustomizable, setIsCustomizable] = useState(product?.is_customizable || false);
   const [bulkTiers, setBulkTiers] = useState<BulkTier[]>(product?.bulk_pricing || []);
+  const [sponsoredData, setSponsoredData] = useState<{
+    isSponsored: boolean;
+    startDate?: Date;
+    endDate?: Date;
+  }>({
+    isSponsored: product?.sponsored || false,
+    startDate: product?.sponsored_start_date ? new Date(product.sponsored_start_date) : undefined,
+    endDate: product?.sponsored_end_date ? new Date(product.sponsored_end_date) : undefined,
+  });
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -151,6 +161,9 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         is_customizable: isCustomizable,
         add_ons: isCustomizable ? addOns : [],
         bulk_pricing: bulkTiers.length > 0 ? bulkTiers : null,  // Bulk pricing tiers
+        sponsored: sponsoredData.isSponsored,
+        sponsored_start_date: sponsoredData.isSponsored && sponsoredData.startDate ? sponsoredData.startDate.toISOString() : null,
+        sponsored_end_date: sponsoredData.isSponsored && sponsoredData.endDate ? sponsoredData.endDate.toISOString() : null,
         category: values.category,
         estimated_delivery_days: values.estimated_delivery_days,
         is_active: true,
@@ -323,6 +336,22 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
           basePrice={Math.round((form.watch('price') || 0) * 100)}
           initialTiers={bulkTiers}
           onTiersChange={setBulkTiers}
+          disabled={loading}
+        />
+
+        {/* Sponsored Listing Toggle - PROMPT 5 Feature */}
+        <SponsoredToggle
+          productId={product?.id}
+          initialSponsored={sponsoredData.isSponsored}
+          initialStartDate={sponsoredData.startDate?.toISOString()}
+          initialEndDate={sponsoredData.endDate?.toISOString()}
+          onSponsoredChange={(isSponsored, startDate, endDate) => {
+            setSponsoredData({
+              isSponsored,
+              startDate,
+              endDate,
+            });
+          }}
           disabled={loading}
         />
 
