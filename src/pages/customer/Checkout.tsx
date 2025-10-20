@@ -155,7 +155,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           clearGuestCart();
           refreshCartCount();
 
-          toast({
+        toast({
             title: "Payment successful!",
             description: "Your order has been placed",
           });
@@ -198,10 +198,10 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-base font-semibold">Delivery Address</Label>
-              <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                 <Label htmlFor="saved-address" className="text-sm text-muted-foreground">
                   Use saved
-                </Label>
+                    </Label>
                 <Switch
                   id="saved-address"
                   checked={savedAddress}
@@ -209,7 +209,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                 />
               </div>
             </div>
-            
+
             {savedAddress ? (
               <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border">
                 <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
@@ -224,7 +224,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                 className="text-sm"
               />
             )}
-          </div>
+              </div>
 
           {/* Contactless Delivery */}
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
@@ -241,7 +241,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
               checked={contactlessDelivery}
               onCheckedChange={setContactlessDelivery}
             />
-          </div>
+                      </div>
 
           {/* Delivery Time Slot */}
           <div className="space-y-3">
@@ -304,11 +304,11 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
             <Label htmlFor="gstin-checkout" className="text-sm font-medium">
               GSTIN (Optional - for business purchases)
             </Label>
-            <Input
+                  <Input
               id="gstin-checkout"
               placeholder="Enter GSTIN"
-              value={gstin}
-              onChange={(e) => setGstin(e.target.value)}
+                    value={gstin}
+                    onChange={(e) => setGstin(e.target.value)}
               className="text-sm"
             />
             {gstin && (
@@ -321,7 +321,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                 Download Invoice Estimate
               </Button>
             )}
-          </div>
+                </div>
 
           <Separator />
 
@@ -333,8 +333,8 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                 <RadioGroupItem value="upi" id="upi" />
                 <Label htmlFor="upi" className="flex-1 cursor-pointer text-sm">
                   UPI (PhonePe, Google Pay, Paytm)
-                </Label>
-              </div>
+                  </Label>
+                </div>
               <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
                 <RadioGroupItem value="card" id="card" />
                 <Label htmlFor="card" className="flex-1 cursor-pointer text-sm">
@@ -346,7 +346,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                 <Label htmlFor="netbanking" className="flex-1 cursor-pointer text-sm">
                   Net Banking
                 </Label>
-              </div>
+      </div>
             </RadioGroup>
           </div>
 
@@ -361,8 +361,8 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>GST (18%)</span>
                 <span>₹{(total - subtotal).toLocaleString('en-IN')}</span>
-              </div>
-              <Separator />
+          </div>
+          <Separator />
               <div className="flex items-center justify-between">
                 <span className="font-semibold">Total Amount</span>
                 <span className="text-xl font-bold text-primary">

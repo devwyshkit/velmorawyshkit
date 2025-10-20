@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
+import { 
   DollarSign,
   ShoppingBag,
   Users,
@@ -179,7 +179,7 @@ export const AdminDashboard = () => {
           icon={Users}
           trend={`${stats.pendingApprovals} pending approval`}
         />
-        <StatsCard
+          <StatsCard
           title="Open Disputes"
           value={stats.openDisputes}
           icon={AlertCircle}
@@ -193,12 +193,12 @@ export const AdminDashboard = () => {
         {/* Pending Partner Approvals */}
         {stats.pendingApprovals > 0 && (
           <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/partners")}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Pending Approvals</CardTitle>
                 <Badge variant="destructive">{stats.pendingApprovals}</Badge>
-              </div>
-            </CardHeader>
+          </div>
+        </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
                 {stats.pendingApprovals} partners awaiting review
@@ -227,7 +227,7 @@ export const AdminDashboard = () => {
               <Button variant="destructive" size="sm" className="w-full gap-2">
                 Review Now
                 <ArrowRight className="h-4 w-4" />
-              </Button>
+                </Button>
             </CardContent>
           </Card>
         )}
@@ -249,8 +249,8 @@ export const AdminDashboard = () => {
                 Process Payouts
                 <ArrowRight className="h-4 w-4" />
               </Button>
-            </CardContent>
-          </Card>
+        </CardContent>
+      </Card>
         )}
       </div>
 
@@ -264,7 +264,7 @@ export const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="h-64 flex items-center justify-center bg-muted rounded-lg">
-            <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
               Chart will be added with recharts library
             </p>
           </div>
@@ -287,12 +287,12 @@ export const AdminDashboard = () => {
               <Badge variant="outline" className="shrink-0">10:30 AM</Badge>
               <span className="text-muted-foreground">Order completed:</span>
               <span className="font-medium">#ORD-12350 (₹6,249)</span>
-            </div>
+                </div>
             <div className="flex items-center gap-3 text-sm">
               <Badge variant="destructive" className="shrink-0">10:15 AM</Badge>
               <span className="text-muted-foreground">Dispute escalated:</span>
               <span className="font-medium">#DSP-456 (&gt;48 hours)</span>
-            </div>
+              </div>
           </div>
         </CardContent>
       </Card>
