@@ -6,7 +6,6 @@
 -- ============================================
 -- 1. PAYOUTS TABLE (Zoho Books Integration)
 -- ============================================
-
 CREATE TABLE IF NOT EXISTS payouts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   partner_id UUID REFERENCES partner_profiles(id) ON DELETE CASCADE NOT NULL,
