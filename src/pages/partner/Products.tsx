@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { ProductForm } from "@/components/partner/ProductForm";
 import { productColumns } from "@/components/partner/ProductColumns";
-import { BulkActionsDropdown } from "@/components/products/BulkActionsDropdown";
+import { BulkActionsDropdown } from "@/components/partner/products/BulkActionsDropdown";
 import { CSVImporter } from "@/components/products/CSVImporter";
 import { exportToCSV } from "@/lib/products/csvUtils";
 

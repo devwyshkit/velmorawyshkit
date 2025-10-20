@@ -23,10 +23,10 @@ import { BulkStatusDialog } from "./BulkStatusDialog";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
 
 interface BulkActionsDropdownProps {
+  selectedProducts: any[];
   selectedCount: number;
-  selectedIds: string[];
-  onComplete: () => void;
-  onExport: () => void;
+  onClearSelection: () => void;
+  onSuccess: () => void;
 }
 
 /**
@@ -35,11 +35,32 @@ interface BulkActionsDropdownProps {
  * Provides batch update/delete operations
  */
 export const BulkActionsDropdown = ({
+  selectedProducts,
   selectedCount,
-  selectedIds,
-  onComplete,
-  onExport,
+  onClearSelection,
+  onSuccess,
 }: BulkActionsDropdownProps) => {
+  const selectedIds = selectedProducts.map(p => p.id);
+  
+  const handleComplete = () => {
+    onClearSelection();
+    onSuccess();
+  };
+  
+  const handleExport = () => {
+    // Simple CSV export of selected products
+    const csv = selectedProducts.map(p => 
+      `${p.name},${p.price / 100},${p.stock},${p.is_active ? 'Active' : 'Inactive'}`
+    ).join('\n');
+    
+    const header = 'Name,Price,Stock,Status\n';
+    const blob = new Blob([header + csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `selected-products-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
   const [showPriceDialog, setShowPriceDialog] = useState(false);
   const [showStockDialog, setShowStockDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
@@ -71,7 +92,7 @@ export const BulkActionsDropdown = ({
             Change Status
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onExport}>
+          <DropdownMenuItem onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Export Selected
           </DropdownMenuItem>
@@ -92,7 +113,7 @@ export const BulkActionsDropdown = ({
         onOpenChange={setShowPriceDialog}
         selectedIds={selectedIds}
         selectedCount={selectedCount}
-        onComplete={onComplete}
+        onComplete={handleComplete}
       />
       
       <BulkStockDialog
@@ -100,7 +121,7 @@ export const BulkActionsDropdown = ({
         onOpenChange={setShowStockDialog}
         selectedIds={selectedIds}
         selectedCount={selectedCount}
-        onComplete={onComplete}
+        onComplete={handleComplete}
       />
       
       <BulkStatusDialog
@@ -108,7 +129,7 @@ export const BulkActionsDropdown = ({
         onOpenChange={setShowStatusDialog}
         selectedIds={selectedIds}
         selectedCount={selectedCount}
-        onComplete={onComplete}
+        onComplete={handleComplete}
       />
       
       <BulkDeleteDialog
@@ -116,7 +137,7 @@ export const BulkActionsDropdown = ({
         onOpenChange={setShowDeleteDialog}
         selectedIds={selectedIds}
         selectedCount={selectedCount}
-        onComplete={onComplete}
+        onComplete={handleComplete}
       />
     </>
   );
