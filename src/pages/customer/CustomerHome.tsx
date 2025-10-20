@@ -40,6 +40,8 @@ export const CustomerHome = () => {
   const { location } = useLocation();
   const { user } = useAuth();
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [featuredCampaigns, setFeaturedCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,30 +49,60 @@ export const CustomerHome = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
 
-  // Static data
-  const occasions: Occasion[] = [
-    { id: '1', name: 'Birthday', image: '/placeholder.svg', icon: '🎂' },
-    { id: '2', name: 'Anniversary', image: '/placeholder.svg', icon: '💑' },
-    { id: '3', name: 'Wedding', image: '/placeholder.svg', icon: '💒' },
-    { id: '4', name: 'Corporate', image: '/placeholder.svg', icon: '💼' },
-    { id: '5', name: 'Festival', image: '/placeholder.svg', icon: '🪔' },
-    { id: '6', name: 'Graduation', image: '/placeholder.svg', icon: '🎓' },
-    { id: '7', name: 'Baby Shower', image: '/placeholder.svg', icon: '👶' },
-    { id: '8', name: 'Farewell', image: '/placeholder.svg', icon: '👋' },
-  ];
-
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Load recommendations with user context and browsing history
-        const browsingHistory = JSON.parse(localStorage.getItem('wyshkit_browsing_history') || '[]');
-        const recs = await getRecommendations({
-          location: location || 'India',
-          browsing_history: browsingHistory.slice(0, 10), // Last 10 viewed items
-          occasion: 'General',
-        });
-        setRecommendations(recs);
+        // Load banners from Supabase (we have 4 in database!)
+        try {
+          const { data: bannersData, error: bannersError } = await supabase
+            .from('banners')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+          
+          if (bannersError) {
+            console.warn('Banners fetch failed:', bannersError);
+          } else {
+            setBanners(bannersData || []);
+          }
+        } catch (error) {
+          console.warn('Failed to load banners:', error);
+        }
+
+        // Load occasions from Supabase (we have 8 in database!)
+        try {
+          const { data: occasionsData, error: occasionsError } = await supabase
+            .from('occasions')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+          
+          if (occasionsError) {
+            console.warn('Occasions fetch failed:', occasionsError);
+          } else {
+            setOccasions(occasionsData?.map(occ => ({
+              id: occ.id,
+              name: occ.name,
+              image: occ.image_url,
+              icon: occ.icon_emoji,
+              slug: occ.slug,
+            })) || []);
+          }
+        } catch (error) {
+          console.warn('Failed to load occasions:', error);
+        }
+
+        // Load recommendations with user context (fallback if no banners)
+        if (banners.length === 0) {
+          const browsingHistory = JSON.parse(localStorage.getItem('wyshkit_browsing_history') || '[]');
+          const recs = await getRecommendations({
+            location: location || 'India',
+            browsing_history: browsingHistory.slice(0, 10),
+            occasion: 'General',
+          });
+          setRecommendations(recs);
+        }
 
         // Load partners from Supabase (with fallback to mock data)
         const partnersData = await fetchPartners(location);
@@ -220,24 +252,36 @@ export const CustomerHome = () => {
               className="w-full"
             >
               <CarouselContent className="-ml-2">
-                {recommendations.map((item) => (
+                {(banners.length > 0 ? banners : recommendations).map((item) => (
                   <CarouselItem key={item.id} className="basis-[85%] pl-2">
                     <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 border-0 overflow-hidden">
                       <CardContent className="p-0">
                         <div
-                          className="relative h-32 bg-gradient-to-br from-primary via-primary-light to-primary"
-                          onClick={() => navigate(`/customer/partners/${item.partner_id}`)}
+                          className="relative h-32"
+                          onClick={() => navigate(item.cta_link || item.link || `/customer/partners/${item.partner_id}`)}
                         >
-                          {/* Background Pattern */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-primary opacity-90" />
+                          {/* Banner Image (if from database) */}
+                          {item.image_url && (
+                            <img
+                              src={item.image_url}
+                              alt={item.title}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          )}
                           
-                          {/* Content - Center-aligned with icon (Original pattern) */}
+                          {/* Gradient Overlay (for better text readability) */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-transparent" />
+                          
+                          {/* Content - Center-aligned */}
                           <div className="relative z-10 p-4 h-full flex flex-col justify-center text-center space-y-1">
                             <div className="h-10 w-10 bg-white/20 rounded-lg mx-auto mb-2 flex items-center justify-center">
                               <Gift className="h-6 w-6 text-white" />
                             </div>
                             <h3 className="font-semibold text-white text-sm">{item.title}</h3>
-                            <p className="text-white/90 text-xs">{item.description}</p>
+                            <p className="text-white/90 text-xs">{item.subtitle || item.description}</p>
+                            {item.cta_text && (
+                              <span className="text-white/80 text-xs font-medium">{item.cta_text} →</span>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -251,7 +295,7 @@ export const CustomerHome = () => {
             <div className="flex items-center justify-between mt-3 px-2">
               {/* Left: Dot Indicators */}
               <div className="flex gap-1">
-                {recommendations.map((_, idx) => (
+                {(banners.length > 0 ? banners : recommendations).map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => carouselApi?.scrollTo(idx)}
