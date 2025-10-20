@@ -1657,7 +1657,7 @@ INSERT INTO campaigns (
     'discount',
     'percentage',
     10,
-    ARRAY(SELECT id FROM partner_products WHERE partner_id = 'f892886a-beb7-4f7f-a5f3-c6ac26892b71' LIMIT 3)::text[],
+    (SELECT COALESCE(jsonb_agg(id), '[]'::jsonb) FROM partner_products WHERE partner_id = 'f892886a-beb7-4f7f-a5f3-c6ac26892b71' LIMIT 3),
     NOW(),
     NOW() + INTERVAL '15 days',
     true, -- Featured
@@ -1676,7 +1676,7 @@ INSERT INTO campaigns (
     'discount',
     'flat',
     50000, -- ₹500 off
-    ARRAY(SELECT id FROM partner_products WHERE partner_id = 'ff63c864-c2f4-4323-aac8-5224576531b6' LIMIT 2)::text[],
+    (SELECT COALESCE(jsonb_agg(id), '[]'::jsonb) FROM partner_products WHERE partner_id = 'ff63c864-c2f4-4323-aac8-5224576531b6' LIMIT 2),
     NOW(),
     NOW() + INTERVAL '10 days',
     false,
