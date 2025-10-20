@@ -1,5 +1,8 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, ShoppingBag, DollarSign, User, Bell, LogOut, Menu } from "lucide-react";
+import { 
+  Home, Package, ShoppingBag, DollarSign, User, Bell, LogOut, Menu,
+  Megaphone, Star, AlertCircle, PackageX, Users, HelpCircle
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,12 +38,18 @@ export const PartnerLayout = () => {
   
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-  // Partner navigation items (Swiggy/Zomato pattern: Home, Menu, Orders, Earnings, Profile)
+  // Partner navigation items - All 12 Features (Swiggy/Zomato pattern expanded)
   const navItems = [
-    { icon: Home, label: "Home", path: "/partner/dashboard" },
+    { icon: Home, label: "Dashboard", path: "/partner/dashboard" },
     { icon: Package, label: "Products", path: "/partner/products" },
     { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // TODO: Real-time count
+    { icon: Megaphone, label: "Campaigns", path: "/partner/campaigns" },
+    { icon: Star, label: "Reviews", path: "/partner/reviews" },
+    { icon: AlertCircle, label: "Disputes", path: "/partner/disputes" },
+    { icon: PackageX, label: "Returns", path: "/partner/returns" },
     { icon: DollarSign, label: "Earnings", path: "/partner/earnings" },
+    { icon: Users, label: "Referrals", path: "/partner/referrals" },
+    { icon: HelpCircle, label: "Help", path: "/partner/help" },
     { icon: User, label: "Profile", path: "/partner/profile" },
   ];
 
