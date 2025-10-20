@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Upload, Download, AlertCircle, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
