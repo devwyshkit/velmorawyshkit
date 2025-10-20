@@ -1010,6 +1010,7 @@ INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_acti
     'Shop Now',
     '/customer/occasions/diwali',
     true,
+    1,
     NOW()
   ),
   (
@@ -1020,6 +1021,7 @@ INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_acti
     'Explore',
     '/customer/occasions/corporate',
     true,
+    2,
     NOW()
   ),
   (
@@ -1030,6 +1032,7 @@ INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_acti
     'View Collection',
     '/customer/occasions/wedding',
     true,
+    3,
     NOW()
   ),
   (
@@ -1040,6 +1043,7 @@ INSERT INTO banners (id, title, subtitle, image_url, cta_text, cta_link, is_acti
     'Browse Gifts',
     '/customer/occasions/birthday',
     true,
+    4,
     NOW()
   );
 
@@ -1056,6 +1060,7 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🪔',
     'https://images.unsplash.com/photo-1603910234550-7f2c0b5d9a5a?w=400&h=300&fit=crop',
     true,
+    1,
     NOW()
   ),
   (
@@ -1066,6 +1071,7 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🎂',
     'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=400&h=300&fit=crop',
     true,
+    2,
     NOW()
   ),
   (
@@ -1076,6 +1082,7 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '💼',
     'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&h=300&fit=crop',
     true,
+    3,
     NOW()
   ),
   (
@@ -1086,6 +1093,7 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '💍',
     'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop',
     true,
+    4,
     NOW()
   ),
   (
@@ -1096,6 +1104,7 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '💐',
     'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&h=300&fit=crop',
     true,
+    5,
     NOW()
   ),
   (
@@ -1106,6 +1115,7 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🏡',
     'https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?w=400&h=300&fit=crop',
     true,
+    6,
     NOW()
   ),
   (
@@ -1116,6 +1126,7 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🙏',
     'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?w=400&h=300&fit=crop',
     true,
+    7,
     NOW()
   ),
   (
@@ -1126,6 +1137,7 @@ INSERT INTO occasions (id, name, slug, description, icon_emoji, image_url, is_ac
     '🌻',
     'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&h=300&fit=crop',
     true,
+    8,
     NOW()
   );
 
