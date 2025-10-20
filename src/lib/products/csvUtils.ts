@@ -1,158 +1,168 @@
+import Papa from 'papaparse';
+import { Product } from "@/pages/partner/Products";
+
 /**
  * CSV Import/Export Utilities
- * Feature 2: PROMPT 8 - Bulk Operations
- * Uses PapaParse for CSV handling
+ * Uses PapaParse for CSV parsing
+ * Follows Swiggy/Zomato bulk upload patterns
  */
 
-import Papa from 'papaparse';
-import { CSVProductRow } from '@/types/bulkOperations';
-
-export interface CSVValidationError {
-  row: number;
-  field: string;
-  message: string;
-}
-
-export interface CSVParseResult {
-  data: CSVProductRow[];
-  errors: CSVValidationError[];
-  valid: boolean;
+export interface CSVImportResult {
+  success: boolean;
+  data?: any[];
+  errors?: string[];
+  rowCount?: number;
 }
 
 /**
- * Parse CSV file and validate data
+ * Export products to CSV
  */
-export const parseProductsCSV = (file: File): Promise<CSVParseResult> => {
+export const exportToCSV = (products: Product[], filename?: string) => {
+  const csvData = products.map(p => ({
+    name: p.name,
+    description: p.description,
+    price: p.price / 100, // Convert paise to rupees
+    stock: p.stock,
+    category: p.category || '',
+    is_customizable: p.is_customizable ? 'Yes' : 'No',
+    is_active: p.is_active ? 'Active' : 'Inactive',
+    estimated_delivery_days: p.estimated_delivery_days || '3-5 days',
+  }));
+
+  const csv = Papa.unparse(csvData, {
+    columns: ['name', 'description', 'price', 'stock', 'category', 'is_customizable', 'is_active', 'estimated_delivery_days']
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || `products-export-${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+/**
+ * Import products from CSV file
+ */
+export const importFromCSV = (file: File): Promise<CSVImportResult> => {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
       dynamicTyping: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const data = results.data as CSVProductRow[];
-        const errors: CSVValidationError[] = [];
-
-        // Validate required columns
-        const requiredColumns = ['name', 'price', 'stock'];
-        if (data.length > 0) {
-          const headers = Object.keys(data[0]);
-          const missing = requiredColumns.filter(col => !headers.includes(col));
+        try {
+          // Validate columns
+          const requiredColumns = ['name', 'price', 'stock'];
+          const data = results.data as any[];
           
-          if (missing.length > 0) {
-            reject(new Error(`Missing required columns: ${missing.join(', ')}`));
+          if (data.length === 0) {
+            reject({ success: false, errors: ['CSV file is empty'] });
             return;
           }
+
+          const headers = Object.keys(data[0]);
+          const missing = requiredColumns.filter(col => !headers.includes(col));
+
+          if (missing.length > 0) {
+            reject({
+              success: false,
+              errors: [`Missing required columns: ${missing.join(', ')}`]
+            });
+            return;
+          }
+
+          // Validate data
+          const errors: string[] = [];
+          const validData: any[] = [];
+
+          data.forEach((row: any, idx: number) => {
+            const rowNumber = idx + 2; // +2 for header row and 0-index
+
+            // Validate required fields
+            if (!row.name || row.name.trim() === '') {
+              errors.push(`Row ${rowNumber}: Name is required`);
+              return;
+            }
+
+            if (typeof row.price !== 'number' || row.price <= 0) {
+              errors.push(`Row ${rowNumber}: Invalid price (must be number > 0)`);
+              return;
+            }
+
+            if (typeof row.stock !== 'number' || row.stock < 0) {
+              errors.push(`Row ${rowNumber}: Invalid stock (must be number ≥ 0)`);
+              return;
+            }
+
+            // Transform data for database
+            validData.push({
+              name: row.name.trim(),
+              description: row.description || '',
+              price: Math.round(row.price * 100), // Convert to paise
+              stock: row.stock,
+              category: row.category || '',
+              is_customizable: row.is_customizable === 'Yes' || row.is_customizable === true,
+              is_active: row.is_active !== 'Inactive' && row.is_active !== false,
+              estimated_delivery_days: row.estimated_delivery_days || '3-5 days',
+            });
+          });
+
+          if (errors.length > 0) {
+            reject({
+              success: false,
+              errors,
+              rowCount: data.length
+            });
+            return;
+          }
+
+          resolve({
+            success: true,
+            data: validData,
+            rowCount: validData.length
+          });
+        } catch (error: any) {
+          reject({
+            success: false,
+            errors: [error.message || 'Failed to parse CSV']
+          });
         }
-
-        // Validate each row
-        data.forEach((row, idx) => {
-          const rowNum = idx + 2; // +2 because of header row and 0-index
-
-          if (!row.name || row.name.trim() === '') {
-            errors.push({ row: rowNum, field: 'name', message: 'Name is required' });
-          }
-
-          if (typeof row.price !== 'number' || row.price <= 0) {
-            errors.push({ row: rowNum, field: 'price', message: 'Price must be a positive number' });
-          }
-
-          if (typeof row.stock !== 'number' || row.stock < 0) {
-            errors.push({ row: rowNum, field: 'stock', message: 'Stock must be a non-negative number' });
-          }
-
-          if (row.wholesale_price && row.wholesale_price >= row.price) {
-            errors.push({ row: rowNum, field: 'wholesale_price', message: 'Wholesale price must be less than retail price' });
-          }
-        });
-
-        resolve({
-          data,
-          errors,
-          valid: errors.length === 0
-        });
       },
       error: (error) => {
-        reject(new Error(`CSV parsing failed: ${error.message}`));
+        reject({
+          success: false,
+          errors: [error.message || 'Failed to read CSV file']
+        });
       }
     });
   });
 };
 
 /**
- * Export products to CSV
+ * Generate CSV template for download
  */
-export const exportProductsToCSV = (
-  products: any[],
-  filename?: string
-): void => {
-  const csvData = products.map(p => ({
-    name: p.name,
-    sku: p.sku || '',
-    description: p.description || '',
-    price: p.price / 100, // Convert from paise to rupees
-    wholesale_price: p.wholesale_price ? p.wholesale_price / 100 : '',
-    stock: p.stock,
-    category: p.category || '',
-    tags: Array.isArray(p.tags) ? p.tags.join(', ') : '',
-    is_active: p.is_active ? 'Yes' : 'No'
-  }));
-
-  const csv = Papa.unparse(csvData, {
-    columns: [
-      'name',
-      'sku',
-      'description',
-      'price',
-      'wholesale_price',
-      'stock',
-      'category',
-      'tags',
-      'is_active'
-    ]
-  });
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename || `products-${new Date().toISOString().split('T')[0]}.csv`);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-/**
- * Download CSV template for product import
- */
-export const downloadCSVTemplate = (): void => {
-  const template = [
+export const downloadCSVTemplate = () => {
+  const templateData = [
     {
       name: 'Example Product',
-      sku: 'PROD-001',
       description: 'Product description here',
-      price: 1499,
-      wholesale_price: 1200,
+      price: 999,
       stock: 100,
-      category: 'Electronics',
-      tags: 'trending, featured',
-      is_active: 'Yes'
+      category: 'Gifts',
+      is_customizable: 'No',
+      is_active: 'Active',
+      estimated_delivery_days: '3-5 days',
     }
   ];
 
-  const csv = Papa.unparse(template);
+  const csv = Papa.unparse(templateData);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', 'products-template.csv');
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'product-import-template.csv';
   link.click();
-  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
-

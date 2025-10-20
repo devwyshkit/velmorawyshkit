@@ -1,12 +1,12 @@
-/**
- * Bulk Stock Update Dialog
- * Feature 2: PROMPT 8
- */
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -23,70 +23,101 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { bulkUpdateStock } from "@/lib/products/bulkOperations";
-import type { StockUpdate } from "@/types/bulkOperations";
+import { Product } from "@/pages/partner/Products";
 
-const formSchema = z.object({
-  operation: z.enum(["set", "increase", "decrease"]),
-  value: z.number().min(0, "Value must be non-negative"),
+const stockUpdateSchema = z.object({
+  operation: z.enum(['set', 'increase', 'decrease']),
+  value: z.number().min(0, "Stock cannot be negative"),
 });
+
+type StockUpdateValues = z.infer<typeof stockUpdateSchema>;
 
 interface BulkStockUpdateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedProducts: any[];
+  selectedProducts: Product[];
   onSuccess: () => void;
 }
 
+/**
+ * Bulk Stock Update Dialog
+ * Set, increase, or decrease stock for multiple products
+ */
 export const BulkStockUpdateDialog = ({
   open,
   onOpenChange,
   selectedProducts,
-  onSuccess
+  onSuccess,
 }: BulkStockUpdateDialogProps) => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      operation: "set",
+  const form = useForm<StockUpdateValues>({
+    resolver: zodResolver(stockUpdateSchema),
+    defaultValues:{
+      operation: 'set',
       value: 100,
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user) return;
+  const watchedValues = form.watch();
 
-    setLoading(true);
-    try {
-      const productIds = selectedProducts.map(p => p.id);
-      const update: StockUpdate = {
-        operation: values.operation,
-        value: values.value,
+  // Preview calculation
+  const getPreview = () => {
+    return selectedProducts.slice(0, 3).map(product => {
+      let newStock = product.stock || 0;
+      
+      if (watchedValues.operation === 'set') {
+        newStock = watchedValues.value;
+      } else if (watchedValues.operation === 'increase') {
+        newStock = (product.stock || 0) + watchedValues.value;
+      } else if (watchedValues.operation === 'decrease') {
+        newStock = Math.max(0, (product.stock || 0) - watchedValues.value);
+      }
+
+      return {
+        name: product.name,
+        oldStock: product.stock || 0,
+        newStock,
       };
+    });
+  };
 
-      const result = await bulkUpdateStock(productIds, update, user.id);
+  const onSubmit = async (values: StockUpdateValues) => {
+    setLoading(true);
+
+    try {
+      const { updateStock } = await import('@/lib/products/bulkOperations');
+      
+      await updateStock(
+        selectedProducts.map(p => p.id),
+        {
+          operation: values.operation,
+          value: values.value,
+        }
+      );
+
+      // Count products that will have low stock after update
+      const preview = getPreview();
+      const lowStockCount = preview.filter(p => p.newStock < 50).length;
 
       toast({
         title: "Stock updated",
-        description: `Successfully updated ${result.success} product${result.success !== 1 ? 's' : ''}.`,
+        description: `Successfully updated ${selectedProducts.length} products`,
+        ...(lowStockCount > 0 && {
+          variant: "default",
+          action: <p className="text-xs text-muted-foreground mt-1">⚠️ {lowStockCount} products now have low stock</p>,
+        }),
       });
 
       onSuccess();
       onOpenChange(false);
-      form.reset();
     } catch (error: any) {
       toast({
         title: "Update failed",
-        description: error.message,
+        description: error.message || "Failed to update stock",
         variant: "destructive",
       });
     } finally {
@@ -94,18 +125,21 @@ export const BulkStockUpdateDialog = ({
     }
   };
 
+  const preview = getPreview();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Update Stock</DialogTitle>
+          <DialogTitle>Update Stock ({selectedProducts.length} products)</DialogTitle>
           <DialogDescription>
-            Update stock for {selectedProducts.length} selected product{selectedProducts.length !== 1 ? 's' : ''}
+            Bulk update inventory for selected products
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Operation */}
             <FormField
               control={form.control}
               name="operation"
@@ -116,19 +150,19 @@ export const BulkStockUpdateDialog = ({
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex flex-col gap-2"
+                      className="space-y-2"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="set" id="set" />
-                        <Label htmlFor="set">Set to value</Label>
+                        <Label htmlFor="set" className="cursor-pointer">Set to specific value</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="increase" id="increase" />
-                        <Label htmlFor="increase">Increase by</Label>
+                        <Label htmlFor="increase" className="cursor-pointer">Increase by</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="decrease" id="decrease" />
-                        <Label htmlFor="decrease">Decrease by</Label>
+                        <Label htmlFor="decrease" className="cursor-pointer">Decrease by</Label>
                       </div>
                     </RadioGroup>
                   </FormControl>
@@ -137,24 +171,64 @@ export const BulkStockUpdateDialog = ({
               )}
             />
 
+            {/* Value */}
             <FormField
               control={form.control}
               name="value"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Value (units)</FormLabel>
+                  <FormLabel>
+                    {watchedValues.operation === 'set' ? 'New Stock Quantity' : 'Amount'}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       min="0"
+                      placeholder="100"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Warning for decrease */}
+            {watchedValues.operation === 'decrease' && (
+              <Alert variant="destructive">
+                <Package className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Low stock alert will trigger for products below 50 units
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Preview */}
+            <div className="p-3 bg-muted rounded-lg space-y-2">
+              <p className="text-sm font-medium">Preview</p>
+              {preview.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs">
+                  <span className="truncate flex-1">{item.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="line-through text-muted-foreground">
+                      {item.oldStock} units
+                    </span>
+                    <span className={cn(
+                      "font-medium",
+                      item.newStock < 50 ? "text-destructive" : "text-primary"
+                    )}>
+                      {item.newStock} units
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {selectedProducts.length > 3 && (
+                <p className="text-xs text-muted-foreground">
+                  ...and {selectedProducts.length - 3} more
+                </p>
+              )}
+            </div>
 
             <DialogFooter>
               <Button
@@ -166,7 +240,7 @@ export const BulkStockUpdateDialog = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Updating...' : 'Apply Changes'}
+                {loading ? "Updating..." : "Apply Changes"}
               </Button>
             </DialogFooter>
           </form>
@@ -176,3 +250,5 @@ export const BulkStockUpdateDialog = ({
   );
 };
 
+// Import cn for className utility
+import { cn } from "@/lib/utils";

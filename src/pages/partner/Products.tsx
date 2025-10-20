@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -9,7 +9,8 @@ import { supabase } from "@/lib/integrations/supabase-client";
 import { ProductForm } from "@/components/partner/ProductForm";
 import { productColumns } from "@/components/partner/ProductColumns";
 import { BulkActionsDropdown } from "@/components/products/BulkActionsDropdown";
-import { exportProductsToCSV } from "@/lib/products/csvUtils";
+import { CSVImporter } from "@/components/products/CSVImporter";
+import { exportToCSV } from "@/lib/products/csvUtils";
 
 export interface Product {
   id: string;
@@ -47,6 +48,7 @@ export const PartnerProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [showCSVImporter, setShowCSVImporter] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
@@ -141,10 +143,19 @@ export const PartnerProducts = () => {
   };
 
   const handleExportAll = () => {
-    exportProductsToCSV(products, `all-products-${new Date().toISOString().split('T')[0]}.csv`);
+    exportToCSV(products, `all-products-${new Date().toISOString().split('T')[0]}.csv`);
     toast({
       title: "Export successful",
       description: `Exported ${products.length} products to CSV`,
+    });
+  };
+
+  const handleCSVImportSuccess = () => {
+    setShowCSVImporter(false);
+    loadProducts();
+    toast({
+      title: "Import completed",
+      description: "Products imported successfully",
     });
   };
 
@@ -163,8 +174,12 @@ export const PartnerProducts = () => {
             Manage your product catalog and add-ons
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportAll} className="gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setShowCSVImporter(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Import CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportAll} className="gap-2">
             <Download className="h-4 w-4" />
             Export All
           </Button>
@@ -209,6 +224,13 @@ export const PartnerProducts = () => {
           />
         </SheetContent>
       </Sheet>
+
+      {/* CSV Importer Dialog */}
+      <CSVImporter
+        open={showCSVImporter}
+        onOpenChange={setShowCSVImporter}
+        onSuccess={handleCSVImportSuccess}
+      />
     </div>
   );
 };

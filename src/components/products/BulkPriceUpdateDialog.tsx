@@ -1,13 +1,12 @@
-/**
- * Bulk Price Update Dialog
- * Feature 2: PROMPT 8
- * Allows updating prices for multiple products
- */
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -24,89 +23,106 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { bulkUpdatePrices } from "@/lib/products/bulkOperations";
-import type { PriceUpdate } from "@/types/bulkOperations";
+import { Product } from "@/pages/partner/Products";
 
-const formSchema = z.object({
-  operation: z.enum(["increase", "decrease"]),
-  type: z.enum(["percentage", "flat"]),
+const priceUpdateSchema = z.object({
+  operation: z.enum(['increase', 'decrease']),
+  type: z.enum(['percentage', 'flat']),
   value: z.number().min(0.01, "Value must be greater than 0"),
-  applyTo: z.enum(["retail", "wholesale", "both"]),
+  applyTo: z.enum(['price', 'wholesale', 'both']),
 });
+
+type PriceUpdateValues = z.infer<typeof priceUpdateSchema>;
 
 interface BulkPriceUpdateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedProducts: any[];
+  selectedProducts: Product[];
   onSuccess: () => void;
 }
 
+/**
+ * Bulk Price Update Dialog
+ * Allows updating prices for multiple products (increase/decrease by % or flat amount)
+ * Swiggy/Zomato menu bulk edit pattern
+ */
 export const BulkPriceUpdateDialog = ({
   open,
   onOpenChange,
   selectedProducts,
-  onSuccess
+  onSuccess,
 }: BulkPriceUpdateDialogProps) => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<PriceUpdateValues>({
+    resolver: zodResolver(priceUpdateSchema),
     defaultValues: {
-      operation: "increase",
-      type: "percentage",
+      operation: 'increase',
+      type: 'percentage',
       value: 10,
-      applyTo: "retail",
+      applyTo: 'price',
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user) return;
+  const watchedValues = form.watch();
 
-    setLoading(true);
-    try {
-      const productIds = selectedProducts.map(p => p.id);
-      const update: PriceUpdate = {
-        operation: values.operation,
-        type: values.type,
-        value: values.value,
-        applyTo: values.applyTo,
+  // Preview calculation for first 3 products
+  const getPreview = () => {
+    return selectedProducts.slice(0, 3).map(product => {
+      let newPrice = product.price;
+      
+      if (watchedValues.operation === 'increase') {
+        if (watchedValues.type === 'percentage') {
+          newPrice = Math.round(product.price * (1 + watchedValues.value / 100));
+        } else {
+          newPrice = product.price + Math.round(watchedValues.value * 100); // Convert to paise
+        }
+      } else {
+        if (watchedValues.type === 'percentage') {
+          newPrice = Math.round(product.price * (1 - watchedValues.value / 100));
+        } else {
+          newPrice = product.price - Math.round(watchedValues.value * 100); // Convert to paise
+        }
+      }
+
+      return {
+        name: product.name,
+        oldPrice: product.price,
+        newPrice: Math.max(100, newPrice), // Min ₹1
       };
+    });
+  };
 
-      const result = await bulkUpdatePrices(productIds, update, user.id);
+  const onSubmit = async (values: PriceUpdateValues) => {
+    setLoading(true);
 
-      if (result.success > 0) {
-        toast({
-          title: "Prices updated",
-          description: `Successfully updated ${result.success} product${result.success !== 1 ? 's' : ''}.${
-            result.failed > 0 ? ` ${result.failed} failed.` : ''
-          }`,
-        });
-      }
+    try {
+      // Import bulk operations logic
+      const { updatePrices } = await import('@/lib/products/bulkOperations');
+      
+      await updatePrices(
+        selectedProducts.map(p => p.id),
+        {
+          operation: values.operation,
+          type: values.type,
+          value: values.value,
+          applyTo: values.applyTo,
+        }
+      );
 
-      if (result.errors.length > 0) {
-        console.error('Price update errors:', result.errors);
-        toast({
-          title: "Some updates failed",
-          description: `${result.errors.length} product${result.errors.length !== 1 ? 's' : ''} could not be updated.`,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Prices updated",
+        description: `Successfully updated ${selectedProducts.length} products`,
+      });
 
       onSuccess();
       onOpenChange(false);
-      form.reset();
     } catch (error: any) {
       toast({
         title: "Update failed",
-        description: error.message,
+        description: error.message || "Failed to update prices",
         variant: "destructive",
       });
     } finally {
@@ -114,38 +130,21 @@ export const BulkPriceUpdateDialog = ({
     }
   };
 
-  // Calculate example price
-  const examplePrice = 1499; // ₹1,499
-  const values = form.watch();
-  let exampleNewPrice = examplePrice;
-  
-  if (values.operation === 'increase') {
-    if (values.type === 'percentage') {
-      exampleNewPrice = examplePrice * (1 + values.value / 100);
-    } else {
-      exampleNewPrice = examplePrice + (values.value * 100);
-    }
-  } else {
-    if (values.type === 'percentage') {
-      exampleNewPrice = examplePrice * (1 - values.value / 100);
-    } else {
-      exampleNewPrice = Math.max(100, examplePrice - (values.value * 100));
-    }
-  }
+  const preview = getPreview();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Update Prices</DialogTitle>
+          <DialogTitle>Update Prices ({selectedProducts.length} products)</DialogTitle>
           <DialogDescription>
-            Update prices for {selectedProducts.length} selected product{selectedProducts.length !== 1 ? 's' : ''}
+            Bulk update prices for selected products
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Operation */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Operation: Increase or Decrease */}
             <FormField
               control={form.control}
               name="operation"
@@ -160,11 +159,17 @@ export const BulkPriceUpdateDialog = ({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="increase" id="increase" />
-                        <Label htmlFor="increase">Increase</Label>
+                        <Label htmlFor="increase" className="flex items-center gap-1 cursor-pointer">
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          Increase
+                        </Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="decrease" id="decrease" />
-                        <Label htmlFor="decrease">Decrease</Label>
+                        <Label htmlFor="decrease" className="flex items-center gap-1 cursor-pointer">
+                          <TrendingDown className="h-4 w-4 text-red-600" />
+                          Decrease
+                        </Label>
                       </div>
                     </RadioGroup>
                   </FormControl>
@@ -173,13 +178,13 @@ export const BulkPriceUpdateDialog = ({
               )}
             />
 
-            {/* Type */}
+            {/* Type: Percentage or Flat */}
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>Update By</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -188,11 +193,11 @@ export const BulkPriceUpdateDialog = ({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="percentage" id="percentage" />
-                        <Label htmlFor="percentage">Percentage (%)</Label>
+                        <Label htmlFor="percentage" className="cursor-pointer">Percentage (%)</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="flat" id="flat" />
-                        <Label htmlFor="flat">Flat Amount (₹)</Label>
+                        <Label htmlFor="flat" className="cursor-pointer">Flat Amount (₹)</Label>
                       </div>
                     </RadioGroup>
                   </FormControl>
@@ -208,15 +213,15 @@ export const BulkPriceUpdateDialog = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Value {values.type === 'percentage' ? '(%)' : '(₹)'}
+                    {watchedValues.type === 'percentage' ? 'Percentage' : 'Amount'}
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       step="0.01"
-                      min="0"
+                      placeholder={watchedValues.type === 'percentage' ? "10" : "100"}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -235,19 +240,19 @@ export const BulkPriceUpdateDialog = ({
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex flex-col gap-2"
+                      className="space-y-2"
                     >
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="retail" id="retail" />
-                        <Label htmlFor="retail">Retail Price Only</Label>
+                        <RadioGroupItem value="price" id="price" />
+                        <Label htmlFor="price" className="cursor-pointer">Retail Price Only</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="wholesale" id="wholesale" />
-                        <Label htmlFor="wholesale">Wholesale Price Only</Label>
+                        <Label htmlFor="wholesale" className="cursor-pointer">Wholesale Price Only</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="both" id="both" />
-                        <Label htmlFor="both">Both Prices</Label>
+                        <Label htmlFor="both" className="cursor-pointer">Both Prices</Label>
                       </div>
                     </RadioGroup>
                   </FormControl>
@@ -257,11 +262,26 @@ export const BulkPriceUpdateDialog = ({
             />
 
             {/* Preview */}
-            <div className="rounded-md bg-muted p-3 text-sm">
-              <p className="font-medium mb-1">Preview Example:</p>
-              <p className="text-muted-foreground">
-                ₹{(examplePrice / 100).toFixed(2)} → ₹{(exampleNewPrice / 100).toFixed(2)}
-              </p>
+            <div className="p-3 bg-muted rounded-lg space-y-2">
+              <p className="text-sm font-medium">Preview ({preview.length} of {selectedProducts.length})</p>
+              {preview.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs">
+                  <span className="truncate flex-1">{item.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="line-through text-muted-foreground">
+                      ₹{(item.oldPrice / 100).toLocaleString('en-IN')}
+                    </span>
+                    <span className="font-medium text-primary">
+                      ₹{(item.newPrice / 100).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {selectedProducts.length > 3 && (
+                <p className="text-xs text-muted-foreground">
+                  ...and {selectedProducts.length - 3} more
+                </p>
+              )}
             </div>
 
             <DialogFooter>
@@ -274,7 +294,7 @@ export const BulkPriceUpdateDialog = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Updating...' : 'Apply Changes'}
+                {loading ? "Updating..." : "Apply Changes"}
               </Button>
             </DialogFooter>
           </form>
@@ -283,4 +303,3 @@ export const BulkPriceUpdateDialog = ({
     </Dialog>
   );
 };
-

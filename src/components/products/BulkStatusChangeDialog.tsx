@@ -1,12 +1,11 @@
-/**
- * Bulk Status Change Dialog
- * Feature 2: PROMPT 8
- */
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -23,22 +22,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { bulkChangeStatus } from "@/lib/products/bulkOperations";
-import type { StatusUpdate } from "@/types/bulkOperations";
+import { Product } from "@/pages/partner/Products";
 
-const formSchema = z.object({
-  status: z.enum(["active", "inactive", "out_of_stock"]),
+const statusChangeSchema = z.object({
+  status: z.enum(['active', 'inactive', 'out_of_stock']),
 });
+
+type StatusChangeValues = z.infer<typeof statusChangeSchema>;
 
 interface BulkStatusChangeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedProducts: any[];
+  selectedProducts: Product[];
   onSuccess: () => void;
 }
 
@@ -46,43 +43,42 @@ export const BulkStatusChangeDialog = ({
   open,
   onOpenChange,
   selectedProducts,
-  onSuccess
+  onSuccess,
 }: BulkStatusChangeDialogProps) => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<StatusChangeValues>({
+    resolver: zodResolver(statusChangeSchema),
     defaultValues: {
-      status: "active",
+      status: 'active',
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user) return;
+  const watchedStatus = form.watch('status');
 
+  const onSubmit = async (values: StatusChangeValues) => {
     setLoading(true);
-    try {
-      const productIds = selectedProducts.map(p => p.id);
-      const update: StatusUpdate = {
-        status: values.status,
-      };
 
-      await bulkChangeStatus(productIds, update, user.id);
+    try {
+      const { changeStatus } = await import('@/lib/products/bulkOperations');
+      
+      await changeStatus(
+        selectedProducts.map(p => p.id),
+        values.status
+      );
 
       toast({
         title: "Status updated",
-        description: `Successfully updated status for ${selectedProducts.length} product${selectedProducts.length !== 1 ? 's' : ''}.`,
+        description: `${selectedProducts.length} products are now ${values.status.replace('_', ' ')}`,
       });
 
       onSuccess();
       onOpenChange(false);
-      form.reset();
     } catch (error: any) {
       toast({
         title: "Update failed",
-        description: error.message,
+        description: error.message || "Failed to change status",
         variant: "destructive",
       });
     } finally {
@@ -92,16 +88,16 @@ export const BulkStatusChangeDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Change Status</DialogTitle>
+          <DialogTitle>Change Status ({selectedProducts.length} products)</DialogTitle>
           <DialogDescription>
-            Change status for {selectedProducts.length} selected product{selectedProducts.length !== 1 ? 's' : ''}
+            Update status for selected products
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="status"
@@ -112,34 +108,37 @@ export const BulkStatusChangeDialog = ({
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex flex-col gap-3"
+                      className="space-y-3"
                     >
-                      <div className="flex items-start space-x-2">
-                        <RadioGroupItem value="active" id="active" className="mt-1" />
-                        <div>
-                          <Label htmlFor="active" className="font-medium">Active</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Products will appear in customer UI
-                          </p>
-                        </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                        <RadioGroupItem value="active" id="active" />
+                        <Label htmlFor="active" className="flex items-center gap-2 cursor-pointer flex-1">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <div>
+                            <p className="font-medium">Active</p>
+                            <p className="text-xs text-muted-foreground">Visible in customer UI</p>
+                          </div>
+                        </Label>
                       </div>
-                      <div className="flex items-start space-x-2">
-                        <RadioGroupItem value="inactive" id="inactive" className="mt-1" />
-                        <div>
-                          <Label htmlFor="inactive" className="font-medium">Inactive</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Products will be hidden from customers
-                          </p>
-                        </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                        <RadioGroupItem value="inactive" id="inactive" />
+                        <Label htmlFor="inactive" className="flex items-center gap-2 cursor-pointer flex-1">
+                          <XCircle className="h-4 w-4 text-gray-600" />
+                          <div>
+                            <p className="font-medium">Inactive</p>
+                            <p className="text-xs text-muted-foreground">Hidden from customer UI</p>
+                          </div>
+                        </Label>
                       </div>
-                      <div className="flex items-start space-x-2">
-                        <RadioGroupItem value="out_of_stock" id="out_of_stock" className="mt-1" />
-                        <div>
-                          <Label htmlFor="out_of_stock" className="font-medium">Out of Stock</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Sets stock to 0 and marks inactive
-                          </p>
-                        </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                        <RadioGroupItem value="out_of_stock" id="out_of_stock" />
+                        <Label htmlFor="out_of_stock" className="flex items-center gap-2 cursor-pointer flex-1">
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                          <div>
+                            <p className="font-medium">Out of Stock</p>
+                            <p className="text-xs text-muted-foreground">Visible but not orderable</p>
+                          </div>
+                        </Label>
                       </div>
                     </RadioGroup>
                   </FormControl>
@@ -147,6 +146,27 @@ export const BulkStatusChangeDialog = ({
                 </FormItem>
               )}
             />
+
+            {/* Impact Warning */}
+            {watchedStatus === 'inactive' && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Inactive products won't appear in customer UI search or listings. 
+                  You can reactivate them anytime.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {watchedStatus === 'out_of_stock' && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Products marked as out of stock will be visible but customers cannot add them to cart.
+                  Sourcing will be auto-disabled.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <DialogFooter>
               <Button
@@ -158,7 +178,7 @@ export const BulkStatusChangeDialog = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Updating...' : 'Confirm'}
+                {loading ? "Updating..." : `Update ${selectedProducts.length} Products`}
               </Button>
             </DialogFooter>
           </form>
@@ -167,4 +187,3 @@ export const BulkStatusChangeDialog = ({
     </Dialog>
   );
 };
-

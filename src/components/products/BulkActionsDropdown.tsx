@@ -1,105 +1,113 @@
-/**
- * Bulk Actions Dropdown
- * Feature 2: PROMPT 8
- * Appears when products are selected in DataTable
- */
-
 import { useState } from "react";
-import { 
-  Edit2, 
-  Package, 
-  ToggleLeft, 
-  Tag, 
-  Trash2, 
-  Download,
-  Upload
-} from "lucide-react";
+import { Edit2, Package, ToggleLeft, Tag, Trash2, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { BulkPriceUpdateDialog } from "./BulkPriceUpdateDialog";
 import { BulkStockUpdateDialog } from "./BulkStockUpdateDialog";
 import { BulkStatusChangeDialog } from "./BulkStatusChangeDialog";
 import { BulkTagsDialog } from "./BulkTagsDialog";
 import { BulkDeleteConfirmDialog } from "./BulkDeleteConfirmDialog";
-import { CSVImporter } from "./CSVImporter";
-import { exportProductsToCSV } from "@/lib/products/csvUtils";
+import { Product } from "@/pages/partner/Products";
+import { exportToCSV } from "@/lib/products/csvUtils";
 
 interface BulkActionsDropdownProps {
-  selectedProducts: any[];
+  selectedProducts: Product[];
   selectedCount: number;
   onClearSelection: () => void;
   onSuccess: () => void;
 }
 
+/**
+ * Bulk Actions Dropdown
+ * Main control for bulk operations on products
+ * Follows Swiggy/Zomato menu bulk edit pattern
+ */
 export const BulkActionsDropdown = ({
   selectedProducts,
   selectedCount,
   onClearSelection,
-  onSuccess
+  onSuccess,
 }: BulkActionsDropdownProps) => {
   const [showPriceDialog, setShowPriceDialog] = useState(false);
   const [showStockDialog, setShowStockDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showTagsDialog, setShowTagsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showImporter, setShowImporter] = useState(false);
 
   const handleExport = () => {
-    exportProductsToCSV(selectedProducts, `selected-products-${new Date().toISOString().split('T')[0]}.csv`);
+    exportToCSV(selectedProducts);
   };
 
-  const handleActionSuccess = () => {
+  const handleSuccess = () => {
     onSuccess();
     onClearSelection();
   };
 
   return (
     <>
-      <div className="flex items-center gap-3">
-        {/* Selection Counter */}
-        <Badge variant="default" className="px-3 py-1.5">
-          {selectedCount} product{selectedCount !== 1 ? 's' : ''} selected
-        </Badge>
+      {/* Selection Counter & Actions */}
+      <div className="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Badge variant="default" className="bg-primary">
+            {selectedCount} selected
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearSelection}
+            className="h-8 text-xs"
+          >
+            Clear
+          </Button>
+        </div>
 
-        {/* Bulk Actions Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="gap-2">
               Bulk Actions
-              <span className="ml-1">▼</span>
+              <span className="text-xs">▼</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Bulk Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            
             <DropdownMenuItem onClick={() => setShowPriceDialog(true)}>
               <Edit2 className="mr-2 h-4 w-4" />
               Update Price
             </DropdownMenuItem>
+            
             <DropdownMenuItem onClick={() => setShowStockDialog(true)}>
               <Package className="mr-2 h-4 w-4" />
               Update Stock
             </DropdownMenuItem>
+            
             <DropdownMenuItem onClick={() => setShowStatusDialog(true)}>
               <ToggleLeft className="mr-2 h-4 w-4" />
               Change Status
             </DropdownMenuItem>
+            
             <DropdownMenuItem onClick={() => setShowTagsDialog(true)}>
               <Tag className="mr-2 h-4 w-4" />
-              Update Tags
+              Add Tags
             </DropdownMenuItem>
+            
             <DropdownMenuSeparator />
+            
             <DropdownMenuItem onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
               Export Selected
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            
+            <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
               className="text-destructive focus:text-destructive"
             >
@@ -108,21 +116,6 @@ export const BulkActionsDropdown = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Import CSV Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowImporter(true)}
-        >
-          <Upload className="mr-2 h-4 w-4" />
-          Import CSV
-        </Button>
-
-        {/* Clear Selection */}
-        <Button variant="ghost" size="sm" onClick={onClearSelection}>
-          Clear Selection
-        </Button>
       </div>
 
       {/* Dialogs */}
@@ -130,43 +123,36 @@ export const BulkActionsDropdown = ({
         open={showPriceDialog}
         onOpenChange={setShowPriceDialog}
         selectedProducts={selectedProducts}
-        onSuccess={handleActionSuccess}
+        onSuccess={handleSuccess}
       />
 
       <BulkStockUpdateDialog
         open={showStockDialog}
         onOpenChange={setShowStockDialog}
         selectedProducts={selectedProducts}
-        onSuccess={handleActionSuccess}
+        onSuccess={handleSuccess}
       />
 
       <BulkStatusChangeDialog
         open={showStatusDialog}
         onOpenChange={setShowStatusDialog}
         selectedProducts={selectedProducts}
-        onSuccess={handleActionSuccess}
+        onSuccess={handleSuccess}
       />
 
       <BulkTagsDialog
         open={showTagsDialog}
         onOpenChange={setShowTagsDialog}
         selectedProducts={selectedProducts}
-        onSuccess={handleActionSuccess}
+        onSuccess={handleSuccess}
       />
 
       <BulkDeleteConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         selectedProducts={selectedProducts}
-        onSuccess={handleActionSuccess}
-      />
-
-      <CSVImporter
-        open={showImporter}
-        onOpenChange={setShowImporter}
-        onSuccess={onSuccess}
+        onSuccess={handleSuccess}
       />
     </>
   );
 };
-

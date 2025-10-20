@@ -1,12 +1,11 @@
-/**
- * Bulk Tags Dialog
- * Feature 2: PROMPT 8
- */
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Tag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -23,79 +22,69 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { bulkUpdateTags } from "@/lib/products/bulkOperations";
-import type { TagsUpdate } from "@/types/bulkOperations";
+import { Product } from "@/pages/partner/Products";
 
-const AVAILABLE_TAGS = [
-  { value: "trending", label: "Trending" },
-  { value: "featured", label: "Featured" },
-  { value: "new", label: "New Arrival" },
-  { value: "bestseller", label: "Best Seller" },
-  { value: "festive", label: "Festival Special" },
-  { value: "premium", label: "Premium" },
-];
-
-const formSchema = z.object({
+const tagsSchema = z.object({
   tags: z.array(z.string()).min(1, "Select at least one tag"),
-  operation: z.enum(["add", "remove", "replace"]),
 });
+
+type TagsValues = z.infer<typeof tagsSchema>;
 
 interface BulkTagsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedProducts: any[];
+  selectedProducts: Product[];
   onSuccess: () => void;
 }
+
+const AVAILABLE_TAGS = [
+  { id: 'festival', label: 'Festival', description: 'Perfect for festival gifting' },
+  { id: 'trending', label: 'Trending', description: 'Popular right now' },
+  { id: 'new_arrival', label: 'New Arrival', description: 'Recently added' },
+  { id: 'best_seller', label: 'Best Seller', description: 'Top selling product' },
+  { id: 'premium', label: 'Premium', description: 'High-end product' },
+  { id: 'corporate', label: 'Corporate', description: 'Bulk/corporate gifting' },
+];
 
 export const BulkTagsDialog = ({
   open,
   onOpenChange,
   selectedProducts,
-  onSuccess
+  onSuccess,
 }: BulkTagsDialogProps) => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<TagsValues>({
+    resolver: zodResolver(tagsSchema),
     defaultValues: {
       tags: [],
-      operation: "add",
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user) return;
-
+  const onSubmit = async (values: TagsValues) => {
     setLoading(true);
-    try {
-      const productIds = selectedProducts.map(p => p.id);
-      const update: TagsUpdate = {
-        tags: values.tags,
-        operation: values.operation,
-      };
 
-      await bulkUpdateTags(productIds, update, user.id);
+    try {
+      const { addTags } = await import('@/lib/products/bulkOperations');
+      
+      await addTags(
+        selectedProducts.map(p => p.id),
+        values.tags
+      );
 
       toast({
-        title: "Tags updated",
-        description: `Successfully updated tags for ${selectedProducts.length} product${selectedProducts.length !== 1 ? 's' : ''}.`,
+        title: "Tags added",
+        description: `Added ${values.tags.length} tags to ${selectedProducts.length} products`,
       });
 
       onSuccess();
       onOpenChange(false);
-      form.reset();
     } catch (error: any) {
       toast({
         title: "Update failed",
-        description: error.message,
+        description: error.message || "Failed to add tags",
         variant: "destructive",
       });
     } finally {
@@ -105,84 +94,56 @@ export const BulkTagsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Update Tags</DialogTitle>
+          <DialogTitle>Add Tags ({selectedProducts.length} products)</DialogTitle>
           <DialogDescription>
-            Update tags for {selectedProducts.length} selected product{selectedProducts.length !== 1 ? 's' : ''}
+            Select tags to add to selected products
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="operation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Operation</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col gap-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="add" id="add" />
-                        <Label htmlFor="add">Add tags</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="remove" id="remove" />
-                        <Label htmlFor="remove">Remove tags</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="replace" id="replace" />
-                        <Label htmlFor="replace">Replace all tags</Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="tags"
               render={() => (
                 <FormItem>
-                  <FormLabel>Select Tags</FormLabel>
-                  <div className="space-y-2">
+                  <FormLabel>Available Tags</FormLabel>
+                  <div className="space-y-3">
                     {AVAILABLE_TAGS.map((tag) => (
                       <FormField
-                        key={tag.value}
+                        key={tag.id}
                         control={form.control}
                         name="tags"
                         render={({ field }) => {
                           return (
                             <FormItem
-                              key={tag.value}
-                              className="flex flex-row items-start space-x-3 space-y-0"
+                              key={tag.id}
+                              className="flex flex-row items-start space-x-3 space-y-0 p-3 border rounded-lg"
                             >
                               <FormControl>
                                 <Checkbox
-                                  checked={field.value?.includes(tag.value)}
+                                  checked={field.value?.includes(tag.id)}
                                   onCheckedChange={(checked) => {
                                     return checked
-                                      ? field.onChange([...field.value, tag.value])
+                                      ? field.onChange([...field.value, tag.id])
                                       : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== tag.value
-                                          )
-                                        )
+                                          field.value?.filter((value) => value !== tag.id)
+                                        );
                                   }}
                                 />
                               </FormControl>
-                              <FormLabel className="font-normal">
-                                {tag.label}
-                              </FormLabel>
+                              <div className="flex-1">
+                                <FormLabel className="font-medium cursor-pointer">
+                                  {tag.label}
+                                </FormLabel>
+                                <p className="text-xs text-muted-foreground">
+                                  {tag.description}
+                                </p>
+                              </div>
                             </FormItem>
-                          )
+                          );
                         }}
                       />
                     ))}
@@ -202,7 +163,7 @@ export const BulkTagsDialog = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Updating...' : 'Apply Tags'}
+                {loading ? "Adding..." : "Add Tags"}
               </Button>
             </DialogFooter>
           </form>
@@ -211,4 +172,3 @@ export const BulkTagsDialog = ({
     </Dialog>
   );
 };
-
