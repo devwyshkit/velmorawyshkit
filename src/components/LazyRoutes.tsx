@@ -24,6 +24,10 @@ export { PartnerOrders } from '../pages/partner/Orders';
 export { PartnerEarnings } from '../pages/partner/Earnings';
 export { ReviewsManagement as PartnerReviews } from '../pages/partner/ReviewsManagement';
 export { CampaignManager as PartnerCampaigns } from '../pages/partner/CampaignManager';
+export { ReferralProgram as PartnerReferrals } from '../pages/partner/ReferralProgram';
+export { DisputeResolution as PartnerDisputes } from '../pages/partner/DisputeResolution';
+export { Returns as PartnerReturns } from '../pages/partner/Returns';
+export { HelpCenter as PartnerHelp } from '../pages/partner/HelpCenter';
 export { PartnerProfile } from '../pages/partner/Profile';
 
 // Admin Pages
