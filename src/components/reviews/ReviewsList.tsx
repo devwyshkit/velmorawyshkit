@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { Star, MessageSquare, Flag } from "lucide-react";
+import { Star, MessageSquare, Flag, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
