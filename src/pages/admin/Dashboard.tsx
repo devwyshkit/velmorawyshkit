@@ -179,7 +179,7 @@ export const AdminDashboard = () => {
           icon={Users}
           trend={`${stats.pendingApprovals} pending approval`}
         />
-        <StatsCard
+          <StatsCard
           title="Open Disputes"
           value={stats.openDisputes}
           icon={AlertCircle}

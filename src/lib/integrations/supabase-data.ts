@@ -61,7 +61,7 @@ const mockPartners: Partner[] = [
   {
     id: '00000000-0000-0000-0000-000000000001',
     name: 'Premium Gifts Co',
-    image: 'https://picsum.photos/seed/partner1/400/400',
+    image: 'https://images.unsplash.com/photo-1601524909162-ae8725290836?w=400&h=400&fit=crop',
     rating: 4.5,
     delivery: '1-2 days',
     category: 'Tech Gifts',
@@ -72,7 +72,7 @@ const mockPartners: Partner[] = [
   {
     id: '00000000-0000-0000-0000-000000000002',
     name: 'Artisan Hampers',
-    image: 'https://picsum.photos/seed/partner2/400/400',
+    image: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=400&fit=crop',
     rating: 4.7,
     delivery: '2-3 days',
     badge: 'trending',
@@ -83,7 +83,7 @@ const mockPartners: Partner[] = [
   {
     id: '00000000-0000-0000-0000-000000000003',
     name: 'Sweet Delights',
-    image: 'https://picsum.photos/seed/partner3/400/400',
+    image: 'https://images.unsplash.com/photo-1511381939415-e44015466834?w=400&h=400&fit=crop',
     rating: 4.6,
     delivery: '1-2 days',
     category: 'Chocolates',
@@ -93,7 +93,7 @@ const mockPartners: Partner[] = [
   {
     id: '00000000-0000-0000-0000-000000000004',
     name: 'Custom Crafts',
-    image: 'https://picsum.photos/seed/partner4/400/400',
+    image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=400&fit=crop',
     rating: 4.8,
     delivery: '3-5 days',
     badge: 'bestseller',
@@ -104,7 +104,7 @@ const mockPartners: Partner[] = [
   {
     id: '00000000-0000-0000-0000-000000000005',
     name: 'Gourmet Treats',
-    image: 'https://picsum.photos/seed/partner5/400/400',
+    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=400&fit=crop',
     rating: 4.4,
     delivery: '1-2 days',
     category: 'Food & Beverage',
@@ -114,7 +114,7 @@ const mockPartners: Partner[] = [
   {
     id: '00000000-0000-0000-0000-000000000006',
     name: 'Luxury Hampers',
-    image: 'https://picsum.photos/seed/partner6/400/400',
+    image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop',
     rating: 4.9,
     delivery: '2-3 days',
     badge: 'trending',
@@ -130,8 +130,8 @@ const mockItems: Item[] = [
     name: 'Premium Gift Hamper',
     description: 'Curated selection of premium items including gourmet treats, artisan chocolates, and luxury accessories. Perfect for any special occasion.',
     shortDesc: 'Premium treats & chocolates for special occasions – ideal for corporate gifting and celebrations',
-    image: 'https://picsum.photos/seed/item1/400/400',
-    images: ['https://picsum.photos/seed/item1a/400/400', 'https://picsum.photos/seed/item1b/400/400', 'https://picsum.photos/seed/item1c/400/400'],
+    image: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=400&fit=crop',
+    images: ['https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=400&h=400&fit=crop'],
     price: 2499,
     rating: 4.6,
     ratingCount: 234,
@@ -148,8 +148,8 @@ const mockItems: Item[] = [
     name: 'Artisan Chocolate Box',
     description: 'Hand-crafted chocolates made with premium Belgian cocoa. Delightful flavors that melt in your mouth.',
     shortDesc: 'Belgian chocolates perfect for sweet lovers – handcrafted with premium ingredients',
-    image: 'https://picsum.photos/seed/item2/400/400',
-    images: ['https://picsum.photos/seed/item2a/400/400', 'https://picsum.photos/seed/item2b/400/400'],
+    image: 'https://images.unsplash.com/photo-1511381939415-e44015466834?w=400&h=400&fit=crop',
+    images: ['https://images.unsplash.com/photo-1511381939415-e44015466834?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1481391319762-47dff72954d9?w=400&h=400&fit=crop'],
     price: 1299,
     rating: 4.8,
     ratingCount: 189,
@@ -161,7 +161,7 @@ const mockItems: Item[] = [
     name: 'Custom Photo Frame',
     description: 'Personalized photo frame with custom engraving. Perfect for capturing special memories.',
     shortDesc: 'Personalized frame for cherished memories – custom engraving available',
-    image: 'https://picsum.photos/seed/item3/400/400',
+    image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=400&fit=crop',
     price: 899,
     rating: 4.5,
     ratingCount: 98,
@@ -172,7 +172,7 @@ const mockItems: Item[] = [
     name: 'Luxury Perfume Set',
     description: 'Premium fragrance collection from renowned brands. Elegant packaging for gifting.',
     shortDesc: 'Premium fragrances in elegant packaging – perfect for special occasions',
-    image: 'https://picsum.photos/seed/item4/400/400',
+    image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&h=400&fit=crop',
     price: 3999,
     rating: 4.7,
     ratingCount: 167,
@@ -184,7 +184,7 @@ const mockItems: Item[] = [
     name: 'Gourmet Snack Basket',
     description: 'Curated selection of international and local gourmet snacks. Perfect for food lovers.',
     shortDesc: 'International snacks for food enthusiasts – exotic flavors from around the world',
-    image: 'https://picsum.photos/seed/item5/400/400',
+    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=400&fit=crop',
     price: 1799,
     rating: 4.4,
     ratingCount: 124,
@@ -195,7 +195,7 @@ const mockItems: Item[] = [
     name: 'Wireless Earbuds',
     description: 'Premium wireless earbuds with noise cancellation. Perfect gift for music lovers.',
     shortDesc: 'Wireless audio for music lovers – noise cancellation and premium sound quality',
-    image: 'https://picsum.photos/seed/item6/400/400',
+    image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop',
     price: 4999,
     rating: 4.9,
     ratingCount: 312,
@@ -256,9 +256,10 @@ export const fetchPartnerById = async (id: string): Promise<Partner | null> => {
 export const fetchItemsByPartner = async (partnerId: string): Promise<Item[]> => {
   try {
     const { data, error } = await supabase
-      .from('items')
+      .from('partner_products')
       .select('*')
       .eq('partner_id', partnerId)
+      .eq('approval_status', 'approved')
       .order('rating', { ascending: false });
 
     if (error) throw error;
@@ -277,7 +278,7 @@ export const fetchItemsByPartner = async (partnerId: string): Promise<Item[]> =>
 export const fetchItemById = async (id: string): Promise<Item | null> => {
   try {
     const { data, error } = await supabase
-      .from('items')
+      .from('partner_products')
       .select('*')
       .eq('id', id)
       .single();

@@ -55,3 +55,46 @@ export const getLatLng = (place: any): { lat: number; lng: number } | null => {
   return null;
 };
 
+// Reverse geocode coordinates to city name
+export const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+  try {
+    const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY || '';
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
+    );
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      // Extract city name from address components
+      const addressComponents = data.results[0].address_components;
+      
+      // Try to find locality (city)
+      const cityComponent = addressComponents.find((comp: any) => 
+        comp.types.includes('locality')
+      );
+      
+      if (cityComponent) {
+        return cityComponent.long_name;
+      }
+      
+      // Fallback to administrative_area_level_2 (district)
+      const districtComponent = addressComponents.find((comp: any) =>
+        comp.types.includes('administrative_area_level_2')
+      );
+      
+      if (districtComponent) {
+        return districtComponent.long_name;
+      }
+      
+      // Last fallback: use first part of formatted address
+      const formatted = data.results[0].formatted_address;
+      return formatted.split(',')[0].trim();
+    }
+    
+    return 'Unknown Location';
+  } catch (error) {
+    console.error('Reverse geocoding failed:', error);
+    return 'Unknown Location';
+  }
+};
+

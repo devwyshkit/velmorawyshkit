@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
 import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/contexts/CartContext";
 import { useLocation } from "@/contexts/LocationContext";
-import { loadGooglePlaces, initAutocomplete, formatAddress } from "@/lib/integrations/google-places";
+import { loadGooglePlaces, initAutocomplete, formatAddress, reverseGeocode } from "@/lib/integrations/google-places";
 
 interface CustomerMobileHeaderProps {
   showBackButton?: boolean;
@@ -191,10 +191,22 @@ export const CustomerMobileHeader = ({
                 if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(
                     async (position) => {
-                      // In production, reverse geocode coordinates to city name
-                      setLocationInput("Your Current Location");
-                      setLocation("Your Current Location");
-                      setIsLocationSheetOpen(false);
+                      try {
+                        // Reverse geocode coordinates to get actual city name
+                        const cityName = await reverseGeocode(
+                          position.coords.latitude,
+                          position.coords.longitude
+                        );
+                        setLocationInput(cityName);
+                        setLocation(cityName);
+                        setIsLocationSheetOpen(false);
+                      } catch (error) {
+                        console.error("Geocoding error:", error);
+                        // Fallback to generic text
+                        setLocationInput("Your Current Location");
+                        setLocation("Your Current Location");
+                        setIsLocationSheetOpen(false);
+                      }
                     },
                     (error) => {
                       console.error("Geolocation error:", error);
@@ -247,17 +259,6 @@ export const CustomerMobileHeader = ({
               </div>
             </div>
 
-            {/* Current Location */}
-            <button
-              onClick={() => {
-                // In a real app, use browser geolocation API
-                setLocationInput("Current Location");
-              }}
-              className="flex items-center gap-2 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors text-left w-full"
-            >
-              <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className="text-sm font-medium text-primary">Use Current Location</span>
-            </button>
           </div>
 
           {/* Footer with Save Button */}
