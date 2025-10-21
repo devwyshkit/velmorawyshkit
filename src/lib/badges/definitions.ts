@@ -1,218 +1,168 @@
 /**
- * Loyalty Badges Definitions
- * Feature 6: PROMPT 6
- * Defines all partner achievement badges and their criteria
- * Follows Zomato Gold's trust signal pattern
+ * Badge Definitions and Types
+ * Loyalty badge system for partner gamification
  */
 
-export interface Badge {
-  type: string;
-  name: string;
-  description: string;
-  icon: string; // Lucide icon name
-  color: string; // Hex color for styling
-  criteria: {
-    orders?: number;
-    revenue?: number; // in paise
-    rating?: number;
-    onTimePercent?: number;
-    bulkOrders?: number; // Orders with 50+ units
-    customOrders?: number; // Orders with customization
-  };
-  benefits: string[];
+export type BadgeType = 
+  | 'new_star'
+  | 'rising_seller'
+  | 'top_performer'
+  | 'quick_shipper'
+  | 'trusted_partner';
+
+export interface BadgeCriteria {
+  min_orders?: number;
+  min_rating?: number;
+  min_on_time_rate?: number;
 }
 
-/**
- * All badge definitions
- * Criteria checked daily by Supabase cron job
- */
-export const badgeDefinitions: Badge[] = [
+export interface BadgeDefinition {
+  type: BadgeType;
+  name: string;
+  description: string;
+  icon: string; // Emoji
+  color: string; // Tailwind color class
+  criteria: BadgeCriteria;
+  benefits?: string[];
+}
+
+export interface PartnerBadge {
+  id: string;
+  partner_id: string;
+  badge_type: BadgeType;
+  earned_at: string;
+  created_at: string;
+}
+
+export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
-    type: 'verified_seller',
-    name: 'Verified Seller',
-    description: 'All KYC complete, 30+ days active',
-    icon: 'Shield',
-    color: '#10B981', // Green
+    type: 'new_star',
+    name: 'New Star',
+    description: 'Complete your first 5 orders with a 4.5+ rating',
+    icon: '🥉',
+    color: 'amber',
     criteria: {
-      // No numeric criteria - checked manually during onboarding
-    },
-    benefits: ['Trust badge on listings', 'Platform verification']
-  },
-  {
-    type: 'premium_partner',
-    name: 'Premium Partner',
-    description: '50+ orders, ₹5L+ revenue, 4.8+ rating',
-    icon: 'Trophy',
-    color: '#FFD700', // Gold
-    criteria: {
-      orders: 50,
-      revenue: 50000000, // ₹5L in paise
-      rating: 4.8
-    },
-    benefits: [
-      '15% commission (vs 20% default)',
-      'Priority support',
-      'Featured placement in customer UI'
-    ]
-  },
-  {
-    type: 'five_star',
-    name: '5-Star Partner',
-    description: '100+ orders, 4.9+ rating',
-    icon: 'Star',
-    color: '#3B82F6', // Blue
-    criteria: {
-      orders: 100,
-      rating: 4.9
+      min_orders: 5,
+      min_rating: 4.5,
     },
     benefits: [
-      'Top Partners carousel in customer home',
-      'Trust badge on all listings'
-    ]
+      'Visibility boost in search results',
+      'Early access to new features',
+    ],
   },
   {
-    type: 'fast_fulfillment',
-    name: 'Fast Fulfillment',
-    description: '95%+ on-time delivery (last 100 orders)',
-    icon: 'Zap',
-    color: '#F59E0B', // Amber
+    type: 'rising_seller',
+    name: 'Rising Seller',
+    description: 'Complete 50+ orders with a 4.7+ rating',
+    icon: '🥈',
+    color: 'gray',
     criteria: {
-      orders: 100,
-      onTimePercent: 95
+      min_orders: 50,
+      min_rating: 4.7,
     },
     benefits: [
-      '"Lightning Fast" badge on products',
-      'Priority in search results'
-    ]
+      'Featured in "Trending Sellers" section',
+      'Priority support from Wyshkit team',
+      'Lower commission rate (18% vs 20%)',
+    ],
   },
   {
-    type: 'corporate_expert',
-    name: 'Corporate Expert',
-    description: '20+ bulk orders (50+ units each)',
-    icon: 'Briefcase',
-    color: '#8B5CF6', // Purple
+    type: 'top_performer',
+    name: 'Top Performer',
+    description: 'Complete 200+ orders with a 4.8+ rating',
+    icon: '🥇',
+    color: 'yellow',
     criteria: {
-      bulkOrders: 20
+      min_orders: 200,
+      min_rating: 4.8,
     },
     benefits: [
-      'B2B dashboard access',
-      'Bulk pricing tools',
-      'Corporate buyer visibility'
-    ]
+      'Homepage featured seller spot',
+      'Dedicated account manager',
+      'Even lower commission rate (15%)',
+      'Early access to corporate deals',
+    ],
   },
   {
-    type: 'customization_pro',
-    name: 'Customization Pro',
-    description: '50+ custom orders with branding',
-    icon: 'Palette',
-    color: '#EC4899', // Pink
+    type: 'quick_shipper',
+    name: 'Quick Shipper',
+    description: '95%+ on-time delivery rate over 30+ orders',
+    icon: '⚡',
+    color: 'blue',
     criteria: {
-      customOrders: 50
+      min_orders: 30,
+      min_on_time_rate: 95,
     },
     benefits: [
-      'Featured in "Custom Gifts" category',
-      'Custom order boost in search',
-      'Design consultation badge'
-    ]
+      '"Fast Delivery" badge on all products',
+      'Priority in same-day delivery orders',
+      'Featured in "Quick Delivery" filter',
+    ],
   },
   {
-    type: 'top_seller',
-    name: 'Top Seller',
-    description: 'Top 10% revenue in category (monthly)',
-    icon: 'Award',
-    color: '#EF4444', // Red
+    type: 'trusted_partner',
+    name: 'Trusted Partner',
+    description: '1000+ orders with a 4.9+ rating and 98%+ on-time rate',
+    icon: '💎',
+    color: 'purple',
     criteria: {
-      // Calculated dynamically - top 10% in category
-      revenue: 10000000 // ₹1L+ minimum to qualify
+      min_orders: 1000,
+      min_rating: 4.9,
+      min_on_time_rate: 98,
     },
     benefits: [
-      'Featured in category homepage',
-      'Marketing support',
-      '"Top Seller" badge'
-    ]
-  }
+      'Exclusive "Wyshkit Verified" badge',
+      'Featured on homepage and marketing',
+      'VIP commission rate (12%)',
+      'Invitation to exclusive partner events',
+      'Priority for bulk corporate orders',
+    ],
+  },
 ];
 
 /**
- * Get badge definition by type
+ * Check if a partner meets the criteria for a specific badge
  */
-export const getBadgeDefinition = (type: string): Badge | undefined => {
-  return badgeDefinitions.find(badge => badge.type === type);
-};
-
-/**
- * Get badge icon by type (for rendering)
- */
-export const getBadgeIcon = (type: string): string => {
-  const badge = getBadgeDefinition(type);
-  return badge?.icon || 'Shield';
-};
-
-/**
- * Get badge color by type
- */
-export const getBadgeColor = (type: string): string => {
-  const badge = getBadgeDefinition(type);
-  return badge?.color || '#10B981';
-};
-
-/**
- * Calculate progress towards a badge
- */
-export const calculateBadgeProgress = (
-  badge: Badge,
-  partnerStats: {
-    orders?: number;
-    revenue?: number;
-    rating?: number;
-    onTimePercent?: number;
-    bulkOrders?: number;
-    customOrders?: number;
+export const checkBadgeCriteria = (
+  badge: BadgeDefinition,
+  metrics: {
+    total_orders: number;
+    rating: number;
+    on_time_delivery_rate: number;
   }
-): {
-  percentage: number;
-  missing: string[];
-  canEarn: boolean;
-} => {
-  const missing: string[] = [];
-  let totalCriteria = 0;
-  let metCriteria = 0;
+): boolean => {
+  const { criteria } = badge;
 
-  // Check each criterion
-  Object.entries(badge.criteria).forEach(([key, requiredValue]) => {
-    totalCriteria++;
-    const partnerValue = partnerStats[key as keyof typeof partnerStats] || 0;
-    
-    if (partnerValue >= requiredValue) {
-      metCriteria++;
-    } else {
-      const diff = requiredValue - partnerValue;
-      switch (key) {
-        case 'orders':
-          missing.push(`${diff} more orders`);
-          break;
-        case 'revenue':
-          missing.push(`₹${(diff / 100 / 100000).toFixed(1)}L more revenue`);
-          break;
-        case 'rating':
-          missing.push(`${diff.toFixed(1)} rating points`);
-          break;
-        case 'onTimePercent':
-          missing.push(`${diff}% better on-time delivery`);
-          break;
-        case 'bulkOrders':
-          missing.push(`${diff} more bulk orders`);
-          break;
-        case 'customOrders':
-          missing.push(`${diff} more custom orders`);
-          break;
-      }
+  if (criteria.min_orders && metrics.total_orders < criteria.min_orders) {
+    return false;
+  }
+
+  if (criteria.min_rating && metrics.rating < criteria.min_rating) {
+    return false;
+  }
+
+  if (criteria.min_on_time_rate && metrics.on_time_delivery_rate < criteria.min_on_time_rate) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Get all badges a partner is eligible for but hasn't earned yet
+ */
+export const getEligibleBadges = (
+  metrics: {
+    total_orders: number;
+    rating: number;
+    on_time_delivery_rate: number;
+  },
+  earnedBadges: BadgeType[]
+): BadgeDefinition[] => {
+  return BADGE_DEFINITIONS.filter(badge => {
+    if (earnedBadges.includes(badge.type)) {
+      return false; // Already earned
     }
+    return checkBadgeCriteria(badge, metrics);
   });
-
-  return {
-    percentage: totalCriteria > 0 ? Math.round((metCriteria / totalCriteria) * 100) : 0,
-    missing,
-    canEarn: metCriteria === totalCriteria
-  };
 };

@@ -29,6 +29,7 @@ export { DisputeResolution as PartnerDisputes } from '../pages/partner/DisputeRe
 export { Returns as PartnerReturns } from '../pages/partner/Returns';
 export { HelpCenter as PartnerHelp } from '../pages/partner/HelpCenter';
 export { PartnerProfile } from '../pages/partner/Profile';
+export { PartnerBadges } from '../pages/partner/Badges';
 
 // Admin Pages - Internal Console
 export { AdminLogin } from '../pages/admin/Login';

@@ -6,64 +6,51 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { PackageX, AlertTriangle } from "lucide-react";
+import { PackageX, AlertTriangle, Bell, BellOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
+import { useStockAlerts } from "@/hooks/useStockAlerts";
 import type { StockAlert } from "@/types/stockAlerts";
 
 export const StockAlertsWidget = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [alerts, setAlerts] = useState<StockAlert[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    alerts: realtimeAlerts, 
+    loading, 
+    requestNotificationPermission,
+    refresh 
+  } = useStockAlerts(user?.id);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    'Notification' in window && Notification.permission === 'granted'
+  );
 
   useEffect(() => {
-    if (user) {
-      fetchLowStockProducts();
+    // Check notification permission on mount
+    if ('Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted');
     }
-  }, [user]);
+  }, []);
 
-  const fetchLowStockProducts = async () => {
-    if (!user) return;
-
-    try {
-      // Fetch products where stock < threshold
-      const { data, error } = await supabase
-        .from('partner_products')
-        .select('id, name, stock, stock_alert_threshold, location')
-        .eq('partner_id', user.id)
-        .order('stock', { ascending: true })
-        .limit(5);
-
-      if (error) throw error;
-
-      if (data) {
-        const lowStockProducts = data
-          .filter(p => p.stock < (p.stock_alert_threshold || 50))
-          .map(p => ({
-            product_id: p.id,
-            product_name: p.name,
-            current_stock: p.stock,
-            threshold: p.stock_alert_threshold || 50,
-            location: p.location,
-            severity: (
-              p.stock === 0 ? 'out_of_stock' :
-              p.stock < 20 ? 'critical' :
-              'low'
-            ) as 'low' | 'critical' | 'out_of_stock'
-          }));
-
-        setAlerts(lowStockProducts);
-      }
-    } catch (error) {
-      console.error('Failed to fetch low stock products:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleEnableNotifications = async () => {
+    await requestNotificationPermission();
+    setNotificationsEnabled(Notification.permission === 'granted');
   };
+
+  // Convert real-time alerts to widget format
+  const widgetAlerts = realtimeAlerts.map(alert => ({
+    product_id: alert.id,
+    product_name: alert.product_name,
+    current_stock: alert.stock,
+    threshold: alert.threshold,
+    location: undefined,
+    severity: alert.status === 'out' ? 'out_of_stock' as const : 
+              alert.stock < 5 ? 'critical' as const : 
+              'low' as const
+  }));
 
   const getSeverityBadge = (severity: 'low' | 'critical' | 'out_of_stock') => {
     switch (severity) {
@@ -95,18 +82,33 @@ export const StockAlertsWidget = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <PackageX className="h-5 w-5" />
-          Stock Alerts
-          {alerts.length > 0 && (
-            <Badge variant="destructive" className="ml-auto">
-              {alerts.length}
-            </Badge>
-          )}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <PackageX className="h-5 w-5" />
+            Stock Alerts
+            {widgetAlerts.length > 0 && (
+              <Badge variant="destructive">
+                {widgetAlerts.length}
+              </Badge>
+            )}
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleEnableNotifications}
+            className="h-8 w-8 p-0"
+            title={notificationsEnabled ? "Notifications enabled" : "Enable notifications"}
+          >
+            {notificationsEnabled ? (
+              <Bell className="h-4 w-4" />
+            ) : (
+              <BellOff className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        {alerts.length === 0 ? (
+        {widgetAlerts.length === 0 ? (
           <div className="text-center py-6">
             <PackageX className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
             <p className="text-sm text-muted-foreground">
@@ -115,7 +117,7 @@ export const StockAlertsWidget = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {alerts.map(alert => (
+            {widgetAlerts.map(alert => (
               <div 
                 key={alert.product_id} 
                 className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
@@ -140,14 +142,21 @@ export const StockAlertsWidget = () => {
           </div>
         )}
 
-        {alerts.length > 0 && (
-          <Button
-            variant="link"
-            className="w-full mt-4"
-            onClick={() => navigate('/partner/products?filter=low-stock')}
-          >
-            View All Low Stock Products →
-          </Button>
+        {widgetAlerts.length > 0 && (
+          <div className="space-y-2 mt-4">
+            <Button
+              variant="link"
+              className="w-full"
+              onClick={() => navigate('/partner/products?filter=low-stock')}
+            >
+              View All Low Stock Products →
+            </Button>
+            {!notificationsEnabled && 'Notification' in window && (
+              <p className="text-xs text-center text-muted-foreground">
+                Click the bell icon to enable desktop notifications
+              </p>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
