@@ -145,19 +145,19 @@ export const PartnerHome = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+      {/* Page Header - Mobile optimized */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">
           Welcome back, {user?.name || 'Partner'}!
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm md:text-base text-muted-foreground">
           Here's what's happening with your business today
         </p>
       </div>
 
-      {/* Stats Cards (Swiggy/Zomato pattern) */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      {/* Stats Cards (Swiggy/Zomato pattern) - Mobile: 2 col, Desktop: 4 col */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
         <StatsCard
           title="Today's Orders"
           value={stats.todayOrders}
