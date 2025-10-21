@@ -25,6 +25,8 @@ export interface Product {
   category?: string;
   tags: string[];
   is_active: boolean;
+  approval_status?: 'pending_review' | 'approved' | 'rejected' | 'changes_requested'; // NEW!
+  rejection_reason?: string; // NEW!
   created_at: string;
 }
 

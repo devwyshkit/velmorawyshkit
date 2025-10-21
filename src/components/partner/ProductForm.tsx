@@ -223,6 +223,35 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+        {/* Approval Status Info */}
+        {product?.approval_status && product.approval_status !== 'approved' && (
+          <Alert variant={product.approval_status === 'rejected' ? 'destructive' : 'default'}>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>
+              {product.approval_status === 'pending_review' && 'Pending Review'}
+              {product.approval_status === 'rejected' && 'Product Rejected'}
+              {product.approval_status === 'changes_requested' && 'Changes Requested'}
+            </AlertTitle>
+            <AlertDescription className="text-sm">
+              {product.approval_status === 'pending_review' && 
+                'This product is under review by our team. It will be live within 24 hours if approved.'}
+              {product.approval_status === 'rejected' && product.rejection_reason && 
+                `Reason: ${product.rejection_reason}. Please make corrections and resubmit.`}
+              {product.approval_status === 'changes_requested' && 
+                'Admin has requested changes. Update the product to resubmit for review.'}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!product && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              New products are reviewed by our team within 24 hours before going live.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Basic Information */}
         <div className="space-y-4">
           <h3 className="font-semibold">Basic Information</h3>
