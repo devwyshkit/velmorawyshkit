@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/shared/StatsCard";
+import { CommissionBreakdown } from "@/components/partner/earnings/CommissionBreakdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { ColumnDef } from "@tanstack/react-table";
@@ -41,11 +42,56 @@ export const PartnerEarnings = () => {
   const [pendingPayout, setPendingPayout] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [monthlyInvoices, setMonthlyInvoices] = useState<MonthlyInvoice[]>([]);
+  const [commissionData, setCommissionData] = useState({
+    categoryCommission: 20.00,
+    fulfillmentFee: 5000,
+    badgeDiscount: 0.00,
+    totalOrders: 0,
+    totalRevenue: 0,
+    category: 'default',
+    earnedBadges: [] as string[],
+  });
 
   useEffect(() => {
-    loadEarnings();
-    loadMonthlyInvoices();
+    if (user) {
+      loadEarnings();
+      loadMonthlyInvoices();
+      loadCommissionData();
+    }
   }, [user]);
+
+  const loadCommissionData = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch partner profile with commission settings
+      const { data: profile, error: profileError } = await supabase
+        .from('partner_profiles')
+        .select('commission_percent, fulfillment_fee, badge_discount_percent, category, total_orders, total_revenue')
+        .eq('id', user.id)
+        .single();
+
+      if (!profileError && profile) {
+        // Fetch earned badges
+        const { data: badges } = await supabase
+          .from('partner_badges')
+          .select('badge_type')
+          .eq('partner_id', user.id);
+
+        setCommissionData({
+          categoryCommission: profile.commission_percent || 20.00,
+          fulfillmentFee: profile.fulfillment_fee || 5000,
+          badgeDiscount: profile.badge_discount_percent || 0.00,
+          totalOrders: profile.total_orders || 0,
+          totalRevenue: profile.total_revenue || 0,
+          category: profile.category || 'default',
+          earnedBadges: (badges || []).map(b => b.badge_type),
+        });
+      }
+    } catch (error) {
+      console.error('Load commission data error:', error);
+    }
+  };
 
   const loadEarnings = async () => {
     if (!user) return;
@@ -214,6 +260,17 @@ export const PartnerEarnings = () => {
           trend="Weekly payouts"
         />
       </div>
+
+      {/* Commission Breakdown - NEW! */}
+      <CommissionBreakdown
+        categoryCommission={commissionData.categoryCommission}
+        fulfillmentFee={commissionData.fulfillmentFee}
+        badgeDiscount={commissionData.badgeDiscount}
+        totalOrders={commissionData.totalOrders}
+        totalRevenue={commissionData.totalRevenue}
+        category={commissionData.category}
+        earnedBadges={commissionData.earnedBadges}
+      />
 
       {/* Monthly Invoices (Zoho Books Integration) */}
       <Card>
