@@ -156,7 +156,7 @@ export const ReviewsManagement = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
         <Skeleton className="h-12 w-64" />
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
@@ -169,10 +169,10 @@ export const ReviewsManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reviews & Ratings</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Reviews & Ratings</h1>
         <p className="text-muted-foreground">
           Manage customer reviews and respond to feedback
         </p>

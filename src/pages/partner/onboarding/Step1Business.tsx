@@ -81,7 +81,7 @@ export const Step1Business = ({ initialData, onNext }: Step1BusinessProps) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
         <div>
           <h2 className="text-lg font-semibold mb-2">Business Details</h2>
           <p className="text-sm text-muted-foreground">

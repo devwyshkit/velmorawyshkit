@@ -19,10 +19,10 @@ export const HelpCenter = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Page Header */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Help Center</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Help Center</h1>
         <p className="text-muted-foreground">
           Find answers or contact support
         </p>

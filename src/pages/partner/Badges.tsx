@@ -100,7 +100,7 @@ export const PartnerBadges = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
         <Skeleton className="h-12 w-64" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5].map(i => (
@@ -112,10 +112,10 @@ export const PartnerBadges = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Loyalty Badges</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Loyalty Badges</h1>
         <p className="text-muted-foreground">
           Earn badges by providing excellent service and growing your business
         </p>

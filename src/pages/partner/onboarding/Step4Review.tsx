@@ -164,7 +164,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
   const requiresFSSAI = ['food', 'perishables', 'beverages'].includes(data.category || '');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
         <h2 className="text-lg font-semibold mb-2">Review & Submit</h2>
         <p className="text-sm text-muted-foreground">

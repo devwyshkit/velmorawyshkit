@@ -206,11 +206,11 @@ export const PartnerEarnings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Earnings</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Earnings</h1>
           <p className="text-muted-foreground">
             Track your revenue and commission breakdown
           </p>

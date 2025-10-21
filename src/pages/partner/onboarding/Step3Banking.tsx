@@ -68,7 +68,7 @@ export const Step3Banking = ({ initialData, onNext, onBack }: Step3BankingProps)
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
         <div>
           <h2 className="text-lg font-semibold mb-2">Banking Details</h2>
           <p className="text-sm text-muted-foreground">

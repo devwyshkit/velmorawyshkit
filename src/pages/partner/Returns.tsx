@@ -52,9 +52,9 @@ export const Returns = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Returns & Refunds</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Returns & Refunds</h1>
         <p className="text-muted-foreground">Manage customer return requests</p>
       </div>
 

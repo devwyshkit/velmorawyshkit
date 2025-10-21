@@ -215,10 +215,10 @@ export const ComponentMarketplace = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Component Marketplace</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Component Marketplace</h1>
         <p className="text-muted-foreground">
           Source components from verified suppliers for your hampers
         </p>

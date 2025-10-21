@@ -168,11 +168,11 @@ export const PartnerProducts = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Page Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Products</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Products</h1>
           <p className="text-muted-foreground">
             Manage your product catalog and add-ons
           </p>

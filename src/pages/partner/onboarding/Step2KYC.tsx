@@ -217,7 +217,7 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
         <div>
           <h2 className="text-lg font-semibold mb-2">KYC Documents</h2>
           <p className="text-sm text-muted-foreground">

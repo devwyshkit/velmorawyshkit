@@ -54,7 +54,7 @@ export const Pending = () => {
             We're reviewing your application. This typically takes 24-48 hours.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 md:space-y-6 pb-20 md:pb-6">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-green-600" />

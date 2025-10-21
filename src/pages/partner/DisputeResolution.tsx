@@ -69,7 +69,7 @@ export const DisputeResolution = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
         <Skeleton className="h-12 w-64" />
         <div className="grid grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
@@ -81,10 +81,10 @@ export const DisputeResolution = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dispute Resolution</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Dispute Resolution</h1>
         <p className="text-muted-foreground">
           Handle customer complaints and resolve issues within 48 hours
         </p>

@@ -113,10 +113,10 @@ export const ReferralProgram = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Referral Program</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Referral Program</h1>
         <p className="text-muted-foreground">
           Refer partners and earn ₹500 per successful referral
         </p>
@@ -166,25 +166,25 @@ export const ReferralProgram = () => {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-3xl font-bold">{stats.total_referred}</p>
+            <p className="text-xl md:text-2xl font-bold">{stats.total_referred}</p>
             <p className="text-sm text-muted-foreground">Total Referred</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-3xl font-bold text-green-600">{stats.successful}</p>
+            <p className="text-xl md:text-2xl font-bold text-green-600">{stats.successful}</p>
             <p className="text-sm text-muted-foreground">Successful</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+            <p className="text-xl md:text-2xl font-bold text-yellow-600">{stats.pending}</p>
             <p className="text-sm text-muted-foreground">Pending</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-3xl font-bold text-primary">₹{stats.total_earned}</p>
+            <p className="text-xl md:text-2xl font-bold text-primary">₹{stats.total_earned}</p>
             <p className="text-sm text-muted-foreground">Total Earned</p>
           </CardContent>
         </Card>
