@@ -34,18 +34,8 @@ export const AdminMobileNav = () => {
       {/* Slide-out Drawer */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[280px] p-0">
-          <SheetHeader className="p-6 pb-4 border-b">
-            <SheetTitle className="flex items-center justify-between">
-              <span>Admin Menu</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setOpen(false)}
-                className="h-6 w-6"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </SheetTitle>
+          <SheetHeader className="p-4 pb-3 border-b">
+            <SheetTitle>Admin Menu</SheetTitle>
           </SheetHeader>
           <div className="py-4">
             <AdminSidebarNav onNavigate={() => setOpen(false)} />

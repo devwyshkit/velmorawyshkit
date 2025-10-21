@@ -176,7 +176,7 @@ export const AdminLayout = () => {
       </header>
 
       {/* Main Content Area (with mobile bottom nav padding) */}
-      <main className="container mx-auto p-4 md:p-6 max-w-screen-2xl pb-20 md:pb-6">
+      <main className="container mx-auto p-4 md:p-6 max-w-screen-2xl">
         <Outlet />
       </main>
 
