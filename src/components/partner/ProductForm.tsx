@@ -329,7 +329,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
             <div className="space-y-4">
               <h3 className="font-semibold">Basic Information</h3>
           
-          <FormField
+            <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
@@ -384,11 +384,11 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
               </FormItem>
             )}
           />
-        </div>
+            </div>
 
-        {/* Pricing & Inventory */}
-        <div className="space-y-4">
-          <h3 className="font-semibold">Pricing & Inventory</h3>
+            {/* Pricing & Inventory */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Pricing & Inventory</h3>
           
           <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -428,32 +428,32 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
                 </FormItem>
               )}
             />
-          </div>
-        </div>
+              </div>
+            </div>
 
-        {/* Images */}
-        {/* Product Images - Shared Component (DRY) */}
-        <div className="space-y-4">
-          <h3 className="font-semibold">Product Images</h3>
-          <ImageUploader
+            {/* Images */}
+            {/* Product Images - Shared Component (DRY) */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Product Images</h3>
+              <ImageUploader
             images={images}
             onImagesChange={setImages}
             maxImages={5}
             maxSizeMB={5}
             disabled={loading}
-          />
-        </div>
+              />
+            </div>
 
-        {/* Bulk Pricing Tiers - PROMPT 1 Feature */}
-        <BulkPricingTiers
+            {/* Bulk Pricing Tiers - PROMPT 1 Feature */}
+            <BulkPricingTiers
           basePrice={Math.round((form.watch('price') || 0) * 100)}
           initialTiers={bulkTiers}
           onTiersChange={setBulkTiers}
           disabled={loading}
-        />
+            />
 
-        {/* Sponsored Listing Toggle - PROMPT 5 Feature */}
-        <SponsoredToggle
+            {/* Sponsored Listing Toggle - PROMPT 5 Feature */}
+            <SponsoredToggle
           productId={product?.id}
           initialSponsored={sponsoredData.isSponsored}
           initialStartDate={sponsoredData.startDate?.toISOString()}
@@ -466,10 +466,10 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
             });
           }}
           disabled={loading}
-        />
+            />
 
-        {/* Sourcing Limits - PROMPT 11 Feature */}
-        <SourcingLimits
+            {/* Sourcing Limits - PROMPT 11 Feature */}
+            <SourcingLimits
           productId={product?.id}
           initialAvailable={sourcingData.available}
           initialMonthlyLimit={sourcingData.monthlyLimit}
@@ -480,10 +480,10 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
             });
           }}
           disabled={loading}
-        />
+            />
 
-        {/* CUSTOMIZATION & ADD-ONS (Swiggy/Zomato Pattern) */}
-        <Accordion type="single" collapsible className="border rounded-lg">
+            {/* CUSTOMIZATION & ADD-ONS (Swiggy/Zomato Pattern) */}
+            <Accordion type="single" collapsible className="border rounded-lg">
           <AccordionItem value="customization" className="border-0">
             <AccordionTrigger className="px-4 hover:no-underline">
               <div className="flex items-center gap-2">
@@ -660,7 +660,7 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
               )}
             </AccordionContent>
           </AccordionItem>
-        </Accordion>
+            </Accordion>
 
             {/* Form Actions */}
             <div className="flex gap-3 pt-4 border-t">
