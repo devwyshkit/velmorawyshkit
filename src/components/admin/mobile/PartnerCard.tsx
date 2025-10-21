@@ -3,7 +3,7 @@
  * Card view for partner approvals on mobile instead of DataTable
  */
 
-import { CheckCircle2, XCircle, Clock } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, UserCog } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ interface Partner {
   kyc_gst_verified: boolean;
   kyc_bank_verified: boolean;
   kyc_fssai_verified?: boolean;
+  kam_name?: string;
+  kam_email?: string;
 }
 
 interface PartnerCardProps {
@@ -26,9 +28,10 @@ interface PartnerCardProps {
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
   onView?: (id: string) => void;
+  onAssignKAM?: (id: string) => void;
 }
 
-export const PartnerCard = ({ partner, onApprove, onReject, onView }: PartnerCardProps) => {
+export const PartnerCard = ({ partner, onApprove, onReject, onView, onAssignKAM }: PartnerCardProps) => {
   const kycComplete = partner.kyc_pan_verified && partner.kyc_gst_verified && partner.kyc_bank_verified;
   const categoryLabel = partner.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
@@ -45,6 +48,16 @@ export const PartnerCard = ({ partner, onApprove, onReject, onView }: PartnerCar
             {categoryLabel}
           </Badge>
         </div>
+
+        {/* KAM Assignment (if applicable) */}
+        {partner.kam_name && (
+          <div className="mb-3">
+            <Badge variant="outline" className="text-xs">
+              <UserCog className="h-3 w-3 mr-1" />
+              KAM: {partner.kam_name}
+            </Badge>
+          </div>
+        )}
 
         {/* KYC Status */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -71,15 +84,26 @@ export const PartnerCard = ({ partner, onApprove, onReject, onView }: PartnerCar
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {onView && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => onView(partner.id)}
-              className="flex-1"
+              className="flex-1 min-w-[100px]"
             >
               View Details
+            </Button>
+          )}
+          {onAssignKAM && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onAssignKAM(partner.id)}
+              className="flex-1 min-w-[120px]"
+            >
+              <UserCog className="h-4 w-4 mr-1" />
+              {partner.kam_name ? 'Change KAM' : 'Assign KAM'}
             </Button>
           )}
           {onApprove && (
@@ -87,7 +111,7 @@ export const PartnerCard = ({ partner, onApprove, onReject, onView }: PartnerCar
               variant="default"
               size="sm"
               onClick={() => onApprove(partner.id)}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1 min-w-[100px] bg-green-600 hover:bg-green-700"
               disabled={!kycComplete}
             >
               <CheckCircle2 className="h-4 w-4 mr-1" />
@@ -99,7 +123,7 @@ export const PartnerCard = ({ partner, onApprove, onReject, onView }: PartnerCar
               variant="destructive"
               size="sm"
               onClick={() => onReject(partner.id)}
-              className="flex-1"
+              className="flex-1 min-w-[100px]"
             >
               <XCircle className="h-4 w-4 mr-1" />
               Reject
