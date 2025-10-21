@@ -14,7 +14,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { zohoBooksClient } from "@/lib/api/zoho-books-mock";
+import { zohoBooksMock } from "@/lib/api/zoho-books-mock";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 
@@ -132,14 +132,14 @@ export const AdminPayouts = () => {
         if (!payout) continue;
 
         // Generate invoice via Zoho Books
-        const invoice = await zohoBooksClient.createInvoice({
-          customer_name: payout.partner_name,
-          invoice_items: [{
-            name: `Commission for ${format(new Date(payout.period_start), 'MMM dd')} - ${format(new Date(payout.period_end), 'MMM dd, yyyy')}`,
-            quantity: 1,
-            rate: payout.commission / 100, // Convert paise to rupees
-          }],
-        });
+        const invoice = await zohoBooksMock.createCommissionInvoice(
+          payout.partner_id,
+          format(new Date(payout.period_start), 'MMM yyyy'),
+          {
+            totalRevenue: payout.earnings,
+            commissionPercent: 20, // Default 20%
+          }
+        );
 
         // Update payout with invoice details
         await supabase
@@ -147,7 +147,7 @@ export const AdminPayouts = () => {
           .update({
             status: 'scheduled',
             zoho_invoice_id: invoice.invoice_id,
-            zoho_invoice_number: invoice.invoice_number,
+            zoho_invoice_number: invoice.invoice_id, // Use invoice_id as number too
           })
           .eq('id', payoutId);
       }
