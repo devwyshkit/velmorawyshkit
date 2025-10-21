@@ -86,14 +86,14 @@ export const AdminLayout = () => {
           {/* Mobile Hamburger */}
           <AdminMobileNav />
 
-          {/* Logo */}
-          <Link to="/admin/dashboard" className="flex items-center mr-4 md:mr-8">
+          {/* Logo - Compact on mobile */}
+          <Link to="/admin/dashboard" className="flex items-center mr-auto md:mr-8">
             <img
               src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
               alt="Wyshkit Admin"
-              className="h-6 md:h-8"
+              className="h-5 md:h-8 w-auto object-contain"
             />
-            <span className="ml-2 md:ml-3 text-xs md:text-sm font-semibold text-muted-foreground">ADMIN</span>
+            <span className="hidden md:inline ml-3 text-sm font-semibold text-muted-foreground">ADMIN</span>
           </Link>
 
           {/* Main Navigation (Desktop only) */}
@@ -128,25 +128,24 @@ export const AdminLayout = () => {
             })}
           </nav>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center gap-2">
+          {/* Right Side Actions - Compact on mobile */}
+          <div className="flex items-center gap-1 md:gap-2">
             <ThemeToggle />
             
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+            <Button variant="ghost" size="icon" className="relative h-9 w-9">
+              <Bell className="h-4 w-4 md:h-5 md:w-5" />
+              <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 p-0 flex items-center justify-center text-[10px]">
                 3
               </Badge>
             </Button>
 
-            {/* Admin User Dropdown */}
+            {/* Admin User Dropdown - Icon only on mobile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-4 w-4 text-primary" />
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="h-3 w-3 md:h-4 md:w-4 text-primary" />
                   </div>
-                  <span className="text-sm">Admin</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
