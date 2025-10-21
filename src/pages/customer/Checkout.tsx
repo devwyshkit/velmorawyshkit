@@ -201,8 +201,46 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
     try {
       const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY || '';
       
-      // Create order on backend (mock for now)
-      const orderId = `order_${Date.now()}`;
+      // Create order in database
+      const orderNumber = `ORD-${Date.now()}`;
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          customer_id: null, // Guest checkout
+          status: 'pending',
+          items: cartItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          subtotal: subtotal,
+          campaign_discount: campaignDiscount,
+          tax: calculateTotalWithGST(subtotal - campaignDiscount) - (subtotal - campaignDiscount),
+          total: total,
+          delivery_address: address,
+          delivery_instructions: instructions,
+          delivery_time_slot: deliveryTimeSlot,
+          contactless_delivery: contactlessDelivery,
+          gstin: gstin || null,
+          payment_method: paymentMethod,
+          payment_status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Order creation failed:', orderError);
+        toast({
+          title: "Order creation failed",
+          description: "Please try again",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const orderId = orderData.id;
 
       await initiatePayment({
         key: razorpayKey,
@@ -210,19 +248,29 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
         currency: 'INR',
         name: 'Wyshkit',
         description: 'Gift Purchase',
-        order_id: orderId,
+        order_id: orderNumber,
         handler: async (response: any) => {
+          // Update order with payment details
+          await supabase
+            .from('orders')
+            .update({
+              payment_status: 'completed',
+              payment_id: response.razorpay_payment_id,
+              status: 'confirmed',
+            })
+            .eq('id', orderId);
+
           // Clear cart after successful payment
           clearGuestCart();
           refreshCartCount();
 
-        toast({
+          toast({
             title: "Payment successful!",
             description: "Your order has been placed",
           });
 
           // Navigate to confirmation
-          navigate(`/customer/confirmation?orderId=${orderId}`);
+          navigate(`/customer/confirmation?orderId=${orderNumber}`);
         },
         prefill: {
           name: 'User Name',
