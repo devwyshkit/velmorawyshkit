@@ -34,7 +34,7 @@ interface IdfyResponse {
  */
 export const verifyPAN = async (panNumber: string) => {
   try {
-    const response = await fetch(`${IDFY_CONFIG.baseUrl}/tasks/sync/ind_pan`, {
+    const response = await fetch(`${IDFY_CONFIG.baseUrl}/tasks/async/ind_pan/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,7 +81,8 @@ export const verifyPAN = async (panNumber: string) => {
  */
 export const verifyGST = async (gstNumber: string) => {
   try {
-    const response = await fetch(`${IDFY_CONFIG.baseUrl}/tasks/sync/ind_gst`, {
+    // Use async endpoint with immediate sync response
+    const response = await fetch(`${IDFY_CONFIG.baseUrl}/tasks/async/ind_gst_with_nil_return/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -130,7 +131,7 @@ export const verifyGST = async (gstNumber: string) => {
  */
 export const verifyBankAccount = async (accountNumber: string, ifsc: string) => {
   try {
-    const response = await fetch(`${IDFY_CONFIG.baseUrl}/tasks/sync/ind_bank_account`, {
+    const response = await fetch(`${IDFY_CONFIG.baseUrl}/tasks/async/ind_bank_account/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -181,7 +182,7 @@ export const verifyBankAccount = async (accountNumber: string, ifsc: string) => 
  */
 export const verifyFSSAI = async (fssaiNumber: string) => {
   try {
-    const response = await fetch(`${IDFY_CONFIG.baseUrl}/tasks/sync/ind_fssai`, {
+    const response = await fetch(`${IDFY_CONFIG.baseUrl}/tasks/async/ind_fssai/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
