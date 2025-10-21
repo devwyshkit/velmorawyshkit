@@ -3,6 +3,7 @@ import { Plus, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
@@ -202,14 +203,63 @@ export const PartnerProducts = () => {
         />
       )}
 
-      {/* Products DataTable with selection support */}
-      <DataTable
-        columns={productColumns({ onEdit: handleEditProduct, onDelete: handleDeleteProduct })}
-        data={products}
-        searchKey="name"
-        searchPlaceholder="Search products..."
-        onRowSelectionChange={setSelectedProducts}
-      />
+      {/* Products with Approval Status Filters */}
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsTrigger value="all">
+            All ({products.length})
+          </TabsTrigger>
+          <TabsTrigger value="approved">
+            Approved ({products.filter(p => p.approval_status === 'approved').length})
+          </TabsTrigger>
+          <TabsTrigger value="pending">
+            Pending ({products.filter(p => p.approval_status === 'pending_review').length})
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            Rejected ({products.filter(p => p.approval_status === 'rejected').length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="mt-4">
+          <DataTable
+            columns={productColumns({ onEdit: handleEditProduct, onDelete: handleDeleteProduct })}
+            data={products}
+            searchKey="name"
+            searchPlaceholder="Search products..."
+            onRowSelectionChange={setSelectedProducts}
+          />
+        </TabsContent>
+
+        <TabsContent value="approved" className="mt-4">
+          <DataTable
+            columns={productColumns({ onEdit: handleEditProduct, onDelete: handleDeleteProduct })}
+            data={products.filter(p => p.approval_status === 'approved')}
+            searchKey="name"
+            searchPlaceholder="Search approved products..."
+            onRowSelectionChange={setSelectedProducts}
+          />
+        </TabsContent>
+
+        <TabsContent value="pending" className="mt-4">
+          <DataTable
+            columns={productColumns({ onEdit: handleEditProduct, onDelete: handleDeleteProduct })}
+            data={products.filter(p => p.approval_status === 'pending_review')}
+            searchKey="name"
+            searchPlaceholder="Search pending products..."
+            onRowSelectionChange={setSelectedProducts}
+          />
+        </TabsContent>
+
+        <TabsContent value="rejected" className="mt-4">
+          <DataTable
+            columns={productColumns({ onEdit: handleEditProduct, onDelete: handleDeleteProduct })}
+            data={products.filter(p => p.approval_status === 'rejected')}
+            searchKey="name"
+            searchPlaceholder="Search rejected products..."
+            onRowSelectionChange={setSelectedProducts}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Product Form Sheet (Add/Edit with add-ons builder) */}
       <Sheet open={showProductForm} onOpenChange={setShowProductForm}>
