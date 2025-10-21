@@ -50,6 +50,7 @@ export const PayoutCard = ({ payout, onSelect, selected }: PayoutCardProps) => {
         {onSelect && (
           <div className="absolute top-3 right-3">
             <input
+            placeholder="select"
               type="checkbox"
               checked={selected}
               onChange={(e) => onSelect(payout.id, e.target.checked)}
