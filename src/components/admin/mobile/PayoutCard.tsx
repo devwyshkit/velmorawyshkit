@@ -91,8 +91,11 @@ export const PayoutCard = ({ payout, onSelect, selected }: PayoutCardProps) => {
 
         {/* Invoice Info */}
         {payout.zoho_invoice_number && (
-          <div className="text-xs text-muted-foreground border-t pt-2">
-            Invoice: {payout.zoho_invoice_number}
+          <div className="flex items-center justify-between text-xs border-t pt-2">
+            <span className="text-muted-foreground">Invoice: {payout.zoho_invoice_number}</span>
+            <Badge variant="secondary" className="text-xs gap-1">
+              ⚡ Zoho Books
+            </Badge>
           </div>
         )}
       </CardContent>

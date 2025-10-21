@@ -307,8 +307,17 @@ export const AdminPayouts = () => {
       accessorKey: 'invoice',
       header: 'Invoice',
       cell: ({ row }) => (
-        <div className="text-sm">
-          {row.original.zoho_invoice_number || '-'}
+        <div className="flex items-center gap-2 text-sm">
+          {row.original.zoho_invoice_number ? (
+            <>
+              <span>{row.original.zoho_invoice_number}</span>
+              <Badge variant="secondary" className="text-xs gap-1">
+                ⚡ Zoho
+              </Badge>
+            </>
+          ) : (
+            <span className="text-muted-foreground">-</span>
+          )}
         </div>
       ),
     },

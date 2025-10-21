@@ -181,29 +181,41 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
       };
 
       if (product?.id) {
-        // Update existing product
+        // Update existing product - resubmit for approval if was rejected
+        const updateData = {
+          ...productData,
+          ...(product.approval_status === 'rejected' || product.approval_status === 'changes_requested'
+            ? { approval_status: 'pending_review', rejection_reason: null }
+            : {}),
+        };
+
         const { error } = await supabase
           .from('partner_products')
-          .update(productData)
+          .update(updateData)
           .eq('id', product.id);
         
         if (error) throw error;
         
         toast({
           title: "Product updated",
-          description: "Your product has been updated successfully",
+          description: product.approval_status === 'rejected' 
+            ? "Product resubmitted for review"
+            : "Your product has been updated successfully",
         });
       } else {
-        // Create new product
+        // Create new product - set to pending review
         const { error } = await supabase
           .from('partner_products')
-          .insert(productData);
+          .insert({
+            ...productData,
+            approval_status: 'pending_review', // CRITICAL: All new products need approval
+          });
         
         if (error) throw error;
         
         toast({
           title: "Product created",
-          description: "Your product has been added to the catalog",
+          description: "Your product is under review. It will be live within 24 hours if approved.",
         });
       }
 
