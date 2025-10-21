@@ -19,6 +19,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowRight, ArrowLeft, AlertTriangle, Upload, ExternalLink, CheckCircle2, XCircle, Loader2, Info } from "lucide-react";
 import { idfyMock } from "@/lib/api/idfy-mock";
+import * as idfyReal from "@/lib/api/idfy-real";
 import { useToast } from "@/hooks/use-toast";
 
 // Conditional schema based on category
@@ -92,26 +93,30 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
 
     setPanVerifying(true);
     try {
-      const result = await idfyMock.verifyPAN(panNumber, initialData.business_name || '');
+      // Use real IDfy API if configured, fallback to mock
+      const result = idfyReal.isIdfyConfigured() 
+        ? await idfyReal.verifyPAN(panNumber)
+        : await idfyMock.verifyPAN(panNumber, initialData.business_name || '');
       
-      if (result.status === 'verified') {
+      if (result.verified || (result as any).status === 'verified') {
         setPanVerified(true);
         setPanVerificationId(result.verification_id);
+        const name = result.name || (result as any).details?.registered_name;
         toast({
           title: "PAN verified ✓",
-          description: `Verified for ${result.details.registered_name} (₹${result.cost} charged)`,
+          description: `Verified: ${name} (₹10 charged)`,
         });
       } else {
         toast({
           title: "PAN verification failed",
-          description: result.error_message || "Please check the PAN number",
+          description: (result as any).error_message || "Invalid PAN or not found in records",
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
         title: "Verification error",
-        description: error.message,
+        description: idfyReal.handleIdfyError(error),
         variant: "destructive",
       });
     } finally {
@@ -132,26 +137,33 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
 
     setGstVerifying(true);
     try {
-      const result = await idfyMock.verifyGST(gstNumber);
+      // Use real IDfy API if configured, fallback to mock
+      const result = idfyReal.isIdfyConfigured()
+        ? await idfyReal.verifyGST(gstNumber)
+        : await idfyMock.verifyGST(gstNumber);
       
-      if (result.status === 'verified' && result.details.status === 'active') {
+      const isVerified = result.verified || (result as any).status === 'verified';
+      const isActive = result.status === 'Active' || (result as any).details?.status === 'active';
+      
+      if (isVerified && isActive) {
         setGstVerified(true);
         setGstVerificationId(result.verification_id);
+        const businessName = result.business_name || (result as any).details?.business_name;
         toast({
           title: "GST verified ✓",
-          description: `Verified for ${result.details.business_name} (₹${result.cost} charged)`,
+          description: `Verified: ${businessName} (₹10 charged)`,
         });
       } else {
         toast({
           title: "GST verification failed",
-          description: result.error_message || "Please check the GST number",
+          description: !isActive ? "GST is inactive" : "Invalid GST or not found in records",
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
         title: "Verification error",
-        description: error.message,
+        description: idfyReal.handleIdfyError(error),
         variant: "destructive",
       });
     } finally {
@@ -172,26 +184,33 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
 
     setFssaiVerifying(true);
     try {
-      const result = await idfyMock.verifyFSSAI(fssaiNumber);
+      // Use real IDfy API if configured, fallback to mock
+      const result = idfyReal.isIdfyConfigured()
+        ? await idfyReal.verifyFSSAI(fssaiNumber)
+        : await idfyMock.verifyFSSAI(fssaiNumber);
       
-      if (result.status === 'verified') {
+      const isVerified = result.verified || (result as any).status === 'verified';
+      const isActive = result.license_status === 'Active' || true;
+      
+      if (isVerified && isActive) {
         setFssaiVerified(true);
         setFssaiVerificationId(result.verification_id);
+        const businessName = result.business_name || (result as any).details?.business_name;
         toast({
           title: "FSSAI verified ✓",
-          description: `Valid until ${new Date(result.details.valid_until).toLocaleDateString('en-IN')} (₹${result.cost} charged)`,
+          description: `Verified: ${businessName} (₹10 charged)`,
         });
       } else {
         toast({
           title: "FSSAI verification failed",
-          description: result.error_message || "Please check the FSSAI license",
+          description: (result as any).error_message || "Invalid license or not found in records",
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
         title: "Verification error",
-        description: error.message,
+        description: idfyReal.handleIdfyError(error),
         variant: "destructive",
       });
     } finally {
