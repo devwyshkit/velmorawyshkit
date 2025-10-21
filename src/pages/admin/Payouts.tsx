@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import { StatsCard } from "@/components/shared/StatsCard";
+import { PayoutCard } from "@/components/admin/mobile/PayoutCard";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { zohoBooksMock } from "@/lib/api/zoho-books-mock";
@@ -37,6 +39,7 @@ interface Payout {
 
 export const AdminPayouts = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [selectedPayouts, setSelectedPayouts] = useState<string[]>([]);
@@ -323,11 +326,11 @@ export const AdminPayouts = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Payout Management</h1>
-        <p className="text-muted-foreground">Process partner payouts with Zoho Books integration</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Payout Management</h1>
+        <p className="text-sm md:text-base text-muted-foreground">Process partner payouts with Zoho Books integration</p>
       </div>
 
       {/* Stats */}
@@ -406,35 +409,76 @@ export const AdminPayouts = () => {
         </div>
 
         <TabsContent value="pending">
-          <DataTable
-            columns={columns}
-            data={payouts.filter(p => p.status === 'pending')}
-            onSelectionChange={setSelectedPayouts}
-          />
+          {isMobile ? (
+            <div className="space-y-3">
+              {payouts.filter(p => p.status === 'pending').map(payout => (
+                <PayoutCard
+                  key={payout.id}
+                  payout={payout}
+                  selected={selectedPayouts.includes(payout.id)}
+                  onSelect={(id, selected) => {
+                    setSelectedPayouts(prev => 
+                      selected ? [...prev, id] : prev.filter(p => p !== id)
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={payouts.filter(p => p.status === 'pending')}
+              onSelectionChange={setSelectedPayouts}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="scheduled">
-          <DataTable
-            columns={columns}
-            data={payouts.filter(p => p.status === 'scheduled')}
-            onSelectionChange={setSelectedPayouts}
-          />
+          {isMobile ? (
+            <div className="space-y-3">
+              {payouts.filter(p => p.status === 'scheduled').map(payout => (
+                <PayoutCard key={payout.id} payout={payout} />
+              ))}
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={payouts.filter(p => p.status === 'scheduled')}
+              onSelectionChange={setSelectedPayouts}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="completed">
-          <DataTable
-            columns={columns}
-            data={payouts.filter(p => p.status === 'completed')}
-            onSelectionChange={setSelectedPayouts}
-          />
+          {isMobile ? (
+            <div className="space-y-3">
+              {payouts.filter(p => p.status === 'completed').map(payout => (
+                <PayoutCard key={payout.id} payout={payout} />
+              ))}
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={payouts.filter(p => p.status === 'completed')}
+              onSelectionChange={setSelectedPayouts}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="all">
-          <DataTable
-            columns={columns}
-            data={payouts}
-            onSelectionChange={setSelectedPayouts}
-          />
+          {isMobile ? (
+            <div className="space-y-3">
+              {payouts.map(payout => (
+                <PayoutCard key={payout.id} payout={payout} />
+              ))}
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={payouts}
+              onSelectionChange={setSelectedPayouts}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
