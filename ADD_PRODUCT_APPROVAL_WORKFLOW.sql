@@ -33,6 +33,7 @@ DROP POLICY IF EXISTS "Customers can view products" ON partner_products;
 DROP POLICY IF EXISTS "Public products are viewable by everyone" ON partner_products;
 
 -- Customers and anonymous users only see APPROVED products
+DROP POLICY IF EXISTS "Customers see approved products only" ON partner_products;
 CREATE POLICY "Customers see approved products only"
   ON partner_products FOR SELECT
   TO anon, authenticated
@@ -42,11 +43,13 @@ CREATE POLICY "Customers see approved products only"
   );
 
 -- Partners see their OWN products (any status)
+DROP POLICY IF EXISTS "Partners view own products all statuses" ON partner_products;
 CREATE POLICY "Partners view own products all statuses"
   ON partner_products FOR SELECT
   USING (partner_id = auth.uid());
 
 -- Partners can INSERT products (default to pending_review)
+DROP POLICY IF EXISTS "Partners can create products" ON partner_products;
 CREATE POLICY "Partners can create products"
   ON partner_products FOR INSERT
   WITH CHECK (
@@ -55,6 +58,7 @@ CREATE POLICY "Partners can create products"
   );
 
 -- Partners can UPDATE own products (resets to pending_review if approved)
+DROP POLICY IF EXISTS "Partners can update own products" ON partner_products;
 CREATE POLICY "Partners can update own products"
   ON partner_products FOR UPDATE
   USING (partner_id = auth.uid())
@@ -64,6 +68,7 @@ CREATE POLICY "Partners can update own products"
   );
 
 -- Only admins can approve/reject products
+DROP POLICY IF EXISTS "Only admins can approve products" ON partner_products;
 CREATE POLICY "Only admins can approve products"
   ON partner_products FOR UPDATE
   USING (

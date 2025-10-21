@@ -74,6 +74,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to check badges when partner_profiles is updated
+DROP TRIGGER IF EXISTS check_badges_on_update ON partner_profiles;
 CREATE TRIGGER check_badges_on_update
   AFTER UPDATE ON partner_profiles
   FOR EACH ROW
