@@ -48,6 +48,7 @@ export const ProductApprovalCard = ({
         {onSelect && (
           <div className="absolute top-3 right-3">
             <input
+          title="Select Product"
               type="checkbox"
               checked={selected}
               onChange={(e) => onSelect(product.id, e.target.checked)}

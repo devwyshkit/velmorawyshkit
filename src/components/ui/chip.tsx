@@ -62,6 +62,7 @@ const Chip = React.forwardRef<HTMLDivElement, ChipProps>(
         <span className="truncate">{children}</span>
         {dismissible && onDismiss && (
           <button
+            title="Dismiss"
             type="button"
             className="ml-1.5 hover:bg-on-surface/10 rounded-full p-0.5 transition-colors"
             onClick={(e) => {

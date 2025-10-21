@@ -21,7 +21,7 @@ export const getGuestCart = () => {
   return cart ? JSON.parse(cart) : [];
 };
 
-export const setGuestCart = (items: any[]) => {
+export const setGuestCart = (items: unknown[]) => {
   localStorage.setItem('wyshkit_guest_cart', JSON.stringify(items));
 };
 
