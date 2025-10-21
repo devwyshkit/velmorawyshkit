@@ -18,7 +18,7 @@ export { PartnerSignup } from '../pages/partner/Signup';
 export { PartnerVerifyEmail } from '../pages/partner/VerifyEmail';
 export { PartnerOnboarding } from '../pages/partner/Onboarding';
 export { PartnerLayout } from '../components/partner/PartnerLayout';
-export { PartnerHome } from '../pages/partner/Home';
+export { PartnerHome } from '../pages/partner/Dashboard';
 export { PartnerProducts } from '../pages/partner/Products';
 export { PartnerOrders } from '../pages/partner/Orders';
 export { PartnerEarnings } from '../pages/partner/Earnings';
@@ -30,6 +30,7 @@ export { Returns as PartnerReturns } from '../pages/partner/Returns';
 export { HelpCenter as PartnerHelp } from '../pages/partner/HelpCenter';
 export { PartnerProfile } from '../pages/partner/Profile';
 export { PartnerBadges } from '../pages/partner/Badges';
+export { ComponentMarketplace } from '../pages/partner/ComponentMarketplace';
 
 // Admin Pages - Internal Console
 export { AdminLogin } from '../pages/admin/Login';
