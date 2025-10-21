@@ -3,10 +3,12 @@ import { DollarSign, TrendingUp, Calendar, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { CommissionBreakdown } from "@/components/partner/earnings/CommissionBreakdown";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
+import { zohoBooksMock } from "@/lib/api/zoho-books-mock";
 import { ColumnDef } from "@tanstack/react-table";
 
 interface Transaction {
@@ -156,40 +158,21 @@ export const PartnerEarnings = () => {
         .limit(6); // Last 6 months
 
       if (error) {
-        console.warn('Invoices fetch failed, using mock:', error);
-        // Mock invoices (last 3 months)
-        setMonthlyInvoices([
-          {
-            id: '1',
-            month: '2024-03',
-            total_revenue: 250000,
-            commission_amount: 50000,
-            zoho_invoice_id: 'INV-2024-03-001',
-            zoho_invoice_url: 'https://mock-zoho-books.com/invoice/1',
-            status: 'paid',
-            paid_at: '2024-04-05',
-          },
-          {
-            id: '2',
-            month: '2024-02',
-            total_revenue: 200000,
-            commission_amount: 40000,
-            zoho_invoice_id: 'INV-2024-02-001',
-            zoho_invoice_url: 'https://mock-zoho-books.com/invoice/2',
-            status: 'paid',
-            paid_at: '2024-03-05',
-          },
-          {
-            id: '3',
-            month: '2024-01',
-            total_revenue: 180000,
-            commission_amount: 36000,
-            zoho_invoice_id: 'INV-2024-01-001',
-            zoho_invoice_url: 'https://mock-zoho-books.com/invoice/3',
-            status: 'paid',
-            paid_at: '2024-02-05',
-          },
-        ]);
+        console.warn('Invoices fetch failed, using Zoho Books mock:', error);
+        // Use Zoho Books mock API
+        const zohoInvoices = await zohoBooksMock.getPartnerInvoices(user.id);
+        setMonthlyInvoices(
+          zohoInvoices.map((invoice) => ({
+            id: invoice.invoice_id,
+            month: invoice.month,
+            total_revenue: invoice.total_revenue,
+            commission_amount: invoice.commission_amount,
+            zoho_invoice_id: invoice.invoice_id,
+            zoho_invoice_url: invoice.invoice_url,
+            status: invoice.status === 'sent' ? 'invoiced' : invoice.status,
+            paid_at: invoice.status === 'paid' ? invoice.created_at : undefined,
+          }))
+        );
       } else {
         setMonthlyInvoices(
           data.map((invoice) => ({
@@ -275,9 +258,14 @@ export const PartnerEarnings = () => {
       {/* Monthly Invoices (Zoho Books Integration) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            📄 Monthly Commission Invoices
-            <span className="text-xs font-normal text-muted-foreground">(Powered by Zoho Books)</span>
+          <CardTitle className="text-base flex items-center justify-between flex-wrap gap-2">
+            <span className="flex items-center gap-2">
+              📄 Monthly Commission Invoices
+            </span>
+            <Badge variant="secondary" className="text-xs">
+              <span className="mr-1">⚡</span>
+              Powered by Zoho Books
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
