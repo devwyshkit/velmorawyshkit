@@ -316,7 +316,7 @@ export const AdminProductApprovals = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Product Approvals</h1>
@@ -325,8 +325,8 @@ export const AdminProductApprovals = () => {
         </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      {/* Stats - Mobile: 2 col, Desktop: 4 col */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
         <StatsCard
           title="Pending Review"
           value={pendingCount}

@@ -235,44 +235,45 @@ export const AdminPartners = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+      {/* Page Header - Responsive */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Partner Management</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Partner Management</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Review and approve new partner applications
         </p>
       </div>
 
-      {/* Tabs for different partner states */}
-      <Tabs defaultValue="approval-queue" className="space-y-4">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
-          <TabsTrigger value="approval-queue" className="gap-2">
-            <Users className="h-4 w-4" />
-            Approval Queue
+      {/* Tabs for different partner states - Mobile responsive */}
+      <Tabs defaultValue="approval-queue" className="space-y-3 md:space-y-4">
+        <TabsList className="grid w-full grid-cols-4 h-auto">
+
+          <TabsTrigger value="approval-queue" className="gap-1 text-xs md:text-sm px-2 md:px-3 py-2">
+            <Users className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Queue</span>
             {pendingCount > 0 && (
-              <Badge variant="destructive" className="ml-1">{pendingCount}</Badge>
+              <Badge variant="destructive" className="ml-0.5 h-4 min-w-4 px-1 text-[10px]">{pendingCount}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="active" className="gap-2">
-            <UserCheck className="h-4 w-4" />
-            Active
+          <TabsTrigger value="active" className="gap-1 text-xs md:text-sm px-2 md:px-3 py-2">
+            <UserCheck className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Active</span>
             {activeCount > 0 && (
-              <Badge variant="outline" className="ml-1">{activeCount}</Badge>
+              <Badge variant="outline" className="ml-0.5 h-4 min-w-4 px-1 text-[10px]">{activeCount}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="rejected" className="gap-2">
-            <UserX className="h-4 w-4" />
-            Rejected
+          <TabsTrigger value="rejected" className="gap-1 text-xs md:text-sm px-2 md:px-3 py-2">
+            <UserX className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Rejected</span>
             {rejectedCount > 0 && (
-              <Badge variant="outline" className="ml-1">{rejectedCount}</Badge>
+              <Badge variant="outline" className="ml-0.5 h-4 min-w-4 px-1 text-[10px]">{rejectedCount}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="suspended" className="gap-2">
-            <Ban className="h-4 w-4" />
-            Suspended
+          <TabsTrigger value="suspended" className="gap-1 text-xs md:text-sm px-2 md:px-3 py-2">
+            <Ban className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Suspended</span>
             {suspendedCount > 0 && (
-              <Badge variant="outline" className="ml-1">{suspendedCount}</Badge>
+              <Badge variant="outline" className="ml-0.5 h-4 min-w-4 px-1 text-[10px]">{suspendedCount}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
