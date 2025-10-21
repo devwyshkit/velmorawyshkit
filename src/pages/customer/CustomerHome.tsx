@@ -17,6 +17,7 @@ import { FloatingCartButton } from "@/components/customer/shared/FloatingCartBut
 import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
 import { EnhancedFooter } from "@/components/customer/shared/EnhancedFooter";
 import { EmailVerificationBanner } from "@/components/customer/shared/EmailVerificationBanner";
+import { CampaignCard } from "@/components/customer/campaigns/CampaignCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRecommendations } from "@/lib/integrations/openai";
 import { fetchPartners, type Partner } from "@/lib/integrations/supabase-data";
@@ -335,57 +336,29 @@ export const CustomerHome = () => {
           </div>
         </section>
 
-        {/* Featured Campaigns Carousel - PROMPT 4 Integration */}
+        {/* Active Campaigns - Swiggy/Zomato Offers Pattern */}
         {featuredCampaigns.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-semibold">Special Offers</h2>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                🎯 Active Offers
+                <Badge variant="secondary" className="text-xs">
+                  {featuredCampaigns.length}
+                </Badge>
+              </h2>
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto text-sm"
-                onClick={() => navigate("/customer/campaigns")}
+                onClick={() => navigate("/customer/search?filter=offers")}
               >
-                View All
+                View All →
               </Button>
             </div>
-            <Carousel className="w-full px-4">
-              <CarouselContent className="-ml-2">
-                {featuredCampaigns.map((campaign) => (
-                  <CarouselItem key={campaign.id} className="basis-[90%] md:basis-1/2 pl-2">
-                    <Card 
-                      className="overflow-hidden cursor-pointer border-0 shadow-sm hover:shadow-md transition-shadow"
-                      onClick={() => navigate(`/customer/campaigns/${campaign.id}`)}
-                    >
-                      <div className="h-32 bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center relative">
-                        {campaign.banner_url ? (
-                          <img 
-                            src={campaign.banner_url} 
-                            alt={campaign.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="text-center p-4">
-                            <p className="font-bold text-lg mb-1">{campaign.name}</p>
-                            {campaign.discount_type && campaign.discount_value && (
-                              <Badge className="bg-primary text-primary-foreground">
-                                {campaign.discount_type === 'percentage' 
-                                  ? `${campaign.discount_value}% OFF`
-                                  : `₹${campaign.discount_value} OFF`
-                                }
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-2 py-0.5 gap-1 text-xs border-amber-200">
-                          <Sparkles className="h-3 w-3 text-amber-900 dark:text-amber-100" />
-                          <span className="text-amber-900 dark:text-amber-100 font-medium">Featured</span>
-                        </Badge>
-                      </div>
-                    </Card>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
+            <div className="px-4 space-y-3">
+              {featuredCampaigns.slice(0, 3).map((campaign) => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
           </section>
         )}
 

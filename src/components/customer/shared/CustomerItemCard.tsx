@@ -14,6 +14,7 @@ interface CustomerItemCardProps {
   shortDesc?: string;
   sponsored?: boolean;
   isCustomizable?: boolean;
+  campaignDiscount?: { type: 'percentage' | 'flat'; value: number }; // NEW!
   onClick?: () => void;
   className?: string;
 }
@@ -29,6 +30,7 @@ export const CustomerItemCard = ({
   shortDesc,
   sponsored,
   isCustomizable,
+  campaignDiscount,
   onClick,
   className,
 }: CustomerItemCardProps) => {
@@ -65,7 +67,7 @@ export const CustomerItemCard = ({
             </Badge>
           )}
           {/* Bestseller/Trending Badge - Top Right (Small icon + text, Swiggy pattern) */}
-          {badge && (
+          {badge && !campaignDiscount && (
             <Badge
               className="absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] bg-[#FFB3AF] dark:bg-[#8B4A47] border-0"
             >
@@ -80,6 +82,14 @@ export const CustomerItemCard = ({
                   <span className="font-medium">Trending</span>
                 </>
               )}
+            </Badge>
+          )}
+          {/* Campaign Discount Badge - Top Right (Highest priority, Zomato pattern) */}
+          {campaignDiscount && (
+            <Badge className="absolute top-2 right-2 px-2 py-1 gap-0.5 text-xs bg-red-500 text-white border-0 font-bold shadow-md">
+              {campaignDiscount.type === 'percentage' 
+                ? `${campaignDiscount.value}% OFF` 
+                : `₹${campaignDiscount.value} OFF`}
             </Badge>
           )}
           {/* Customizable Badge - Bottom Right (Icon only, secondary info) */}
