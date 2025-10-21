@@ -135,30 +135,30 @@ export const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid grid-cols-4 gap-4">
+      <div className="space-y-4 md:space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-32" />
+            <Skeleton key={i} className="h-28" />
           ))}
         </div>
-        <Skeleton className="h-64" />
+        <Skeleton className="h-48 md:h-64" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+      {/* Page Header - Responsive sizing */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Platform overview and key metrics
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Stats Cards - Mobile First: 1 col mobile, 2 col tablet, 4 col desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatsCard
           title="GMV Today"
           value={`₹${(stats.gmvToday / 10000000).toFixed(1)} Cr`}
@@ -179,7 +179,7 @@ export const AdminDashboard = () => {
           icon={Users}
           trend={`${stats.pendingApprovals} pending approval`}
         />
-          <StatsCard
+        <StatsCard
           title="Open Disputes"
           value={stats.openDisputes}
           icon={AlertCircle}
@@ -188,8 +188,8 @@ export const AdminDashboard = () => {
         />
       </div>
 
-      {/* Quick Action Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Quick Action Cards - Mobile First: 1 col mobile, 2 col tablet, 3 col desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {/* Pending Partner Approvals */}
         {stats.pendingApprovals > 0 && (
           <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/partners")}>

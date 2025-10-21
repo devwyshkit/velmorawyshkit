@@ -2,10 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const AdminContent = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Content Management</h1>
-        <p className="text-muted-foreground">Manage help articles, FAQs, and announcements</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Content Management</h1>
+        <p className="text-sm md:text-base text-muted-foreground">Manage help articles, FAQs, and announcements</p>
       </div>
       <Card>
         <CardHeader>
