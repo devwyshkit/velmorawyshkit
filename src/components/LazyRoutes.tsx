@@ -31,6 +31,8 @@ export { HelpCenter as PartnerHelp } from '../pages/partner/HelpCenter';
 export { PartnerProfile } from '../pages/partner/Profile';
 export { PartnerBadges } from '../pages/partner/Badges';
 export { ComponentMarketplace } from '../pages/partner/ComponentMarketplace';
+export { KittingDashboard } from '../pages/partner/KittingDashboard';
+export { KittingWorkflow } from '../pages/partner/KittingWorkflow';
 
 // Admin Pages - Internal Console
 export { AdminLogin } from '../pages/admin/Login';

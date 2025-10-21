@@ -67,6 +67,8 @@ const App = () => (
                 <Route path="help" element={<LazyPages.PartnerHelp />} />
                 <Route path="profile" element={<LazyPages.PartnerProfile />} />
                 <Route path="components" element={<LazyPages.ComponentMarketplace />} />
+                <Route path="kitting" element={<LazyPages.KittingDashboard />} />
+                <Route path="kitting/:jobId" element={<LazyPages.KittingWorkflow />} />
               </Route>
             </Route>
 
