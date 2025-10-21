@@ -351,7 +351,7 @@ export const AdminProductApprovals = () => {
           icon={CheckCircle2}
           trend="Target: <6h"
         />
-      </Stats>
+      </div>
 
       {/* Bulk Actions */}
       {selectedProducts.length > 0 && (
