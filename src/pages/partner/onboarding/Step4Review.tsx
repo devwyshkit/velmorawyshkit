@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, CheckCircle2, Edit2, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, CheckCircle2, Edit2, Loader2, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/integrations/supabase-client";
+import { zohoSignMock, type SigningRequest } from "@/lib/api/zoho-sign-mock";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,6 +28,84 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
   const { toast } = useToast();
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [signingRequest, setSigningRequest] = useState<SigningRequest | null>(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractSigned, setContractSigned] = useState(false);
+
+  // Check if partner already has a contract from previous submission
+  useEffect(() => {
+    checkContractStatus();
+  }, [user]);
+
+  const checkContractStatus = async () => {
+    if (!user) return;
+
+    try {
+      const { data: profile } = await supabase
+        .from('partner_profiles')
+        .select('contract_signed, zoho_request_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.contract_signed) {
+        setContractSigned(true);
+      } else if (profile?.zoho_request_id) {
+        // Check signing status from Zoho
+        const status = await zohoSignMock.getSigningStatus(profile.zoho_request_id);
+        setSigningRequest(status);
+        if (status.status === 'signed') {
+          setContractSigned(true);
+          // Update database
+          await supabase
+            .from('partner_profiles')
+            .update({
+              contract_signed: true,
+              contract_signed_at: status.signed_at,
+              contract_document_url: status.document_url,
+            })
+            .eq('id', user.id);
+        }
+      }
+    } catch (error) {
+      console.error('Contract status check failed:', error);
+    }
+  };
+
+  const handleSendContract = async () => {
+    if (!user) return;
+
+    setContractLoading(true);
+    try {
+      // Send partnership contract via Zoho Sign
+      const request = await zohoSignMock.sendPartnershipContract(user.id, {
+        name: data.business_name,
+        email: user.email || '',
+        businessName: data.business_name,
+        commissionPercent: 20, // Default commission
+      });
+
+      setSigningRequest(request);
+
+      // Save request ID to database
+      await supabase
+        .from('partner_profiles')
+        .update({ zoho_request_id: request.request_id })
+        .eq('id', user.id);
+
+      toast({
+        title: "Contract sent! 📧",
+        description: "Check your email to sign the partnership agreement",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to send contract",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setContractLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!agreed) {
@@ -169,6 +250,107 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
             <span className="text-muted-foreground">IFSC Code</span>
             <span className="font-medium font-mono">{data.bank_ifsc}</span>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Partnership Agreement (Zoho Sign Integration) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Partnership Agreement
+            </span>
+            <Badge variant="secondary" className="text-xs">
+              Powered by Zoho Sign
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {contractSigned ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-medium">Contract Signed ✓</span>
+              </div>
+              {signingRequest?.document_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(signingRequest.document_url, '_blank')}
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  View Signed Document
+                </Button>
+              )}
+              <Alert>
+                <AlertDescription className="text-xs">
+                  Your partnership agreement has been signed and verified. You can proceed with submission.
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : signingRequest ? (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Signing Status</span>
+                  <Badge variant={signingRequest.status === 'sent' ? 'default' : 'secondary'}>
+                    {signingRequest.status === 'sent' ? 'Awaiting Signature' : signingRequest.status}
+                  </Badge>
+                </div>
+                <Progress value={signingRequest.status === 'signed' ? 100 : 50} className="h-2" />
+              </div>
+              {signingRequest.signing_url && (
+                <Button
+                  variant="default"
+                  onClick={() => window.open(signingRequest.signing_url, '_blank')}
+                  className="w-full gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Sign Contract Now
+                </Button>
+              )}
+              <Alert>
+                <AlertDescription className="text-xs">
+                  A signing link has been sent to your email. The contract must be signed before submission.
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Sign the partnership agreement to finalize your onboarding. This covers commission terms, quality standards, and platform policies.
+              </p>
+              <Button
+                variant="default"
+                onClick={handleSendContract}
+                disabled={contractLoading}
+                className="w-full gap-2"
+              >
+                {contractLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending Contract...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    Send Partnership Agreement
+                  </>
+                )}
+              </Button>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>📄 <strong>Contract includes:</strong></p>
+                <ul className="list-disc list-inside ml-3 space-y-0.5">
+                  <li>Commission structure (15-20%)</li>
+                  <li>Payment terms (NET 15 days)</li>
+                  <li>Quality and compliance standards</li>
+                  <li>Termination clauses (30 days notice)</li>
+                </ul>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
