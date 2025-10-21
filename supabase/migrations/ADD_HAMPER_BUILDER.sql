@@ -109,7 +109,7 @@ CREATE POLICY "Admins can view all hamper components"
   ON hamper_components FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM admin_users WHERE user_id = auth.uid()
+      SELECT 1 FROM admin_users WHERE id = auth.uid()
     )
   );
 
@@ -117,7 +117,7 @@ CREATE POLICY "Admins can view all assembly instructions"
   ON assembly_instructions FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM admin_users WHERE user_id = auth.uid()
+      SELECT 1 FROM admin_users WHERE id = auth.uid()
     )
   );
 

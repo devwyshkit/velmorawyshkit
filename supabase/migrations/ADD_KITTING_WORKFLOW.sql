@@ -89,7 +89,7 @@ CREATE POLICY "Admins can view all kitting jobs"
   ON kitting_jobs FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM admin_users WHERE user_id = auth.uid()
+      SELECT 1 FROM admin_users WHERE id = auth.uid()
     )
   );
 
