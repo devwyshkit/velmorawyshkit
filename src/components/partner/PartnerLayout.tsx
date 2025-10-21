@@ -31,6 +31,7 @@ import { useTheme } from "@/components/theme-provider";
  */
 export const PartnerLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { theme } = useTheme();
   const isMobile = useIsMobile();
@@ -77,15 +78,15 @@ export const PartnerLayout = () => {
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar (≥768px) */}
       {!isMobile && (
-        <aside className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border z-40">
+        <aside className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r z-40">
           <div className="flex flex-col h-full">
-            {/* Logo - Using Customer UI Logo (Consistent Branding) */}
-            <div className="p-6 border-b border-border flex items-center">
-              <Link to="/partner/dashboard" className="flex items-center">
+            {/* Logo - Properly sized */}
+            <div className="p-4 border-b flex items-center justify-center">
+              <Link to="/partner/dashboard">
                 <img
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
                   alt="Wyshkit Partner"
-                  className="h-10"
+                  className="h-8 w-auto object-contain"
                 />
               </Link>
             </div>
@@ -164,33 +165,43 @@ export const PartnerLayout = () => {
         !isMobile && "ml-64",  // Offset for desktop sidebar
         isMobile && "pb-20"     // Offset for mobile bottom nav
       )}>
-        {/* Mobile Header - Fixed with Customer UI Logo */}
+        {/* Mobile Header - Mobile-First Optimized */}
         {isMobile && (
-          <header className="sticky top-0 z-40 bg-background border-b border-border">
-            <div className="flex items-center justify-between h-16 px-4">
-              <Link to="/partner/dashboard" className="flex items-center">
+          <header className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b">
+            <div className="flex items-center justify-between h-14 px-3">
+              {/* Logo - Properly sized for mobile */}
+              <Link to="/partner/dashboard" className="flex items-center flex-shrink-0">
                 <img
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
-                  alt="Wyshkit Partner"
-                  className="h-10"
+                  alt="Wyshkit"
+                  className="h-6 w-auto max-w-[120px] object-contain"
                 />
               </Link>
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <Button variant="ghost" size="icon">
-                  <Bell className="h-5 w-5" />
+              
+              {/* Right Actions - Compact */}
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Bell className="h-4 w-4" />
                 </Button>
+                <ThemeToggle />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Menu className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <User className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>
-                      {user?.name || 'Partner'}
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">{user?.name || 'Partner'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                      </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/partner/profile")}>
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
@@ -214,8 +225,8 @@ export const PartnerLayout = () => {
           </header>
         )}
 
-        {/* Page Content */}
-        <main className="p-4 md:p-6 max-w-screen-2xl mx-auto">
+        {/* Page Content - Mobile-First Padding */}
+        <main className="p-3 sm:p-4 md:p-6 max-w-screen-2xl mx-auto">
           <Outlet />
         </main>
       </div>
