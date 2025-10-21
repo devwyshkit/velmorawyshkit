@@ -24,6 +24,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
+import { AdminMobileNav } from "./AdminMobileNav";
+import { AdminBottomNav } from "./AdminBottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useTheme } from "@/components/theme-provider";
@@ -76,21 +78,24 @@ export const AdminLayout = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Navigation Bar (Desktop-only, horizontal) */}
+      {/* Top Navigation Bar (Responsive) */}
       <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="flex h-16 items-center px-6">
+        <div className="flex h-16 items-center px-4 md:px-6">
+          {/* Mobile Hamburger */}
+          <AdminMobileNav />
+
           {/* Logo */}
-          <Link to="/admin/dashboard" className="flex items-center mr-8">
+          <Link to="/admin/dashboard" className="flex items-center mr-4 md:mr-8">
             <img
               src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
               alt="Wyshkit Admin"
-              className="h-8"
+              className="h-6 md:h-8"
             />
-            <span className="ml-3 text-sm font-semibold text-muted-foreground">ADMIN</span>
+            <span className="ml-2 md:ml-3 text-xs md:text-sm font-semibold text-muted-foreground">ADMIN</span>
           </Link>
 
-          {/* Main Navigation */}
-          <nav className="flex items-center space-x-1 flex-1">
+          {/* Main Navigation (Desktop only) */}
+          <nav className="hidden md:flex items-center space-x-1 flex-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -168,10 +173,13 @@ export const AdminLayout = () => {
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="container mx-auto p-6 max-w-screen-2xl">
+      {/* Main Content Area (with mobile bottom nav padding) */}
+      <main className="container mx-auto p-4 md:p-6 max-w-screen-2xl pb-20 md:pb-6">
         <Outlet />
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <AdminBottomNav />
     </div>
   );
 };

@@ -24,7 +24,7 @@ import {
   formatAmountForRazorpay,
   generateEstimate,
 } from "@/lib/integrations/razorpay";
-import { getGuestCart, clearGuestCart } from "@/lib/integrations/supabase-client";
+import { getGuestCart, clearGuestCart, supabase } from "@/lib/integrations/supabase-client";
 
 export const Checkout = () => {
   const navigate = useNavigate();
@@ -40,6 +40,7 @@ export const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [contactlessDelivery, setContactlessDelivery] = useState(false);
   const [deliveryTimeSlot, setDeliveryTimeSlot] = useState<string>("");
+  const [campaignDiscount, setCampaignDiscount] = useState(0); // NEW: Campaign discount amount
 
   // Delivery time slots (Swiggy/Zomato pattern)
   const timeSlots = [
@@ -69,7 +70,67 @@ export const Checkout = () => {
     (sum: number, item: any) => sum + item.price * item.quantity,
     0
   );
-  const total = calculateTotalWithGST(subtotal);
+  
+  // Calculate campaign discounts
+  useEffect(() => {
+    checkAndApplyCampaignDiscounts();
+  }, []);
+
+  const checkAndApplyCampaignDiscounts = async () => {
+    try {
+      const productIds = cartItems.map((item: any) => item.id);
+      if (productIds.length === 0) return;
+
+      // Fetch active campaigns for cart products
+      const { data: campaigns, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('status', 'active')
+        .lte('start_date', new Date().toISOString())
+        .gte('end_date', new Date().toISOString());
+
+      if (error || !campaigns || campaigns.length === 0) return;
+
+      // Calculate total discount
+      let totalDiscount = 0;
+      const itemDiscounts: Record<string, number> = {};
+
+      for (const item of cartItems) {
+        // Find campaigns that include this product
+        const applicableCampaigns = campaigns.filter(c => {
+          const products = Array.isArray(c.products) ? c.products : [];
+          return products.includes(item.id);
+        });
+
+        if (applicableCampaigns.length > 0) {
+          // Apply highest discount
+          const campaign = applicableCampaigns[0]; // Take first (could sort by value)
+          let itemDiscount = 0;
+
+          if (campaign.discount_type === 'percentage') {
+            itemDiscount = Math.round((item.price * item.quantity * campaign.discount_value) / 100);
+          } else {
+            itemDiscount = campaign.discount_value * item.quantity;
+          }
+
+          itemDiscounts[item.id] = itemDiscount;
+          totalDiscount += itemDiscount;
+        }
+      }
+
+      if (totalDiscount > 0) {
+        setCampaignDiscount(totalDiscount);
+        toast({
+          title: "🎉 Campaign discount applied!",
+          description: `You saved ₹${(totalDiscount / 100).toFixed(0)} on this order`,
+        });
+      }
+    } catch (error) {
+      console.error('Campaign discount check failed:', error);
+    }
+  };
+  
+  const total = calculateTotalWithGST(subtotal - campaignDiscount);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -358,9 +419,17 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                 <span>Items ({cartItems.length})</span>
                 <span>₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
+              {campaignDiscount > 0 && (
+                <div className="flex items-center justify-between text-green-600 dark:text-green-400">
+                  <span className="flex items-center gap-1">
+                    🎉 Campaign Discount
+                  </span>
+                  <span className="font-medium">-₹{(campaignDiscount / 100).toLocaleString('en-IN')}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>GST (18%)</span>
-                <span>₹{(total - subtotal).toLocaleString('en-IN')}</span>
+                <span>₹{(calculateTotalWithGST(subtotal - campaignDiscount) - (subtotal - campaignDiscount)).toLocaleString('en-IN')}</span>
           </div>
           <Separator />
               <div className="flex items-center justify-between">
