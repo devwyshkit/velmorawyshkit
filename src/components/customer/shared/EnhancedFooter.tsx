@@ -62,6 +62,11 @@ export const EnhancedFooter = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/admin/login" className="hover:text-primary transition-colors opacity-60">
+                  Admin
+                </Link>
+              </li>
+              <li>
                 <Link to="/partner-success-stories" className="hover:text-primary transition-colors">
                   Success Stories
                 </Link>

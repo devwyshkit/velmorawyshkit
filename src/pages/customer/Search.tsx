@@ -225,7 +225,7 @@ export const CustomerMobileSearch = () => {
           </div>
         ) : (
           /* Recent & Trending Searches */
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Recent Searches (Swiggy/Zomato pattern) */}
             {recentSearches.length > 0 && (
               <div>

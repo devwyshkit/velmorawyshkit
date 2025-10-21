@@ -157,7 +157,7 @@ export const Track = () => {
         <Card>
           <CardContent className="p-6">
             <h3 className="font-semibold mb-6">Order Timeline</h3>
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {timeline.map((step, index) => (
                 <div key={step.id} className="flex gap-4">
                   <div className="flex flex-col items-center">
