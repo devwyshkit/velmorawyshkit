@@ -8,6 +8,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
+  Package,
   ShoppingBag,
   DollarSign,
   MoreHorizontal,
@@ -37,6 +38,7 @@ export const AdminBottomNav = () => {
 
   // Additional items in "More" menu
   const moreNavItems = [
+    { icon: Package, label: "Product Approvals", path: "/admin/product-approvals", badge: 12 },
     { icon: AlertCircle, label: "Disputes", path: "/admin/disputes", badge: 5 },
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: FileText, label: "Content", path: "/admin/content" },

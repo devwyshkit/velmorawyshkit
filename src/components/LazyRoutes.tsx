@@ -36,6 +36,7 @@ export { AdminLogin } from '../pages/admin/Login';
 export { AdminLayout } from '../components/admin/AdminLayout';
 export { AdminDashboard } from '../pages/admin/Dashboard';
 export { AdminPartners } from '../pages/admin/Partners';
+export { AdminProductApprovals } from '../pages/admin/ProductApprovals';
 export { AdminOrders } from '../pages/admin/Orders';
 export { AdminDisputes } from '../pages/admin/Disputes';
 export { AdminPayouts } from '../pages/admin/Payouts';

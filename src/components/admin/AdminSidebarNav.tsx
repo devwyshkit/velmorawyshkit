@@ -7,6 +7,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
+  Package,
   ShoppingBag,
   AlertCircle,
   DollarSign,
@@ -27,6 +28,7 @@ export const AdminSidebarNav = ({ onNavigate }: AdminSidebarNavProps) => {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
     { icon: Users, label: "Partners", path: "/admin/partners", badge: 18 },
+    { icon: Package, label: "Product Approvals", path: "/admin/product-approvals", badge: 12 },
     { icon: ShoppingBag, label: "Orders", path: "/admin/orders" },
     { icon: AlertCircle, label: "Disputes", path: "/admin/disputes", badge: 5 },
     { icon: DollarSign, label: "Payouts", path: "/admin/payouts", badge: 120 },

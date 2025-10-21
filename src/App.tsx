@@ -76,6 +76,7 @@ const App = () => (
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<LazyPages.AdminDashboard />} />
                 <Route path="partners" element={<LazyPages.AdminPartners />} />
+                <Route path="product-approvals" element={<LazyPages.AdminProductApprovals />} />
                 <Route path="orders" element={<LazyPages.AdminOrders />} />
                 <Route path="disputes" element={<LazyPages.AdminDisputes />} />
                 <Route path="payouts" element={<LazyPages.AdminPayouts />} />

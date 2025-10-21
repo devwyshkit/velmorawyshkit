@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
+  Package,
   ShoppingBag,
   AlertCircle,
   DollarSign,
@@ -48,6 +49,7 @@ export const AdminLayout = () => {
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
     { icon: Users, label: "Partners", path: "/admin/partners", badge: 18 }, // Pending approvals
+    { icon: Package, label: "Products", path: "/admin/product-approvals", badge: 12 }, // Pending products
     { icon: ShoppingBag, label: "Orders", path: "/admin/orders" },
     { icon: AlertCircle, label: "Disputes", path: "/admin/disputes", badge: 5 }, // Escalated
     { icon: DollarSign, label: "Payouts", path: "/admin/payouts", badge: 120 }, // Due
