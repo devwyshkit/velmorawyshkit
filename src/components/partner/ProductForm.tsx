@@ -37,6 +37,8 @@ import { BulkPricingTiers } from "@/components/products/BulkPricingTiers";
 import { SponsoredToggle } from "@/components/products/SponsoredToggle";
 import { SourcingLimits } from "@/components/products/SourcingLimits";
 import { BulkTier } from "@/types/products";
+import { HamperBuilder } from "@/components/partner/products/HamperBuilder";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 // Form validation schema
 const productFormSchema = z.object({
@@ -67,10 +69,14 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
   const { toast } = useToast();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [productType, setProductType] = useState<'standalone' | 'hamper'>(
+    (product as any)?.is_hamper ? 'hamper' : 'standalone'
+  );
   const [images, setImages] = useState<string[]>(product?.images || []);
   const [addOns, setAddOns] = useState<AddOn[]>(product?.add_ons || []);
   const [isCustomizable, setIsCustomizable] = useState(product?.is_customizable || false);
   const [bulkTiers, setBulkTiers] = useState<BulkTier[]>(product?.bulk_pricing || []);
+  const [hamperData, setHamperData] = useState<any>(null);
   const [sponsoredData, setSponsoredData] = useState<{
     isSponsored: boolean;
     startDate?: Date;
@@ -178,6 +184,11 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         category: values.category,
         estimated_delivery_days: values.estimated_delivery_days,
         is_active: true,
+        // Hamper-specific fields
+        is_hamper: productType === 'hamper',
+        auto_order_components: productType === 'hamper' ? true : null,
+        total_component_cost: hamperData?.totalCost || null,
+        suggested_retail_price: hamperData?.suggestedPrice || null,
       };
 
       if (product?.id) {
@@ -204,17 +215,58 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         });
       } else {
         // Create new product - set to pending review
-        const { error } = await supabase
+        const { data: newProduct, error } = await supabase
           .from('partner_products')
           .insert({
             ...productData,
             approval_status: 'pending_review', // CRITICAL: All new products need approval
-          });
+          })
+          .select()
+          .single();
         
         if (error) throw error;
+
+        // If it's a hamper, save components and assembly instructions
+        if (productType === 'hamper' && hamperData && newProduct) {
+          // Save hamper components
+          if (hamperData.components.length > 0) {
+            const componentRecords = hamperData.components.map((comp: any) => ({
+              hamper_product_id: newProduct.id,
+              component_product_id: comp.id,
+              quantity: comp.quantity,
+              wholesale_price: comp.wholesale_price,
+            }));
+
+            const { error: componentError } = await supabase
+              .from('hamper_components')
+              .insert(componentRecords);
+
+            if (componentError) {
+              console.error('Failed to save components:', componentError);
+            }
+          }
+
+          // Save assembly instructions
+          if (hamperData.assemblyInstructions.length > 0) {
+            const instructionRecords = hamperData.assemblyInstructions.map((inst: any) => ({
+              hamper_product_id: newProduct.id,
+              step_number: inst.step_number,
+              instruction_text: inst.instruction_text,
+              instruction_image: inst.instruction_image || null,
+            }));
+
+            const { error: instructionError } = await supabase
+              .from('assembly_instructions')
+              .insert(instructionRecords);
+
+            if (instructionError) {
+              console.error('Failed to save instructions:', instructionError);
+            }
+          }
+        }
         
         toast({
-          title: "Product created",
+          title: productType === 'hamper' ? "Hamper created" : "Product created",
           description: "Your product is under review. It will be live within 24 hours if approved.",
         });
       }
@@ -264,9 +316,18 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
           </Alert>
         )}
 
-        {/* Basic Information */}
-        <div className="space-y-4">
-          <h3 className="font-semibold">Basic Information</h3>
+        {/* Product Type Toggle - Standalone or Hamper */}
+        <Tabs value={productType} onValueChange={(v) => setProductType(v as 'standalone' | 'hamper')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="standalone">Standalone Product</TabsTrigger>
+            <TabsTrigger value="hamper">Hamper/Combo</TabsTrigger>
+          </TabsList>
+
+          {/* Standalone Product Form */}
+          <TabsContent value="standalone" className="space-y-6 mt-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Basic Information</h3>
           
           <FormField
             control={form.control}
@@ -601,32 +662,196 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
           </AccordionItem>
         </Accordion>
 
-        {/* Form Actions */}
-        <div className="flex gap-3 pt-4 border-t">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={loading}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="flex-1"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              product ? 'Update Product' : 'Create Product'
+            {/* Form Actions */}
+            <div className="flex gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={loading}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="flex-1"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  product ? 'Update Product' : 'Create Product'
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* Hamper/Combo Product Form */}
+          <TabsContent value="hamper" className="space-y-6 mt-6">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Build a hamper by selecting components from the Component Marketplace. 
+                The platform will auto-calculate margins and handle sourcing when orders are placed.
+              </AlertDescription>
+            </Alert>
+
+            {/* Basic hamper details */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Hamper Information</h3>
+              
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hamper Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Premium Tech Gift Set" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Curated tech hamper with premium brands..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Hamper Builder Integration */}
+            <HamperBuilder
+              onSave={(data) => setHamperData(data)}
+              initialComponents={hamperData?.components || []}
+              initialInstructions={hamperData?.assemblyInstructions || []}
+            />
+
+            {/* Show suggested price from hamper builder */}
+            {hamperData && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="p-4">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Component Cost:</span>
+                      <span className="font-semibold">₹{(hamperData.totalCost / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Suggested Retail Price:</span>
+                      <span className="font-bold text-lg">₹{(hamperData.suggestedPrice / 100).toFixed(2)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      You can override this price in the next step
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </Button>
-        </div>
+
+            {/* Hamper-specific fields */}
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Final Retail Price (₹)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder={hamperData ? String(hamperData.suggestedPrice / 100) : "4999"}
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {hamperData && `Suggested: ₹${(hamperData.suggestedPrice / 100).toFixed(2)} (3x markup)`}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Available Hampers</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="50"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Limited by component stock availability
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Images for hamper */}
+            <div className="space-y-4">
+              <h3 className="font-semibold">Hamper Images</h3>
+              <ImageUploader
+                images={images}
+                onImagesChange={setImages}
+                maxImages={5}
+                maxSizeMB={5}
+                disabled={loading}
+              />
+            </div>
+
+            {/* Form Actions for Hamper */}
+            <div className="flex gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={loading}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || !hamperData}
+                className="flex-1"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  product ? 'Update Hamper' : 'Create Hamper'
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </form>
     </Form>
   );
