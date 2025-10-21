@@ -492,7 +492,3 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
     </Form>
   );
 };
-
-// Import Label for file upload sections
-import { Label } from "@/components/ui/label";
-
