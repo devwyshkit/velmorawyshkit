@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -40,6 +41,8 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string
   searchPlaceholder?: string
   onRowSelectionChange?: (selectedRows: TData[]) => void
+  loading?: boolean
+  skeletonRows?: number
 }
 
 export function DataTable<TData, TValue>({
@@ -48,6 +51,8 @@ export function DataTable<TData, TValue>({
   searchKey,
   searchPlaceholder = "Search...",
   onRowSelectionChange,
+  loading = false,
+  skeletonRows = 5,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -141,7 +146,18 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              // Skeleton loading rows to prevent CLS
+              Array.from({ length: skeletonRows }).map((_, index) => (
+                <TableRow key={`skeleton-${index}`}>
+                  {columns.map((_, cellIndex) => (
+                    <TableCell key={`skeleton-cell-${cellIndex}`}>
+                      <Skeleton className="h-4 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}

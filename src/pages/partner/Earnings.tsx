@@ -365,6 +365,8 @@ export const PartnerEarnings = () => {
             data={transactions}
             searchKey="order_number"
             searchPlaceholder="Search by order number..."
+            loading={loading}
+            skeletonRows={5}
           />
         </CardContent>
       </Card>

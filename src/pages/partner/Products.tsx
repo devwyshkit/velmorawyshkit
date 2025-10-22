@@ -227,6 +227,8 @@ export const PartnerProducts = () => {
             searchKey="name"
             searchPlaceholder="Search products..."
             onRowSelectionChange={setSelectedProducts}
+            loading={loading}
+            skeletonRows={5}
           />
         </TabsContent>
 
@@ -237,6 +239,8 @@ export const PartnerProducts = () => {
             searchKey="name"
             searchPlaceholder="Search approved products..."
             onRowSelectionChange={setSelectedProducts}
+            loading={loading}
+            skeletonRows={5}
           />
         </TabsContent>
 
@@ -247,6 +251,8 @@ export const PartnerProducts = () => {
             searchKey="name"
             searchPlaceholder="Search pending products..."
             onRowSelectionChange={setSelectedProducts}
+            loading={loading}
+            skeletonRows={5}
           />
         </TabsContent>
 
@@ -257,6 +263,8 @@ export const PartnerProducts = () => {
             searchKey="name"
             searchPlaceholder="Search rejected products..."
             onRowSelectionChange={setSelectedProducts}
+            loading={loading}
+            skeletonRows={5}
           />
         </TabsContent>
       </Tabs>

@@ -325,6 +325,8 @@ export const AdminPartners = () => {
                     <DataTable
                       columns={activePartnerColumns}
                       data={activePartners}
+                      loading={loadingActive}
+                      skeletonRows={5}
                     />
                   )}
                 </>
