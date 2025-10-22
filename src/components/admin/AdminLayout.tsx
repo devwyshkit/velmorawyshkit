@@ -82,7 +82,7 @@ export const AdminLayout = () => {
     <div className="min-h-screen bg-background">
       {/* Top Navigation Bar (Responsive) */}
       <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="flex h-16 items-center px-4 md:px-6">
+        <div className="flex h-16 items-center px-2 md:px-4 lg:px-6">
           {/* Mobile Hamburger */}
           <AdminMobileNav />
 
@@ -96,8 +96,40 @@ export const AdminLayout = () => {
             <span className="hidden md:inline ml-3 text-sm font-semibold text-muted-foreground">ADMIN</span>
           </Link>
 
+          {/* Medium Screen Navigation (Tablet) */}
+          <nav className="hidden md:flex lg:hidden items-center space-x-1 flex-1 overflow-x-auto">
+            {navItems.slice(0, 4).map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-2 text-sm font-medium rounded-md transition-colors relative whitespace-nowrap",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden xl:inline">{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <Badge
+                      variant={isActive ? "secondary" : "destructive"}
+                      className="ml-1 px-1.5 py-0 text-xs h-5 min-w-5"
+                    >
+                      {item.badge}
+                    </Badge>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
           {/* Main Navigation (Desktop only) */}
-          <nav className="hidden md:flex items-center space-x-1 flex-1">
+          <nav className="hidden lg:flex items-center space-x-1 flex-1 overflow-x-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -107,14 +139,14 @@ export const AdminLayout = () => {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors relative",
+                    "flex items-center gap-2 px-2 py-2 text-sm font-medium rounded-md transition-colors relative whitespace-nowrap",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <span className="hidden xl:inline">{item.label}</span>
                   {item.badge !== undefined && item.badge > 0 && (
                     <Badge
                       variant={isActive ? "secondary" : "destructive"}
