@@ -27,6 +27,58 @@ npm run dev
 
 ---
 
+## 🚀 Production Deployment
+
+### Deploy to Vercel (Recommended)
+
+1. **Build the project:**
+   ```bash
+   npm run build
+   ```
+
+2. **Deploy to Vercel:**
+   ```bash
+   # Install Vercel CLI
+   npm i -g vercel
+   
+   # Deploy
+   vercel --prod
+   ```
+
+3. **Configure Environment Variables in Vercel:**
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_GOOGLE_PLACES_API_KEY=your_google_places_key
+   VITE_RAZORPAY_KEY_ID=your_razorpay_key
+   ```
+
+4. **Update Supabase Site URL:**
+   - Go to Supabase Dashboard → Authentication → URL Configuration
+   - Set Site URL to your Vercel URL
+   - Add Redirect URLs: `https://your-app.vercel.app/auth/callback`
+
+### Alternative: Deploy to Netlify
+
+1. **Build and deploy:**
+   ```bash
+   npm run build
+   # Upload dist/ folder to Netlify
+   ```
+
+2. **Configure environment variables in Netlify dashboard**
+
+### Post-Deployment Checklist
+
+- [ ] Update Supabase Site URL to production URL
+- [ ] Test Google OAuth on production
+- [ ] Verify all database connections
+- [ ] Test payment gateway (Razorpay)
+- [ ] Check mobile responsiveness
+- [ ] Verify all three portals work
+
+---
+
 ## 🎯 Platform Overview
 
 ### Three Integrated Portals

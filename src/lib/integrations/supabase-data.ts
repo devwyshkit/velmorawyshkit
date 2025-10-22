@@ -181,7 +181,7 @@ const mockItems: Item[] = [
   },
   {
     id: '00000000-0000-0000-0001-000000000005',
-    name: 'Gourmet Snack Basket',
+    name: 'Gourmet Snack Cart',
     description: 'Curated selection of international and local gourmet snacks. Perfect for food lovers.',
     shortDesc: 'International snacks for food enthusiasts – exotic flavors from around the world',
     image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=400&fit=crop',
