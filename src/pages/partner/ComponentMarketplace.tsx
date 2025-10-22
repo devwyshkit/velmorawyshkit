@@ -302,6 +302,8 @@ export const ComponentMarketplace = () => {
                     src={component.product_images[0] || '/placeholder.svg'}
                     alt={component.product_name}
                     className="w-full h-full object-cover"
+                    width="200"
+                    height="200"
                   />
                   {isSelected && (
                     <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">

@@ -193,6 +193,8 @@ export const PartnerLogin = () => {
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-business-logo.png"}
                   alt="Wyshkit Partner Portal"
                   className="h-12 hover:opacity-80 transition-opacity cursor-pointer"
+                  width="200"
+                  height="48"
                 />
               </Link>
             </div>

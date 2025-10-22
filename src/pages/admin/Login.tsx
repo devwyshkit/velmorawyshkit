@@ -105,6 +105,8 @@ export const AdminLogin = () => {
               src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
               alt="Wyshkit Admin"
               className="h-12"
+              width="200"
+              height="48"
             />
           </div>
           

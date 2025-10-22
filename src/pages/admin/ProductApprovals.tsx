@@ -226,6 +226,8 @@ export const AdminProductApprovals = () => {
             src={row.original.images[0]}
             alt={row.original.name}
             className="w-12 h-12 rounded object-cover"
+            width="48"
+            height="48"
           />
           <div>
             <p className="font-medium">{row.original.name}</p>

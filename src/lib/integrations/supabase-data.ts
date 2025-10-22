@@ -228,7 +228,7 @@ export const fetchPartners = async (location?: string): Promise<Partner[]> => {
       }));
     }
   } catch (error) {
-    console.warn('Supabase fetch failed, using mock data:', error);
+    console.warn('Database fetch failed, using mock data:', error);
   }
   
   // Fallback to mock data
@@ -246,7 +246,7 @@ export const fetchPartnerById = async (id: string): Promise<Partner | null> => {
     if (error) throw error;
     if (data) return data;
   } catch (error) {
-    console.warn('Supabase fetch failed, using mock data:', error);
+    console.warn('Database fetch failed, using mock data:', error);
   }
   
   // Fallback to mock data
@@ -268,7 +268,7 @@ export const fetchItemsByPartner = async (partnerId: string): Promise<Item[]> =>
       return data;
     }
   } catch (error) {
-    console.warn('Supabase fetch failed, using mock data:', error);
+    console.warn('Database fetch failed, using mock data:', error);
   }
   
   // Fallback to mock data
@@ -286,7 +286,7 @@ export const fetchItemById = async (id: string): Promise<Item | null> => {
     if (error) throw error;
     if (data) return data;
   } catch (error) {
-    console.warn('Supabase fetch failed, using mock data:', error);
+    console.warn('Database fetch failed, using mock data:', error);
   }
   
   // Fallback to mock data

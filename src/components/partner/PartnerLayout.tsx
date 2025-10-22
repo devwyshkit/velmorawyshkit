@@ -87,6 +87,8 @@ export const PartnerLayout = () => {
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
                   alt="Wyshkit Partner"
                   className="h-8 w-auto object-contain"
+                  width="120"
+                  height="32"
                 />
               </Link>
             </div>
@@ -175,6 +177,8 @@ export const PartnerLayout = () => {
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
                   alt="Wyshkit"
                   className="h-6 w-auto max-w-[120px] object-contain"
+                  width="120"
+                  height="30"
                 />
               </Link>
               

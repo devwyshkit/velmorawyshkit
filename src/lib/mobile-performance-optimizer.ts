@@ -71,26 +71,11 @@ export class MobilePerformanceOptimizer {
 
   /**
    * Preload critical resources for faster initial paint
+   * Note: Removed preload logic to eliminate browser warnings for unused resources
    */
   private preloadCriticalResources() {
-    // Preload critical fonts
-    const fontLink = document.createElement('link');
-    fontLink.rel = 'preload';
-    fontLink.as = 'font';
-    fontLink.type = 'font/woff2';
-    fontLink.crossOrigin = 'anonymous';
-    fontLink.href = '/fonts/inter-variable.woff2';
-    document.head.appendChild(fontLink);
-
-    // Preload hero images
-    const heroImages = ['/wyshkit-customer-logo.png'];
-    heroImages.forEach((src) => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'image';
-      link.href = src;
-      document.head.appendChild(link);
-    });
+    // Preload logic removed to prevent browser warnings
+    // Resources are loaded naturally when needed
   }
 
   /**

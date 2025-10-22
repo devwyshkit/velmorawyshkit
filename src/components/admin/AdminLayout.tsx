@@ -92,6 +92,8 @@ export const AdminLayout = () => {
               src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
               alt="Wyshkit Admin"
               className="h-5 md:h-8 w-auto object-contain"
+              width="120"
+              height="32"
             />
             <span className="hidden md:inline ml-3 text-sm font-semibold text-muted-foreground">ADMIN</span>
           </Link>

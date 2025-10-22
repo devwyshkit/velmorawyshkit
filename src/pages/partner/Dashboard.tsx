@@ -62,7 +62,7 @@ export const PartnerHome = () => {
         .rpc('get_partner_stats', { p_partner_id: user.id });
       
       if (statsError) {
-        console.warn('Stats fetch failed, using mock data:', statsError);
+        console.warn('Partner stats fetch failed, using mock data:', statsError);
         // Use mock data for development
         setStats({
           todayOrders: 12,
@@ -91,7 +91,7 @@ export const PartnerHome = () => {
         .limit(5);
       
       if (ordersError) {
-        console.warn('Orders fetch failed:', ordersError);
+        console.warn('Orders fetch failed, using mock data:', ordersError);
         // Mock pending orders
         setPendingOrders([
           {
