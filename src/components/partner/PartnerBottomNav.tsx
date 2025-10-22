@@ -8,6 +8,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
@@ -118,6 +119,9 @@ export const PartnerBottomNav = () => {
             <SheetContent side="bottom" className="h-[80vh] rounded-t-xl">
               <SheetHeader>
                 <SheetTitle>More Options</SheetTitle>
+                <SheetDescription>
+                  Additional partner features and account management options
+                </SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-1">
                 {secondaryNavItems.map((item) => {

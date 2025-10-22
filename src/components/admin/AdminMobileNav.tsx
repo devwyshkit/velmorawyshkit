@@ -12,6 +12,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { AdminSidebarNav } from "./AdminSidebarNav";
 
@@ -36,6 +37,9 @@ export const AdminMobileNav = () => {
         <SheetContent side="left" className="w-[280px] p-0">
           <SheetHeader className="p-4 pb-3 border-b">
             <SheetTitle>Admin Menu</SheetTitle>
+            <SheetDescription>
+              Navigate through admin sections and manage platform operations
+            </SheetDescription>
           </SheetHeader>
           <div className="py-4">
             <AdminSidebarNav onNavigate={() => setOpen(false)} />

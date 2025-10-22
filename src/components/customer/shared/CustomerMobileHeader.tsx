@@ -4,7 +4,7 @@ import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
 import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/contexts/CartContext";
@@ -172,6 +172,12 @@ export const CustomerMobileHeader = ({
           side="bottom"
           className="h-[80vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
         >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Location Selection</SheetTitle>
+            <SheetDescription>
+              Select your delivery location to see available partners and products
+            </SheetDescription>
+          </SheetHeader>
           {/* Grabber */}
           <div className="flex justify-center pt-2">
             <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
