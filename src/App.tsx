@@ -22,7 +22,7 @@ const App = () => (
             <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             {/* Root redirect to customer home */}
             <Route path="/" element={<Navigate to="/customer/home" replace />} />
@@ -92,6 +92,15 @@ const App = () => (
                 <Route path="partner-approvals" element={<Navigate to="/admin/partners" replace />} />
               </Route>
             </Route>
+
+            {/* Legal Routes */}
+            <Route path="/terms" element={<LazyPages.Terms />} />
+            <Route path="/privacy" element={<LazyPages.Privacy />} />
+            <Route path="/refund" element={<LazyPages.Refund />} />
+            <Route path="/contact" element={<LazyPages.Contact />} />
+            <Route path="/about" element={<LazyPages.About />} />
+            <Route path="/help" element={<LazyPages.Help />} />
+            <Route path="/faq" element={<LazyPages.FAQ />} />
 
             {/* Utility Routes */}
             <Route path="/unauthorized" element={<LazyPages.Unauthorized />} />

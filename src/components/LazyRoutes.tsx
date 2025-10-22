@@ -51,6 +51,15 @@ export { AdminAudit } from '../pages/admin/AuditLogs';
 // Legacy
 export { AdminPartnerApprovals } from '../pages/admin/PartnerApprovals';
 
+// Legal Pages
+export { default as Terms } from '../pages/legal/Terms';
+export { default as Privacy } from '../pages/legal/Privacy';
+export { default as Refund } from '../pages/legal/Refund';
+export { default as Contact } from '../pages/legal/Contact';
+export { default as About } from '../pages/legal/About';
+export { default as Help } from '../pages/legal/Help';
+export { default as FAQ } from '../pages/legal/FAQ';
+
 // Utility Pages
 export { default as NotFound } from '../pages/NotFound';
 export { default as Unauthorized } from '../pages/Unauthorized';
