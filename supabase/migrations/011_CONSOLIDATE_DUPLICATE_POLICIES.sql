@@ -191,8 +191,8 @@ DROP POLICY IF EXISTS "Support can view all referrals" ON public.partner_referra
 -- Create single consolidated policy
 CREATE POLICY "Consolidated partner referrals access" ON public.partner_referrals
   FOR SELECT USING (
-    -- Partners can view their own referrals
-    partner_id = (select auth.uid())
+    -- Partners can view their own referrals (referrers)
+    referrer_id = (select auth.uid())
     -- Referees can view their own referral record
     OR referee_id = (select auth.uid())
     -- Admins and support can view all referrals
