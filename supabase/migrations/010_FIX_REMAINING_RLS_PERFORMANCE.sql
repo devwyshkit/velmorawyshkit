@@ -94,19 +94,17 @@ CREATE POLICY "Partners can flag reviews" ON public.review_flags
 -- Partners can update own profile
 DROP POLICY IF EXISTS "Partners can update own profile" ON public.partner_profiles;
 CREATE POLICY "Partners can update own profile" ON public.partner_profiles
-  FOR UPDATE USING (user_id = (select auth.uid()));
+  FOR UPDATE USING (id = (select auth.uid()));
 
 -- Partners can view own profile
 DROP POLICY IF EXISTS "Partners can view own profile" ON public.partner_profiles;
 CREATE POLICY "Partners can view own profile" ON public.partner_profiles
-  FOR SELECT USING (user_id = (select auth.uid()));
+  FOR SELECT USING (id = (select auth.uid()));
 
 -- Admins can manage all partners
 DROP POLICY IF EXISTS "Admins can manage all partners" ON public.partner_profiles;
 CREATE POLICY "Admins can manage all partners" ON public.partner_profiles
-  FOR ALL USING (EXISTS (
-    SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
-  ));
+  FOR ALL USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- ============================================================================
 -- DISPUTES TABLE (3 policies)
@@ -285,9 +283,7 @@ CREATE POLICY "Partners can manage own products" ON public.partner_products
 -- Admins can view all products
 DROP POLICY IF EXISTS "Admins can view all products" ON public.partner_products;
 CREATE POLICY "Admins can view all products" ON public.partner_products
-  FOR SELECT USING (EXISTS (
-    SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
-  ));
+  FOR SELECT USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- Partners view own products all statuses
 DROP POLICY IF EXISTS "Partners view own products all statuses" ON public.partner_products;
@@ -307,9 +303,7 @@ CREATE POLICY "Partners can update own products" ON public.partner_products
 -- Only admins can approve products
 DROP POLICY IF EXISTS "Only admins can approve products" ON public.partner_products;
 CREATE POLICY "Only admins can approve products" ON public.partner_products
-  FOR UPDATE USING (EXISTS (
-    SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
-  ));
+  FOR UPDATE USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 -- ============================================================================
 -- REVIEWS TABLE (3 policies)

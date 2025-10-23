@@ -29,7 +29,7 @@ CREATE POLICY "Consolidated dispute messages access" ON public.dispute_messages
     )
     -- Admins can view all messages
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -50,7 +50,7 @@ CREATE POLICY "Consolidated dispute messages insert" ON public.dispute_messages
     )
     -- Admins can send messages for any dispute
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -73,7 +73,7 @@ CREATE POLICY "Consolidated disputes access" ON public.disputes
     OR customer_id = (select auth.uid())
     -- Admins can view all disputes
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -84,7 +84,7 @@ CREATE POLICY "Consolidated disputes update" ON public.disputes
     partner_id = (select auth.uid())
     -- Admins can update any dispute
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -106,11 +106,7 @@ CREATE POLICY "Consolidated partner badges access" ON public.partner_badges
     -- Anyone can view public badges (when badge is public)
     OR is_public = true
     -- Admins and support can view all badges
-    OR EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = (select auth.uid()) 
-      AND role IN ('admin', 'support')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') IN ('admin', 'support'))
   );
 
 -- ============================================================================
@@ -132,11 +128,7 @@ CREATE POLICY "Consolidated partner products select" ON public.partner_products
     -- Anyone can view approved products
     OR approval_status = 'approved'
     -- Admins and support can view all products
-    OR EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = (select auth.uid()) 
-      AND role IN ('admin', 'support')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') IN ('admin', 'support'))
   );
 
 -- Drop all duplicate INSERT policies (2 policies)
@@ -150,7 +142,7 @@ CREATE POLICY "Consolidated partner products insert" ON public.partner_products
     partner_id = (select auth.uid())
     -- Admins can create products for any partner
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -166,7 +158,7 @@ CREATE POLICY "Consolidated partner products update" ON public.partner_products
     partner_id = (select auth.uid())
     -- Admins can update any product
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -182,10 +174,10 @@ DROP POLICY IF EXISTS "Admins can manage all partners" ON public.partner_profile
 CREATE POLICY "Consolidated partner profiles select" ON public.partner_profiles
   FOR SELECT USING (
     -- Partners can view their own profile
-    user_id = (select auth.uid())
+    id = (select auth.uid())
     -- Admins can view all profiles
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -197,10 +189,10 @@ DROP POLICY IF EXISTS "Admins can update all profiles" ON public.partner_profile
 CREATE POLICY "Consolidated partner profiles update" ON public.partner_profiles
   FOR UPDATE USING (
     -- Partners can update their own profile
-    user_id = (select auth.uid())
+    id = (select auth.uid())
     -- Admins can update any profile
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -222,11 +214,7 @@ CREATE POLICY "Consolidated partner referrals access" ON public.partner_referral
     -- Referees can view their own referral record
     OR referee_id = (select auth.uid())
     -- Admins and support can view all referrals
-    OR EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = (select auth.uid()) 
-      AND role IN ('admin', 'support')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') IN ('admin', 'support'))
   );
 
 -- ============================================================================
@@ -248,7 +236,7 @@ CREATE POLICY "Consolidated referral codes select" ON public.referral_codes
     OR is_active = true
     -- Admins can view all codes
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -259,7 +247,7 @@ CREATE POLICY "Consolidated referral codes insert" ON public.referral_codes
     partner_id = (select auth.uid())
     -- Admins can create codes for any partner
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -282,7 +270,7 @@ CREATE POLICY "Consolidated returns select" ON public.returns
     OR customer_id = (select auth.uid())
     -- Admins can view all returns
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -293,7 +281,7 @@ CREATE POLICY "Consolidated returns update" ON public.returns
     partner_id = (select auth.uid())
     -- Admins can update any return
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -304,7 +292,7 @@ CREATE POLICY "Consolidated returns insert" ON public.returns
     customer_id = (select auth.uid())
     -- Admins can create returns for any customer
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -331,7 +319,7 @@ CREATE POLICY "Consolidated reviews select" ON public.reviews
     )
     -- Admins can view all reviews
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
@@ -339,10 +327,10 @@ CREATE POLICY "Consolidated reviews select" ON public.reviews
 CREATE POLICY "Consolidated reviews insert" ON public.reviews
   FOR INSERT WITH CHECK (
     -- Customers can create reviews
-    user_id = (select auth.uid())
+    id = (select auth.uid())
     -- Admins can create reviews for any user
     OR EXISTS (
-      SELECT 1 FROM profiles WHERE id = (select auth.uid()) AND role = 'admin'
+      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
     )
   );
 
