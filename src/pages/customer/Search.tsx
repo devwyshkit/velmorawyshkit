@@ -8,6 +8,7 @@ import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobil
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { searchItems, searchPartners } from "@/lib/integrations/supabase-data";
+import { EmptyStates, SkeletonComponents } from "@/components/ui/empty-state";
 
 interface SearchResult {
   id: string;
@@ -199,7 +200,7 @@ export const CustomerMobileSearch = () => {
 
       {/* Main Content */}
       <main className="max-w-screen-xl mx-auto px-4 py-6">
-        {results.length > 0 ? (
+        {searchQuery && results.length > 0 ? (
           /* Search Results */
           <div>
             <h2 className="text-lg font-semibold mb-4">
@@ -223,6 +224,14 @@ export const CustomerMobileSearch = () => {
               ))}
             </div>
           </div>
+        ) : searchQuery && results.length === 0 ? (
+          /* No Results Found */
+          <EmptyStates.Search
+            action={{
+              label: "Clear Search",
+              onClick: () => setSearchQuery("")
+            }}
+          />
         ) : (
           /* Recent & Trending Searches */
           <div className="space-y-4 md:space-y-6">

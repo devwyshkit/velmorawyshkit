@@ -479,16 +479,12 @@ export const searchItems = async (query: string): Promise<Item[]> => {
   }
 
   try {
-    // Format query for PostgreSQL tsquery (handle spaces, special chars)
-    const formattedQuery = query
-      .trim()
-      .split(/\s+/)
-      .map(word => word.replace(/[^\w]/g, ''))
-      .filter(word => word.length > 0)
-      .join(' | '); // OR operator for better results
-
+    // Try direct table search first (more reliable than RPC)
     const { data, error } = await supabase
-      .rpc('search_items', { search_query: formattedQuery });
+      .from('items')
+      .select('*')
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%,short_desc.ilike.%${query}%`)
+      .limit(20);
 
     if (error) throw error;
     
@@ -496,7 +492,8 @@ export const searchItems = async (query: string): Promise<Item[]> => {
       return data;
     }
   } catch (error) {
-    console.warn('Backend search failed, using client-side fallback:', error);
+    // Silently fall back to client-side search
+    console.warn('Backend search failed, using client-side fallback');
   }
   
   // Fallback to client-side search if backend fails
@@ -536,7 +533,8 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
       }));
     }
   } catch (error) {
-    console.warn('Backend search failed, using client-side fallback:', error);
+    // Silently fall back to client-side search
+    console.warn('Backend search failed, using client-side fallback');
   }
   
   // Fallback to client-side search (mock partners are implicitly approved)

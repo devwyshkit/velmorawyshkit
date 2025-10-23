@@ -1,16 +1,18 @@
-// Customer Pages - Mobile-First UI
-export { CustomerMobileLogin as Login } from '../pages/customer/Login';
-export { CustomerMobileSignup as Signup } from '../pages/customer/Signup';
-export { CustomerHome as Home } from '../pages/customer/CustomerHome';
-export { Partner } from '../pages/customer/Partner';
-export { ItemDetailsNew as ItemDetails } from '../pages/customer/ItemDetailsNew';
-export { Cart } from '../pages/customer/Cart';
-export { Wishlist } from '../pages/customer/Wishlist';
-export { Checkout } from '../pages/customer/Checkout';
-export { Confirmation } from '../pages/customer/Confirmation';
-export { Track } from '../pages/customer/Track';
-export { Profile } from '../pages/customer/Profile';
-export { CustomerMobileSearch as Search } from '../pages/customer/Search';
+import { lazy } from 'react';
+
+// Lazy load customer pages for better performance
+export const Login = lazy(() => import('../pages/customer/Login').then(m => ({ default: m.CustomerMobileLogin })));
+export const Signup = lazy(() => import('../pages/customer/Signup').then(m => ({ default: m.CustomerMobileSignup })));
+export const Home = lazy(() => import('../pages/customer/CustomerHome').then(m => ({ default: m.CustomerHome })));
+export const Partner = lazy(() => import('../pages/customer/Partner').then(m => ({ default: m.Partner })));
+export const ItemDetails = lazy(() => import('../pages/customer/ItemDetailsNew').then(m => ({ default: m.ItemDetailsNew })));
+export const Cart = lazy(() => import('../pages/customer/Cart').then(m => ({ default: m.Cart })));
+export const Wishlist = lazy(() => import('../pages/customer/Wishlist').then(m => ({ default: m.Wishlist })));
+export const Checkout = lazy(() => import('../pages/customer/Checkout').then(m => ({ default: m.Checkout })));
+export const Confirmation = lazy(() => import('../pages/customer/Confirmation').then(m => ({ default: m.Confirmation })));
+export const Track = lazy(() => import('../pages/customer/Track').then(m => ({ default: m.Track })));
+export const Profile = lazy(() => import('../pages/customer/Profile').then(m => ({ default: m.Profile })));
+export const Search = lazy(() => import('../pages/customer/Search').then(m => ({ default: m.CustomerMobileSearch })));
 
 // Partner Pages - Business Dashboard
 export { PartnerLogin } from '../pages/partner/Login';
@@ -33,7 +35,6 @@ export { PartnerBadges } from '../pages/partner/Badges';
 export { ComponentMarketplace } from '../pages/partner/ComponentMarketplace';
 export { KittingDashboard } from '../pages/partner/KittingDashboard';
 export { KittingWorkflow } from '../pages/partner/KittingWorkflow';
-export { ProductFormWizard } from '../components/partner/ProductFormWizard';
 export { WyshkitSupply } from '../pages/partner/WyshkitSupply';
 
 // Admin Pages - Internal Console
