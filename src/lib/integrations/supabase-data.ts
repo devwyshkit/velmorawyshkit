@@ -478,25 +478,38 @@ export const searchItems = async (query: string): Promise<Item[]> => {
     return [];
   }
 
-  try {
-    // Try direct table search first (more reliable than RPC)
-    const { data, error } = await supabase
-      .from('items')
-      .select('*')
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%,short_desc.ilike.%${query}%`)
-      .limit(20);
+  const maxRetries = 2;
+  let lastError: any;
 
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      return data;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Try direct table search first (more reliable than RPC)
+      const { data, error } = await supabase
+        .from('items')
+        .select('*')
+        .or(`name.ilike.%${query}%,description.ilike.%${query}%,short_desc.ilike.%${query}%`)
+        .limit(20);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        return data;
+      }
+      
+      // If no results, return empty array
+      return [];
+    } catch (error) {
+      lastError = error;
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+      }
     }
-  } catch (error) {
-    // Silently fall back to client-side search
-    console.warn('Backend search failed, using client-side fallback');
   }
   
-  // Fallback to client-side search if backend fails
+  // Fallback to client-side search if all backend attempts fail
+  console.warn('Backend search failed after retries, using client-side fallback');
   return mockItems.filter(item =>
     item.name.toLowerCase().includes(query.toLowerCase()) ||
     item.description.toLowerCase().includes(query.toLowerCase()) ||
@@ -509,33 +522,48 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
     return [];
   }
 
-  try {
-    // Simple search on partners table
-    const { data, error } = await supabase
-      .from('partners')
-      .select('*')
-      .or(`name.ilike.%${query}%,category.ilike.%${query}%`)
-      .order('rating', { ascending: false })
-      .limit(20);
+  const maxRetries = 2;
+  let lastError: any;
 
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      return data.map(p => ({
-        id: p.id,
-        name: p.name,
-        image: p.image || 'https://picsum.photos/seed/partner/400/400',
-        rating: p.rating || 4.5,
-        delivery: p.delivery_time || '3-5 days',
-        location: p.location,
-        category: p.category,
-        ratingCount: 100,
-      }));
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Simple search on partners table
+      const { data, error } = await supabase
+        .from('partners')
+        .select('*')
+        .or(`name.ilike.%${query}%,category.ilike.%${query}%`)
+        .order('rating', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        return data.map(p => ({
+          id: p.id,
+          name: p.name,
+          image: p.image || 'https://picsum.photos/seed/partner/400/400',
+          rating: p.rating || 4.5,
+          delivery: p.delivery_time || '3-5 days',
+          location: p.location,
+          category: p.category,
+          ratingCount: 100,
+        }));
+      }
+      
+      // If no results, return empty array
+      return [];
+    } catch (error) {
+      lastError = error;
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+      }
     }
-  } catch (error) {
-    // Silently fall back to client-side search
-    console.warn('Backend search failed, using client-side fallback');
   }
+  
+  // Fallback to client-side search if all backend attempts fail
+  console.warn('Backend search failed after retries, using client-side fallback');
   
   // Fallback to client-side search (mock partners are implicitly approved)
   return mockPartners.filter(partner =>

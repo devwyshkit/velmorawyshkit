@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -271,11 +271,15 @@ export const PartnerProducts = () => {
 
       {/* Product Form Sheet (Add/Edit with add-ons builder) */}
       <Sheet open={showProductForm} onOpenChange={setShowProductForm}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto" aria-describedby="product-wizard-description">
           <SheetHeader>
             <SheetTitle>
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </SheetTitle>
+            <SheetDescription id="product-wizard-description">
+              Create a new product listing with tiered pricing, add-ons, and customization options. 
+              Your product will be reviewed before going live.
+            </SheetDescription>
           </SheetHeader>
           <ProductListingWizard
             product={editingProduct}

@@ -18,6 +18,7 @@ import { FilterChips, type Filter } from "@/components/customer/shared/FilterChi
 import { EnhancedFooter } from "@/components/customer/shared/EnhancedFooter";
 import { EmailVerificationBanner } from "@/components/customer/shared/EmailVerificationBanner";
 import { CampaignCard } from "@/components/customer/campaigns/CampaignCard";
+import { OptimizedImage } from "@/components/ui/skeleton-screen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRecommendations } from "@/lib/integrations/openai";
 import { fetchPartners, type Partner } from "@/lib/integrations/supabase-data";
@@ -263,9 +264,11 @@ export const CustomerHome = () => {
                         >
                           {/* Banner Image (if from database) */}
                           {item.image_url && (
-                            <img
+                            <OptimizedImage
                               src={item.image_url}
                               alt={item.title}
+                              width={400}
+                              height={128}
                               className="absolute inset-0 w-full h-full object-cover"
                             />
                           )}
@@ -417,9 +420,11 @@ export const CustomerHome = () => {
                 <CardContent className="p-2">
                   {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
                   <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
-                    <img
+                    <OptimizedImage
                       src={partner.image}
                       alt={partner.name}
+                      width={200}
+                      height={200}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
@@ -480,9 +485,11 @@ export const CustomerHome = () => {
                   <div className="flex gap-1 mt-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="snap-start w-12 h-12 rounded bg-muted flex-shrink-0">
-                        <img 
+                        <OptimizedImage 
                           src={`https://picsum.photos/seed/thumb-${partner.id}-${i}/100/100`}
                           alt={`Product ${i}`}
+                          width={48}
+                          height={48}
                           className="w-full h-full object-cover rounded"
                           loading="lazy"
                         />

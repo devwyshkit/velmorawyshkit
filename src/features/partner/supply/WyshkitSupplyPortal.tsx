@@ -358,9 +358,11 @@ export const WyshkitSupplyPortal: React.FC<WyshkitSupplyPortalProps> = ({
     <Card key={item.product.id}>
       <CardContent className="p-4">
         <div className="flex gap-3">
-          <img
+          <OptimizedImage
             src={item.product.images[0] || '/placeholder.svg'}
             alt={item.product.name}
+            width={64}
+            height={64}
             className="w-16 h-16 object-cover rounded"
             loading="lazy"
           />
