@@ -40,7 +40,7 @@ export const isAuthenticated = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     return !!session;
   } catch (error) {
-    console.warn('Supabase auth check failed, using guest mode');
+    // Handle error silently in production
     return false;
   }
 };

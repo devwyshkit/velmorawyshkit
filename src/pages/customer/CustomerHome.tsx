@@ -64,12 +64,12 @@ export const CustomerHome = () => {
             .order('display_order', { ascending: true });
           
           if (bannersError) {
-            console.warn('Banners fetch failed:', bannersError);
+            // Handle error silently in production
           } else {
             setBanners(bannersData || []);
           }
         } catch (error) {
-          console.warn('Failed to load banners:', error);
+          // Handle error silently in production
         }
 
         // Load occasions from Supabase (we have 8 in database!)
@@ -81,7 +81,7 @@ export const CustomerHome = () => {
             .order('display_order', { ascending: true });
           
           if (occasionsError) {
-            console.warn('Occasions fetch failed:', occasionsError);
+            // Handle error silently in production
           } else {
             setOccasions(occasionsData?.map(occ => ({
               id: occ.id,
@@ -92,7 +92,7 @@ export const CustomerHome = () => {
             })) || []);
           }
         } catch (error) {
-          console.warn('Failed to load occasions:', error);
+          // Handle error silently in production
         }
 
         // Load recommendations with user context (fallback if no banners)
@@ -124,10 +124,10 @@ export const CustomerHome = () => {
           
           setFeaturedCampaigns(campaigns || []);
         } catch (error) {
-          console.warn('Featured campaigns fetch failed:', error);
+          // Handle error silently in production
         }
       } catch (error) {
-        console.error('Failed to load data:', error);
+        // Handle error silently in production
         toast({
           title: "Loading error",
           description: "Some content may not be available",

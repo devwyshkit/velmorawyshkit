@@ -76,7 +76,7 @@ export const CartWithDeliveryFees: React.FC<CartWithDeliveryFeesProps> = ({
           }
         });
       } catch (error) {
-        console.error('Error calculating pricing for item:', item.product.name, error);
+        // Handle error silently in production
       }
     });
     
@@ -90,7 +90,7 @@ export const CartWithDeliveryFees: React.FC<CartWithDeliveryFeesProps> = ({
       const result = calculateDeliveryFee(cartSubtotal, 0, deliveryConfig);
       setDeliveryResult(result);
     } catch (error) {
-      console.error('Error calculating delivery fee:', error);
+      // Handle error silently in production
     }
   }, [cartSubtotal]);
 
@@ -120,7 +120,7 @@ export const CartWithDeliveryFees: React.FC<CartWithDeliveryFeesProps> = ({
       
       return total;
     } catch (error) {
-      console.error('Error calculating item total:', error);
+      // Handle error silently in production
       return 0;
     }
   };

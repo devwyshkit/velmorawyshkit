@@ -228,7 +228,7 @@ export const fetchPartners = async (location?: string): Promise<Partner[]> => {
       }));
     }
   } catch (error) {
-    console.warn('Database fetch failed, using mock data:', error);
+    // Handle error silently in production
   }
   
   // Fallback to mock data
@@ -246,7 +246,7 @@ export const fetchPartnerById = async (id: string): Promise<Partner | null> => {
     if (error) throw error;
     if (data) return data;
   } catch (error) {
-    console.warn('Database fetch failed, using mock data:', error);
+    // Handle error silently in production
   }
   
   // Fallback to mock data
@@ -268,7 +268,7 @@ export const fetchItemsByPartner = async (partnerId: string): Promise<Item[]> =>
       return data;
     }
   } catch (error) {
-    console.warn('Database fetch failed, using mock data:', error);
+    // Handle error silently in production
   }
   
   // Fallback to mock data
@@ -286,7 +286,7 @@ export const fetchItemById = async (id: string): Promise<Item | null> => {
     if (error) throw error;
     if (data) return data;
   } catch (error) {
-    console.warn('Database fetch failed, using mock data:', error);
+    // Handle error silently in production
   }
   
   // Fallback to mock data
@@ -324,7 +324,7 @@ export const fetchCartItems = async (): Promise<CartItemData[]> => {
       }));
     }
   } catch (error) {
-    console.warn('Supabase cart fetch failed:', error);
+    // Handle error silently in production
   }
   
   return [];
@@ -354,7 +354,7 @@ export const addToCartSupabase = async (item: CartItemData): Promise<boolean> =>
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to add to Supabase cart:', error);
+    // Handle error silently in production
     return false;
   }
 };
@@ -372,7 +372,7 @@ export const updateCartItemSupabase = async (itemId: string, quantity: number): 
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to update cart item:', error);
+    // Handle error silently in production
     return false;
   }
 };
@@ -390,7 +390,7 @@ export const removeCartItemSupabase = async (itemId: string): Promise<boolean> =
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to remove cart item:', error);
+    // Handle error silently in production
     return false;
   }
 };
@@ -421,7 +421,7 @@ export const fetchWishlistItems = async (): Promise<WishlistItemData[]> => {
       }));
     }
   } catch (error) {
-    console.warn('Supabase wishlist fetch failed:', error);
+    // Handle error silently in production
   }
   
   return [];
@@ -445,7 +445,7 @@ export const addToWishlistSupabase = async (itemId: string): Promise<boolean> =>
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to add to wishlist:', error);
+    // Handle error silently in production
     return false;
   }
 };
@@ -467,7 +467,7 @@ export const removeFromWishlistSupabase = async (itemId: string): Promise<boolea
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Failed to remove from wishlist:', error);
+    // Handle error silently in production
     return false;
   }
 };
@@ -509,7 +509,7 @@ export const searchItems = async (query: string): Promise<Item[]> => {
   }
   
   // Fallback to client-side search if all backend attempts fail
-  console.warn('Backend search failed after retries, using client-side fallback');
+  // Fallback to client-side search
   return mockItems.filter(item =>
     item.name.toLowerCase().includes(query.toLowerCase()) ||
     item.description.toLowerCase().includes(query.toLowerCase()) ||
@@ -563,7 +563,7 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
   }
   
   // Fallback to client-side search if all backend attempts fail
-  console.warn('Backend search failed after retries, using client-side fallback');
+  // Fallback to client-side search
   
   // Fallback to client-side search (mock partners are implicitly approved)
   return mockPartners.filter(partner =>

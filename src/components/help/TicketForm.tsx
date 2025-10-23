@@ -143,7 +143,7 @@ export const TicketForm = ({ onSuccess }: TicketFormProps) => {
               <SelectContent>
                 <SelectItem value="getting_started">📦 Getting Started</SelectItem>
                 <SelectItem value="products">💰 Products & Pricing</SelectItem>
-                <SelectItem value="orders">🚚 Orders & Kitting</SelectItem>
+                <SelectItem value="orders">🚚 Orders</SelectItem>
                 <SelectItem value="payments">💳 Payments & Payouts</SelectItem>
                 <SelectItem value="customization">🎨 Customization & Branding</SelectItem>
                 <SelectItem value="account">⚙️ Account & Settings</SelectItem>

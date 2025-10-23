@@ -67,7 +67,7 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
       const trending = await getTrendingProducts(category);
       setTrendingProducts(trending);
     } catch (error) {
-      console.error('Error loading recommendations:', error);
+      // Handle error silently in production
     } finally {
       setLoading(false);
     }

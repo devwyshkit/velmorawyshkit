@@ -70,7 +70,7 @@ export const AdminPartners = () => {
         setSuspendedCount(partners.filter(p => !p.is_active).length);
       }
     } catch (error) {
-      console.error('Failed to load partner counts:', error);
+      // Handle error silently in production
       
       // Mock data for development
       setPendingCount(18);
@@ -104,7 +104,7 @@ export const AdminPartners = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Active partners fetch failed, using mock:', error);
+        // Handle error silently in production
         // Mock data
         setActivePartners([
           {
@@ -142,7 +142,7 @@ export const AdminPartners = () => {
         setActivePartners(formatted);
       }
     } catch (error) {
-      console.error('Load active partners error:', error);
+      // Handle error silently in production
     } finally {
       setLoadingActive(false);
     }

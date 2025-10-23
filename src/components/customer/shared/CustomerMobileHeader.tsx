@@ -207,7 +207,7 @@ export const CustomerMobileHeader = ({
                         setLocation(cityName);
                         setIsLocationSheetOpen(false);
                       } catch (error) {
-                        console.error("Geocoding error:", error);
+                        // Handle error silently in production
                         // Fallback to generic text
                         setLocationInput("Your Current Location");
                         setLocation("Your Current Location");
@@ -215,7 +215,7 @@ export const CustomerMobileHeader = ({
                       }
                     },
                     (error) => {
-                      console.error("Geolocation error:", error);
+                      // Handle error silently in production
                       alert("Unable to get your location. Please enable location permissions.");
                     }
                   );

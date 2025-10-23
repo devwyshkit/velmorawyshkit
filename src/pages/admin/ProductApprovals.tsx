@@ -64,7 +64,7 @@ export const AdminProductApprovals = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Products fetch failed, using mock:', error);
+        // Handle error silently in production
         // Mock data for development
         setProducts([
           {
@@ -104,7 +104,7 @@ export const AdminProductApprovals = () => {
         setProducts(formattedData);
       }
     } catch (error) {
-      console.error('Load products error:', error);
+      // Handle error silently in production
     } finally {
       setLoading(false);
     }

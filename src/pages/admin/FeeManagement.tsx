@@ -53,7 +53,7 @@ export const FeeManagement: React.FC<FeeManagementProps> = () => {
 
   const handleSaveDeliveryConfig = () => {
     // Save delivery fee configuration
-    console.log('Saving delivery fee config:', deliveryFeeConfig);
+    // Save delivery fee configuration
     setIsEditingDelivery(false);
   };
 
@@ -64,7 +64,7 @@ export const FeeManagement: React.FC<FeeManagementProps> = () => {
       const result = calculateDeliveryFee(testOrderValue, testDistance, deliveryFeeConfig);
       setTestResult(result);
     } catch (error) {
-      console.error('Error calculating delivery fee:', error);
+      // Handle error silently in production
     }
   };
 

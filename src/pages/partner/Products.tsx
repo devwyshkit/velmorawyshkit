@@ -71,7 +71,7 @@ export const PartnerProducts = () => {
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.warn('Products fetch failed, using mock:', error);
+        // Handle error silently in production
         // Mock products for development
         setProducts([
           {
@@ -97,7 +97,7 @@ export const PartnerProducts = () => {
         setProducts(data || []);
       }
     } catch (error) {
-      console.error('Load products error:', error);
+      // Handle error silently in production
     } finally {
       setLoading(false);
     }

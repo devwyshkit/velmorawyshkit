@@ -100,7 +100,7 @@ export const CustomerMobileSearch = () => {
           // Combine results: partners first (if any), then items
           setResults([...partnerSearchResults, ...itemSearchResults]);
         } catch (error) {
-          console.error('Search failed:', error);
+          // Handle error silently in production
           setResults([]);
         }
       } else {
@@ -120,7 +120,7 @@ export const CustomerMobileSearch = () => {
       try {
         setRecentSearches(JSON.parse(stored));
       } catch (e) {
-        console.error('Failed to parse recent searches:', e);
+        // Handle error silently in production
       }
     }
   }, []);

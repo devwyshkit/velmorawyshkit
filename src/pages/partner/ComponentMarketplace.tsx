@@ -103,7 +103,7 @@ export const ComponentMarketplace = () => {
       const { data, error } = await query;
 
       if (error) {
-        console.warn('Components fetch failed, using mock:', error);
+        // Handle error silently in production
         // Mock data for development
         setComponents([
           {

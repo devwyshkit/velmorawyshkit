@@ -49,7 +49,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product })
       const result = calculateTieredPrice(quantity, product.tieredPricing);
       setPricingResult(result);
     } catch (error) {
-      console.error('Error calculating pricing:', error);
+      // Handle error silently in production
     }
   }, [quantity, product.tieredPricing]);
 
@@ -60,7 +60,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product })
       const result = calculateDeliveryFee(pricingResult?.totalPrice || 0, 0, deliveryConfig);
       setDeliveryResult(result);
     } catch (error) {
-      console.error('Error calculating delivery fee:', error);
+      // Handle error silently in production
     }
   }, [pricingResult]);
 
