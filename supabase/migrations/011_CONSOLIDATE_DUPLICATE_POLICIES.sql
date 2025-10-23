@@ -95,8 +95,6 @@ CREATE POLICY "Consolidated partner badges access" ON public.partner_badges
   FOR SELECT USING (
     -- Partners can view their own badges
     partner_id = (select auth.uid())
-    -- Anyone can view public badges (when badge is public)
-    OR is_public = true
     -- Admins and support can view all badges
     OR ((auth.jwt() -> 'user_metadata' ->> 'role') IN ('admin', 'support'))
   );
@@ -216,8 +214,6 @@ CREATE POLICY "Consolidated referral codes select" ON public.referral_codes
   FOR SELECT USING (
     -- Partners can view their own codes
     partner_id = (select auth.uid())
-    -- Anyone can view public codes
-    OR is_active = true
     -- Admins can view all codes
     OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
