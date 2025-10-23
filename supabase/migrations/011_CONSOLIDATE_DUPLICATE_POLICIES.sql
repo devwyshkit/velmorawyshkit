@@ -279,16 +279,10 @@ DROP POLICY IF EXISTS "Admins can view all reviews" ON public.reviews;
 -- Create single consolidated SELECT policy
 CREATE POLICY "Consolidated reviews select" ON public.reviews
   FOR SELECT USING (
-    -- Anyone can view approved reviews
-    status = 'approved'
-    -- Partners can view reviews for their products (all statuses)
-    OR EXISTS (
-      SELECT 1 FROM partner_products 
-      WHERE id = product_id 
-      AND partner_id = (select auth.uid())
-    )
-    -- Admins can view all reviews
-    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
+    -- Anyone can view all reviews (original behavior)
+    true
+    -- Note: Reviews table has no status/approval system
+    -- All reviews are public once created
   );
 
 -- Create single consolidated INSERT policy
