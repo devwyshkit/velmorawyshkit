@@ -1,206 +1,272 @@
-/**
- * Delivery Fee Calculator - Swiggy/Zomato Style
- * Dynamic delivery fees with FREE delivery thresholds
- */
+// Delivery Fee Calculation System
+// Swiggy/Zomato-like dynamic delivery fees with order value thresholds
+
+import { DeliveryFeeConfig, DeliveryFeeCalculation } from '@/types/tiered-pricing';
 
 export interface DeliveryFeeConfig {
-  orderValueTiers: {
-    minValue: number;
-    maxValue: number | null;
-    feeAmount: number;
-  }[];
-  distanceTiers?: {
-    minKm: number;
-    maxKm: number | null;
-    surcharge: number;
-  }[];
-  freeDeliveryThreshold: number;
-  baseFee: number;
+  id: string;
+  name: string;
+  isActive: boolean;
+  freeDeliveryThresholdPaise: number;
+  orderValueTiers: Array<{
+    minValuePaise: number;
+    maxValuePaise: number | null;
+    feePaise: number;
+  }>;
+  distanceMultiplier: Array<{
+    minDistance: number;
+    maxDistance: number | null;
+    multiplier: number;
+  }>;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface DeliveryFeeResult {
-  fee: number;
-  isFree: boolean;
-  amountNeededForFree: number;
-  message: string;
-  breakdown: {
-    baseFee: number;
-    distanceSurcharge: number;
-    totalFee: number;
+/**
+ * Create default delivery fee configuration
+ */
+export function createDefaultDeliveryFeeConfig(): DeliveryFeeConfig {
+  return {
+    id: 'default-delivery-fee',
+    name: 'Default Delivery Fee Structure',
+    isActive: true,
+    freeDeliveryThresholdPaise: 500000, // ₹5000
+    orderValueTiers: [
+      { minValuePaise: 0, maxValuePaise: 99900, feePaise: 8000 }, // ₹0-999: ₹80
+      { minValuePaise: 100000, maxValuePaise: 249900, feePaise: 5000 }, // ₹1000-2499: ₹50
+      { minValuePaise: 250000, maxValuePaise: 499900, feePaise: 3000 }, // ₹2500-4999: ₹30
+      { minValuePaise: 500000, maxValuePaise: null, feePaise: 0 } // ₹5000+: FREE
+    ],
+    distanceMultiplier: [
+      { minDistance: 0, maxDistance: 5, multiplier: 1.0 }, // 0-5 km: No extra charge
+      { minDistance: 5, maxDistance: 10, multiplier: 1.5 }, // 5-10 km: +50%
+      { minDistance: 10, maxDistance: 20, multiplier: 2.0 }, // 10-20 km: +100%
+      { minDistance: 20, maxDistance: null, multiplier: 3.0 } // 20+ km: +200%
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
 }
 
 /**
  * Calculate delivery fee based on order value and distance
- * Follows Swiggy pattern: progressive disclosure, FREE delivery messaging
  */
 export function calculateDeliveryFee(
-  cartSubtotal: number,
-  distanceKm: number = 0,
+  orderValuePaise: number,
+  distanceKm: number,
   config: DeliveryFeeConfig
-): DeliveryFeeResult {
-  let baseFee = config.baseFee;
-  let distanceSurcharge = 0;
+): DeliveryFeeCalculation {
+  // Find applicable order value tier
+  let baseFee = 0;
+  let applicableTier = config.orderValueTiers[0];
+  
+  for (const tier of config.orderValueTiers) {
+    if (orderValuePaise >= tier.minValuePaise && 
+        (tier.maxValuePaise === null || orderValuePaise <= tier.maxValuePaise)) {
+      baseFee = tier.feePaise;
+      applicableTier = tier;
+      break;
+    }
+  }
+  
+  // Find distance multiplier
+  let distanceMultiplier = 1.0;
+  for (const multiplier of config.distanceMultiplier) {
+    if (distanceKm >= multiplier.minDistance && 
+        (multiplier.maxDistance === null || distanceKm <= multiplier.maxDistance)) {
+      distanceMultiplier = multiplier.multiplier;
+      break;
+    }
+  }
+  
+  // Calculate distance fee
+  const distanceFee = Math.round(baseFee * (distanceMultiplier - 1.0));
+  const totalFee = baseFee + distanceFee;
+  
+  // Check if free delivery applies
+  const isFreeDelivery = orderValuePaise >= config.freeDeliveryThresholdPaise || totalFee === 0;
+  const finalFee = isFreeDelivery ? 0 : totalFee;
+  
+  return {
+    orderValue: orderValuePaise,
+    distance: distanceKm,
+    appliedConfig: config,
+    baseFee,
+    distanceFee,
+    totalFee: finalFee,
+    isFreeDelivery
+  };
+}
 
-  // Check if order qualifies for free delivery
-  if (cartSubtotal >= config.freeDeliveryThreshold) {
+/**
+ * Get delivery fee message for customer display (Swiggy-style)
+ */
+export function getDeliveryFeeMessage(
+  orderValuePaise: number,
+  distanceKm: number,
+  config: DeliveryFeeConfig
+): {
+  message: string;
+  type: 'free' | 'fee' | 'threshold';
+  amount?: number;
+} {
+  const calculation = calculateDeliveryFee(orderValuePaise, distanceKm, config);
+  
+  if (calculation.isFreeDelivery) {
     return {
-      fee: 0,
-      isFree: true,
-      amountNeededForFree: 0,
-      message: 'FREE delivery!',
-      breakdown: {
-        baseFee: 0,
-        distanceSurcharge: 0,
-        totalFee: 0
-      }
+      message: 'FREE delivery! 🎉',
+      type: 'free'
     };
   }
-
-  // Find applicable order value tier
-  const applicableTier = config.orderValueTiers.find(tier => {
-    const meetsMin = cartSubtotal >= tier.minValue;
-    const meetsMax = tier.maxValue === null || cartSubtotal <= tier.maxValue;
-    return meetsMin && meetsMax;
-  });
-
-  if (applicableTier) {
-    baseFee = applicableTier.feeAmount;
+  
+  if (orderValuePaise >= config.freeDeliveryThresholdPaise) {
+    return {
+      message: 'FREE delivery! 🎉',
+      type: 'free'
+    };
   }
-
-  // Apply distance surcharge if applicable
-  if (config.distanceTiers && distanceKm > 0) {
-    const applicableDistanceTier = config.distanceTiers.find(tier => {
-      const meetsMin = distanceKm >= tier.minKm;
-      const meetsMax = tier.maxKm === null || distanceKm <= tier.maxKm;
-      return meetsMin && meetsMax;
-    });
-
-    if (applicableDistanceTier) {
-      distanceSurcharge = applicableDistanceTier.surcharge;
+  
+  const amountNeeded = config.freeDeliveryThresholdPaise - orderValuePaise;
+  const amountNeededRupees = Math.round(amountNeeded / 100);
+  
+  if (calculation.totalFee > 0) {
+    // Swiggy-style messaging
+    if (amountNeededRupees <= 200) {
+      return {
+        message: `Add ₹${amountNeededRupees} more for FREE delivery!`,
+        type: 'threshold',
+        amount: amountNeededRupees
+      };
+    } else {
+      return {
+        message: `Add ₹${amountNeededRupees} more to get FREE delivery!`,
+        type: 'threshold',
+        amount: amountNeededRupees
+      };
     }
   }
+  
+  return {
+    message: `Delivery fee: ₹${Math.round(calculation.totalFee / 100)}`,
+    type: 'fee',
+    amount: Math.round(calculation.totalFee / 100)
+  };
+}
 
-  const totalFee = baseFee + distanceSurcharge;
-  const amountNeededForFree = config.freeDeliveryThreshold - cartSubtotal;
-
-  // Generate appropriate message
-  let message = '';
-  if (totalFee === 0) {
-    message = 'FREE delivery!';
-  } else if (amountNeededForFree > 0) {
-    message = `Add ₹${Math.ceil(amountNeededForFree)} more to get FREE delivery!`;
+/**
+ * Get delivery time estimate based on quantity and distance
+ */
+export function getDeliveryTimeEstimate(
+  quantity: number,
+  distanceKm: number,
+  isCustomizable: boolean
+): {
+  estimatedDays: number;
+  message: string;
+  isExpress: boolean;
+} {
+  let baseDays = 1;
+  
+  // Base delivery time by quantity
+  if (quantity >= 50) {
+    baseDays = isCustomizable ? 7 : 3; // Customization adds time
+  } else if (quantity >= 10) {
+    baseDays = isCustomizable ? 5 : 2;
   } else {
-    message = `Delivery fee: ₹${totalFee}`;
+    baseDays = isCustomizable ? 3 : 1;
   }
-
+  
+  // Distance factor
+  if (distanceKm > 20) {
+    baseDays += 2;
+  } else if (distanceKm > 10) {
+    baseDays += 1;
+  }
+  
+  // Express delivery option
+  const isExpress = quantity < 10 && distanceKm < 10 && !isCustomizable;
+  
+  let message = '';
+  if (isExpress) {
+    message = 'Same day / Next day delivery';
+  } else if (baseDays === 1) {
+    message = 'Next day delivery';
+  } else if (baseDays <= 3) {
+    message = `${baseDays} days delivery`;
+  } else {
+    message = `${baseDays}-${baseDays + 1} days delivery`;
+  }
+  
   return {
-    fee: totalFee,
-    isFree: totalFee === 0,
-    amountNeededForFree: Math.max(0, amountNeededForFree),
+    estimatedDays: baseDays,
     message,
-    breakdown: {
-      baseFee,
-      distanceSurcharge,
-      totalFee
-    }
+    isExpress
   };
 }
 
 /**
- * Create default delivery fee configuration
- * Based on Swiggy/Zomato patterns
+ * Calculate express delivery surcharge
  */
-export function createDefaultDeliveryFeeConfig(): DeliveryFeeConfig {
-  return {
-    orderValueTiers: [
-      {
-        minValue: 0,
-        maxValue: 999,
-        feeAmount: 80
-      },
-      {
-        minValue: 1000,
-        maxValue: 2499,
-        feeAmount: 50
-      },
-      {
-        minValue: 2500,
-        maxValue: 4999,
-        feeAmount: 30
-      },
-      {
-        minValue: 5000,
-        maxValue: null,
-        feeAmount: 0
-      }
-    ],
-    distanceTiers: [
-      {
-        minKm: 0,
-        maxKm: 5,
-        surcharge: 0
-      },
-      {
-        minKm: 5,
-        maxKm: 10,
-        surcharge: 30
-      },
-      {
-        minKm: 10,
-        maxKm: 20,
-        surcharge: 70
-      },
-      {
-        minKm: 20,
-        maxKm: null,
-        surcharge: 100
-      }
-    ],
-    freeDeliveryThreshold: 5000,
-    baseFee: 80
-  };
+export function calculateExpressDeliverySurcharge(
+  baseDeliveryFee: number,
+  isExpress: boolean
+): number {
+  if (!isExpress) return 0;
+  
+  // Express delivery adds ₹200
+  return 20000; // ₹200 in paise
 }
 
 /**
- * Format delivery fee for display
+ * Get delivery fee breakdown for display
  */
-export function formatDeliveryFee(fee: number): string {
-  if (fee === 0) {
-    return 'FREE';
+export function getDeliveryFeeBreakdown(
+  orderValuePaise: number,
+  distanceKm: number,
+  config: DeliveryFeeConfig,
+  isExpress: boolean = false
+): Array<{
+  item: string;
+  amount: number;
+  description?: string;
+}> {
+  const calculation = calculateDeliveryFee(orderValuePaise, distanceKm, config);
+  const breakdown = [];
+  
+  if (calculation.baseFee > 0) {
+    breakdown.push({
+      item: 'Base delivery fee',
+      amount: calculation.baseFee,
+      description: `Order value: ₹${Math.round(orderValuePaise / 100)}`
+    });
   }
-  return `₹${fee}`;
-}
-
-/**
- * Get delivery fee message for cart/checkout
- */
-export function getDeliveryFeeMessage(result: DeliveryFeeResult): string {
-  if (result.isFree) {
-    return '🎉 FREE delivery!';
+  
+  if (calculation.distanceFee > 0) {
+    breakdown.push({
+      item: 'Distance surcharge',
+      amount: calculation.distanceFee,
+      description: `${distanceKm} km distance`
+    });
   }
   
-  if (result.amountNeededForFree > 0) {
-    return `Add ₹${Math.ceil(result.amountNeededForFree)} more for FREE delivery!`;
+  if (isExpress) {
+    const expressSurcharge = calculateExpressDeliverySurcharge(calculation.totalFee, true);
+    breakdown.push({
+      item: 'Express delivery',
+      amount: expressSurcharge,
+      description: 'Same day / Next day delivery'
+    });
   }
   
-  return `Delivery fee: ${formatDeliveryFee(result.fee)}`;
-}
-
-/**
- * Calculate delivery fee for multiple items
- */
-export function calculateBulkDeliveryFee(
-  items: Array<{ subtotal: number; weight?: number }>,
-  distanceKm: number = 0,
-  config: DeliveryFeeConfig
-): DeliveryFeeResult {
-  const totalSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  if (calculation.isFreeDelivery) {
+    breakdown.push({
+      item: 'Free delivery discount',
+      amount: -calculation.totalFee,
+      description: `Order above ₹${Math.round(config.freeDeliveryThresholdPaise / 100)}`
+    });
+  }
   
-  // For bulk orders, apply additional logic if needed
-  // This could include weight-based fees, special bulk rates, etc.
-  
-  return calculateDeliveryFee(totalSubtotal, distanceKm, config);
+  return breakdown;
 }
 
 /**
@@ -208,59 +274,54 @@ export function calculateBulkDeliveryFee(
  */
 export function validateDeliveryFeeConfig(config: DeliveryFeeConfig): string[] {
   const errors: string[] = [];
-
-  if (!config.orderValueTiers || config.orderValueTiers.length === 0) {
-    errors.push('Order value tiers are required');
+  
+  if (config.orderValueTiers.length === 0) {
+    errors.push('At least one order value tier is required');
     return errors;
   }
-
-  // Check for gaps and overlaps in order value tiers
-  const sortedTiers = [...config.orderValueTiers].sort((a, b) => a.minValue - b.minValue);
+  
+  // Check for gaps in order value ranges
+  const sortedTiers = [...config.orderValueTiers].sort((a, b) => a.minValuePaise - b.minValuePaise);
   
   for (let i = 0; i < sortedTiers.length; i++) {
-    const current = sortedTiers[i];
-    const next = sortedTiers[i + 1];
-
-    if (current.minValue < 0) {
-      errors.push(`Order value tier ${i + 1}: Minimum value cannot be negative`);
+    const currentTier = sortedTiers[i];
+    const nextTier = sortedTiers[i + 1];
+    
+    if (currentTier.minValuePaise < 0) {
+      errors.push('Order value cannot be negative');
     }
-
-    if (current.maxValue !== null && current.maxValue < current.minValue) {
-      errors.push(`Order value tier ${i + 1}: Maximum value cannot be less than minimum value`);
+    
+    if (currentTier.maxValuePaise !== null && currentTier.maxValuePaise < currentTier.minValuePaise) {
+      errors.push('Maximum order value cannot be less than minimum order value');
     }
-
-    if (current.feeAmount < 0) {
-      errors.push(`Order value tier ${i + 1}: Fee amount cannot be negative`);
-    }
-
-    // Check for gaps with next tier
-    if (next) {
-      const currentMax = current.maxValue || Infinity;
-      const nextMin = next.minValue;
-      
-      if (currentMax < nextMin - 1) {
-        errors.push(`Gap between order value tiers ${i + 1} and ${i + 2}: values ${currentMax + 1} to ${nextMin - 1} are not covered`);
+    
+    if (nextTier && currentTier.maxValuePaise !== null) {
+      if (currentTier.maxValuePaise + 100 !== nextTier.minValuePaise) {
+        errors.push('Gap in order value ranges between tiers');
       }
     }
   }
-
-  if (config.freeDeliveryThreshold <= 0) {
-    errors.push('Free delivery threshold must be greater than 0');
+  
+  // Check that the last tier doesn't have a max value (should be open-ended)
+  const lastTier = sortedTiers[sortedTiers.length - 1];
+  if (lastTier.maxValuePaise !== null) {
+    errors.push('The highest tier should not have a maximum order value limit');
   }
-
+  
   return errors;
 }
 
 /**
- * Get delivery fee breakdown for admin display
+ * Get delivery fee savings message
  */
-export function getDeliveryFeeBreakdown(result: DeliveryFeeResult) {
-  return {
-    isFree: result.isFree,
-    totalFee: result.fee,
-    baseFee: result.breakdown.baseFee,
-    distanceSurcharge: result.breakdown.distanceSurcharge,
-    message: result.message,
-    amountNeededForFree: result.amountNeededForFree
-  };
+export function getDeliveryFeeSavingsMessage(
+  currentOrderValuePaise: number,
+  targetOrderValuePaise: number,
+  currentDeliveryFee: number
+): string {
+  const amountNeeded = targetOrderValuePaise - currentOrderValuePaise;
+  const amountNeededRupees = Math.round(amountNeeded / 100);
+  const savingsRupees = Math.round(currentDeliveryFee / 100);
+  
+  return `Add ₹${amountNeededRupees} more to get FREE delivery! (Save ₹${savingsRupees})`;
 }

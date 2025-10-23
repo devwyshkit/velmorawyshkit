@@ -3,7 +3,7 @@ export { CustomerMobileLogin as Login } from '../pages/customer/Login';
 export { CustomerMobileSignup as Signup } from '../pages/customer/Signup';
 export { CustomerHome as Home } from '../pages/customer/CustomerHome';
 export { Partner } from '../pages/customer/Partner';
-export { ItemDetails } from '../pages/customer/ItemDetails';
+export { ItemDetailsNew as ItemDetails } from '../pages/customer/ItemDetailsNew';
 export { Cart } from '../pages/customer/Cart';
 export { Wishlist } from '../pages/customer/Wishlist';
 export { Checkout } from '../pages/customer/Checkout';
@@ -55,14 +55,8 @@ export { FeeManagement } from '../pages/admin/FeeManagement';
 // Legacy
 export { AdminPartnerApprovals } from '../pages/admin/PartnerApprovals';
 
-// Legal Pages
-export { default as Terms } from '../pages/legal/Terms';
-export { default as Privacy } from '../pages/legal/Privacy';
-export { default as Refund } from '../pages/legal/Refund';
-export { default as Contact } from '../pages/legal/Contact';
-export { default as About } from '../pages/legal/About';
-export { default as Help } from '../pages/legal/Help';
-export { default as FAQ } from '../pages/legal/FAQ';
+// Legal Pages - Placeholder exports (files deleted)
+// TODO: Recreate legal pages if needed
 
 // Utility Pages
 export { default as NotFound } from '../pages/NotFound';

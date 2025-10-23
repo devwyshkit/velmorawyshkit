@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, 
   Edit, 
@@ -26,12 +27,14 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
-import { CommissionRule } from '@/types/commission';
+import { CommissionRule } from '@/types/tiered-pricing';
 import { createDefaultCommissionRules, calculateCommission, formatCommission } from '@/lib/pricing/commission';
+import { supabase } from '@/lib/integrations/supabase-client';
 
 interface CommissionManagementProps {}
 
 export const CommissionManagement: React.FC<CommissionManagementProps> = () => {
+  const { toast } = useToast();
   const [commissionRules, setCommissionRules] = useState<CommissionRule[]>([]);
   const [editingRule, setEditingRule] = useState<CommissionRule | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -43,8 +46,43 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = () => {
   const [testResult, setTestResult] = useState<any>(null);
 
   useEffect(() => {
-    // Load commission rules from backend
-    setCommissionRules(createDefaultCommissionRules());
+    const loadCommissionRules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('commission_rules')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const rules: CommissionRule[] = data.map(rule => ({
+            id: rule.id,
+            ruleType: rule.rule_type,
+            vendorId: rule.vendor_id,
+            category: rule.category,
+            orderValueMinPaise: rule.order_value_min_paise,
+            orderValueMaxPaise: rule.order_value_max_paise,
+            commissionPercent: rule.commission_percent,
+            isActive: rule.is_active,
+            effectiveFrom: rule.effective_from,
+            effectiveUntil: rule.effective_until,
+            createdAt: rule.created_at,
+            updatedAt: rule.updated_at
+          }));
+          setCommissionRules(rules);
+        } else {
+          // Use default rules if none exist
+          setCommissionRules(createDefaultCommissionRules());
+        }
+      } catch (error) {
+        console.error('Error loading commission rules:', error);
+        // Fallback to default rules
+        setCommissionRules(createDefaultCommissionRules());
+      }
+    };
+
+    loadCommissionRules();
   }, []);
 
   const handleCreateRule = () => {
@@ -66,19 +104,52 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = () => {
     setIsCreating(false);
   };
 
-  const handleSaveRule = () => {
+  const handleSaveRule = async () => {
     if (!editingRule) return;
 
-    if (isCreating) {
-      setCommissionRules([...commissionRules, editingRule]);
-    } else {
-      setCommissionRules(commissionRules.map(rule => 
-        rule.id === editingRule.id ? editingRule : rule
-      ));
-    }
+    try {
+      // Save to backend (Supabase)
+      const { error } = await supabase
+        .from('commission_rules')
+        .upsert({
+          id: editingRule.id,
+          rule_type: editingRule.ruleType,
+          vendor_id: editingRule.vendorId || null,
+          category: editingRule.category || null,
+          order_value_min_paise: editingRule.orderValueMinPaise,
+          order_value_max_paise: editingRule.orderValueMaxPaise,
+          commission_percent: editingRule.commissionPercent,
+          is_active: editingRule.isActive,
+          effective_from: editingRule.effectiveFrom,
+          effective_until: editingRule.effectiveUntil || null
+        });
 
-    setEditingRule(null);
-    setIsCreating(false);
+      if (error) throw error;
+
+      // Update local state
+      if (isCreating) {
+        setCommissionRules([...commissionRules, editingRule]);
+      } else {
+        setCommissionRules(commissionRules.map(rule => 
+          rule.id === editingRule.id ? editingRule : rule
+        ));
+      }
+
+      setEditingRule(null);
+      setIsCreating(false);
+
+      toast({
+        title: "Commission rule saved",
+        description: "Changes have been applied and will take effect immediately",
+      });
+    } catch (error) {
+      console.error('Error saving commission rule:', error);
+      toast({
+        title: "Save failed",
+        description: "Failed to save commission rule. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteRule = (ruleId: string) => {

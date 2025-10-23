@@ -97,14 +97,7 @@ const App = () => (
               </Route>
             </Route>
 
-            {/* Legal Routes */}
-            <Route path="/terms" element={<LazyPages.Terms />} />
-            <Route path="/privacy" element={<LazyPages.Privacy />} />
-            <Route path="/refund" element={<LazyPages.Refund />} />
-            <Route path="/contact" element={<LazyPages.Contact />} />
-            <Route path="/about" element={<LazyPages.About />} />
-            <Route path="/help" element={<LazyPages.Help />} />
-            <Route path="/faq" element={<LazyPages.FAQ />} />
+            {/* Legal Routes - TODO: Recreate legal pages */}
 
             {/* Utility Routes */}
             <Route path="/unauthorized" element={<LazyPages.Unauthorized />} />

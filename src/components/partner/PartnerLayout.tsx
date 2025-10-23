@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { 
   Home, Package, ShoppingBag, DollarSign, User, Bell, LogOut, Menu,
-  Megaphone, Star, AlertCircle, PackageX, Users, HelpCircle
+  Megaphone, Star, AlertCircle, PackageX, Users, HelpCircle, Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ export const PartnerLayout = () => {
     { icon: Home, label: "Dashboard", path: "/partner/dashboard" },
     { icon: Package, label: "Products", path: "/partner/products" },
     { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // TODO: Real-time count
+    { icon: Building2, label: "Wyshkit Supply", path: "/partner/supply" }, // B2B Procurement Portal
     { icon: Megaphone, label: "Campaigns", path: "/partner/campaigns" },
     { icon: Star, label: "Reviews", path: "/partner/reviews" },
     { icon: AlertCircle, label: "Disputes", path: "/partner/disputes" },
