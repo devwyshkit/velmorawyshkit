@@ -24,7 +24,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    // Handle error silently in production
   }
 
   resetError = () => {
@@ -80,7 +80,7 @@ export const DefaultErrorFallback = ({ error, resetError }: ErrorFallbackProps) 
 // Hook for functional components
 export const useErrorHandler = () => {
   return (error: Error, errorInfo?: React.ErrorInfo) => {
-    console.error('Error caught:', error, errorInfo);
+    // Handle error silently in production
     // Could integrate with error reporting service here
   };
 };

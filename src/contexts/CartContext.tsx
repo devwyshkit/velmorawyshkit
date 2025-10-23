@@ -27,7 +27,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     
     // Auto-clean invalid items from localStorage
     if (validCart.length !== cart.length) {
-      console.log(`Cleaned ${cart.length - validCart.length} invalid cart items`);
       setGuestCart(validCart);
     }
     

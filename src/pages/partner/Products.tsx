@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
-import ProductForm from "@/components/partner/ProductForm";
+import { ProductListingWizard } from "@/features/partner/products/ProductListingWizard";
 import { productColumns } from "@/components/partner/ProductColumns";
 import { BulkActionsDropdown } from "@/components/partner/products/BulkActionsDropdown";
 import { CSVImporter } from "@/components/products/CSVImporter";
@@ -277,7 +277,7 @@ export const PartnerProducts = () => {
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </SheetTitle>
           </SheetHeader>
-          <ProductForm
+          <ProductListingWizard
             product={editingProduct}
             onSuccess={handleFormSuccess}
             onCancel={() => setShowProductForm(false)}

@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { EmptyStates, SkeletonComponents, OptimizedImage } from '@/components/ui/empty-state';
+import { EmptyStates } from '@/components/ui/empty-state';
+import { SkeletonComponents, OptimizedImage } from '@/components/ui/skeleton-screen';
 import { 
   Search, 
   Filter, 

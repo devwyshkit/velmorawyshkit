@@ -48,7 +48,7 @@ export const Partner = () => {
         setItems(itemsData);
         setFilteredItems(itemsData);
       } catch (error) {
-        console.error('Failed to load partner data:', error);
+        // Handle error silently in production
         toast({
           title: "Loading error",
           description: "Failed to load partner information",
@@ -80,7 +80,7 @@ export const Partner = () => {
         const updated = [selectedItemId, ...history.filter((id: string) => id !== selectedItemId).slice(0, 19)]; // Keep last 20, avoid duplicates
         localStorage.setItem('wyshkit_browsing_history', JSON.stringify(updated));
       } catch (error) {
-        console.error('Failed to update browsing history:', error);
+        // Handle error silently in production
       }
     }
   }, [selectedItemId, isItemSheetOpen]);

@@ -75,11 +75,13 @@ export interface DeliveryFeeConfig {
 export interface CommissionRule {
   id: string;
   ruleType: 'default' | 'vendor' | 'category' | 'volume';
+  marketplaceType: 'b2c' | 'b2b';
   vendorId?: string;
   category?: string;
   orderValueMinPaise: number;
   orderValueMaxPaise: number | null;
   commissionPercent: number;
+  platformFeePercent?: number; // For B2B only (2%)
   isActive: boolean;
   effectiveFrom: string;
   effectiveUntil?: string;
@@ -233,6 +235,8 @@ export interface CommissionCalculation {
   commissionAmount: number;
   vendorReceives: number;
   platformEarns: number;
+  platformFeeAmount?: number; // For B2B only
+  buyerPays?: number; // For B2B only
 }
 
 export interface DeliveryFeeCalculation {

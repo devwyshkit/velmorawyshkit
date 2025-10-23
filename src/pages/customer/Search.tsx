@@ -8,7 +8,8 @@ import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobil
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { searchItems, searchPartners } from "@/lib/integrations/supabase-data";
-import { EmptyStates, SkeletonComponents } from "@/components/ui/empty-state";
+import { EmptyStates } from "@/components/ui/empty-state";
+import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 
 interface SearchResult {
   id: string;

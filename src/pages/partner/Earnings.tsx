@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { CommissionBreakdown } from "@/components/partner/earnings/CommissionBreakdown";
+import { ZohoInvoiceList } from "@/features/partner/earnings/components/ZohoInvoiceList";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { zohoBooksMock } from "@/lib/api/zoho-books-mock";
@@ -254,6 +255,9 @@ export const PartnerEarnings = () => {
         category={commissionData.category}
         earnedBadges={commissionData.earnedBadges}
       />
+
+      {/* Zoho Invoice List - Professional B2B Invoicing */}
+      <ZohoInvoiceList />
 
       {/* Monthly Invoices (Zoho Books Integration) */}
       <Card>

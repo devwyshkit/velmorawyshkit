@@ -141,7 +141,7 @@ export const SkeletonComponents = {
       <Skeleton className="h-64 w-full" />
       
       {/* Table */}
-      <Skeleton.Table rows={5} />
+      <SkeletonComponents.Table rows={5} />
     </div>
   )
 };

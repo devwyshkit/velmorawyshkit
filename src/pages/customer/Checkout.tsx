@@ -126,7 +126,7 @@ export const Checkout = () => {
         });
       }
     } catch (error) {
-      console.error('Campaign discount check failed:', error);
+      // Handle error silently in production
     }
   };
   
@@ -231,7 +231,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
         .single();
 
       if (orderError) {
-        console.error('Order creation failed:', orderError);
+        // Handle error silently in production
         toast({
           title: "Order creation failed",
           description: "Please try again",

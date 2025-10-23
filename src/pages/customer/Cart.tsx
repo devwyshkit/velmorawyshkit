@@ -28,6 +28,7 @@ import {
   type Item,
 } from "@/lib/integrations/supabase-data";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
+import { CartWithDeliveryFees } from "@/features/customer/cart/CartWithDeliveryFees";
 
 interface CartItem {
   id: string;
@@ -88,7 +89,7 @@ export const Cart = () => {
         }
       }
     } catch (error) {
-      console.error('Failed to load cart:', error);
+      // Handle error silently in production
       toast({
         title: "Loading error",
         description: "Failed to load cart items",

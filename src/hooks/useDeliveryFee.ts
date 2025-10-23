@@ -92,12 +92,10 @@ export function useDeliveryFeeConfig() {
   
   const updateDeliveryConfig = async (config: any) => {
     // TODO: Update in Supabase
-    console.log('Updating delivery config:', config);
   };
   
   const updateFreeThreshold = async (threshold: number) => {
     // TODO: Update in Supabase platform_config table
-    console.log('Updating free threshold:', threshold);
   };
   
   return {

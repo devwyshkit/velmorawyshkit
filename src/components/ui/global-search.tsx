@@ -65,7 +65,7 @@ export const GlobalSearch = ({
       try {
         setRecentSearches(JSON.parse(stored));
       } catch (error) {
-        console.error("Failed to parse recent searches:", error);
+        // Handle error silently in production
       }
     }
   }, []);

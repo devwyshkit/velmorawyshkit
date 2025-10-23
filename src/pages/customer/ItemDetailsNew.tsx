@@ -9,8 +9,8 @@ import { ToastAction } from "@/components/ui/toast";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
 import { fetchItemById, addToCartSupabase, fetchPartnerById, type Item as ItemType } from "@/lib/integrations/supabase-data";
-import { TieredProductDisplay } from "@/components/customer/TieredProductDisplay";
-import { MobileProductDisplay } from "@/components/customer/MobileProductDisplay";
+import { ProductDetail } from "@/features/customer/product/components/ProductDetail";
+import { ProductCard } from "@/features/customer/product/components/ProductCard";
 import { CustomerProductDisplay } from "@/types/tiered-pricing";
 
 export const ItemDetailsNew = () => {
@@ -80,7 +80,7 @@ export const ItemDetailsNew = () => {
           setProduct(customerProduct);
         }
       } catch (error) {
-        console.error('Failed to load item:', error);
+        // Handle error silently in production
         toast({
           title: "Loading error",
           description: "Failed to load item details",
@@ -218,7 +218,7 @@ export const ItemDetailsNew = () => {
       
       {/* Desktop/Tablet View */}
       <div className="hidden md:block max-w-6xl mx-auto p-6">
-        <TieredProductDisplay
+        <ProductDetail
           product={product}
           onAddToCart={handleAddToCart}
           onToggleWishlist={handleToggleWishlist}
@@ -227,7 +227,7 @@ export const ItemDetailsNew = () => {
 
       {/* Mobile View */}
       <div className="md:hidden p-4">
-        <MobileProductDisplay
+        <ProductDetail
           product={product}
           onAddToCart={handleAddToCart}
           onToggleWishlist={handleToggleWishlist}
