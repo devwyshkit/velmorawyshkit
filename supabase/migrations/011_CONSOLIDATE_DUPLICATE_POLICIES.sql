@@ -28,9 +28,7 @@ CREATE POLICY "Consolidated dispute messages access" ON public.dispute_messages
       AND customer_id = (select auth.uid())
     )
     -- Admins can view all messages
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- Consolidated INSERT policy
@@ -49,9 +47,7 @@ CREATE POLICY "Consolidated dispute messages insert" ON public.dispute_messages
       AND customer_id = (select auth.uid())
     )
     -- Admins can send messages for any dispute
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- ============================================================================
@@ -72,9 +68,7 @@ CREATE POLICY "Consolidated disputes access" ON public.disputes
     -- Customers can view their disputes
     OR customer_id = (select auth.uid())
     -- Admins can view all disputes
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- Create single consolidated UPDATE policy
@@ -83,9 +77,7 @@ CREATE POLICY "Consolidated disputes update" ON public.disputes
     -- Partners can update their disputes
     partner_id = (select auth.uid())
     -- Admins can update any dispute
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- ============================================================================
@@ -141,9 +133,7 @@ CREATE POLICY "Consolidated partner products insert" ON public.partner_products
     -- Partners can create their own products
     partner_id = (select auth.uid())
     -- Admins can create products for any partner
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- Drop all duplicate UPDATE policies (3 policies)
@@ -157,9 +147,7 @@ CREATE POLICY "Consolidated partner products update" ON public.partner_products
     -- Partners can update their own products
     partner_id = (select auth.uid())
     -- Admins can update any product
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- ============================================================================
@@ -176,9 +164,7 @@ CREATE POLICY "Consolidated partner profiles select" ON public.partner_profiles
     -- Partners can view their own profile
     id = (select auth.uid())
     -- Admins can view all profiles
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- Drop all duplicate UPDATE policies (2 policies)
@@ -191,9 +177,7 @@ CREATE POLICY "Consolidated partner profiles update" ON public.partner_profiles
     -- Partners can update their own profile
     id = (select auth.uid())
     -- Admins can update any profile
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- ============================================================================
@@ -235,9 +219,7 @@ CREATE POLICY "Consolidated referral codes select" ON public.referral_codes
     -- Anyone can view public codes
     OR is_active = true
     -- Admins can view all codes
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- Create single consolidated INSERT policy
@@ -246,9 +228,7 @@ CREATE POLICY "Consolidated referral codes insert" ON public.referral_codes
     -- Partners can create their own codes
     partner_id = (select auth.uid())
     -- Admins can create codes for any partner
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- ============================================================================
@@ -269,9 +249,7 @@ CREATE POLICY "Consolidated returns select" ON public.returns
     -- Customers can view their returns
     OR customer_id = (select auth.uid())
     -- Admins can view all returns
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- Create single consolidated UPDATE policy
@@ -280,9 +258,7 @@ CREATE POLICY "Consolidated returns update" ON public.returns
     -- Partners can update their returns
     partner_id = (select auth.uid())
     -- Admins can update any return
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- Create single consolidated INSERT policy
@@ -291,9 +267,7 @@ CREATE POLICY "Consolidated returns insert" ON public.returns
     -- Customers can request returns
     customer_id = (select auth.uid())
     -- Admins can create returns for any customer
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- ============================================================================
@@ -318,9 +292,7 @@ CREATE POLICY "Consolidated reviews select" ON public.reviews
       AND partner_id = (select auth.uid())
     )
     -- Admins can view all reviews
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- Create single consolidated INSERT policy
@@ -329,9 +301,7 @@ CREATE POLICY "Consolidated reviews insert" ON public.reviews
     -- Customers can create reviews
     id = (select auth.uid())
     -- Admins can create reviews for any user
-    OR EXISTS (
-      ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
-    )
+    OR ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin')
   );
 
 -- ============================================================================
