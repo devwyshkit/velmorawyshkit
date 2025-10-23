@@ -56,6 +56,7 @@ const App = () => (
               <Route element={<LazyPages.PartnerLayout />}>
                 <Route path="dashboard" element={<LazyPages.PartnerHome />} />
                 <Route path="products" element={<LazyPages.PartnerProducts />} />
+                <Route path="products/new" element={<LazyPages.ProductFormWizard />} />
                 <Route path="orders" element={<LazyPages.PartnerOrders />} />
                 <Route path="earnings" element={<LazyPages.PartnerEarnings />} />
                 <Route path="reviews" element={<LazyPages.PartnerReviews />} />
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="help" element={<LazyPages.PartnerHelp />} />
                 <Route path="profile" element={<LazyPages.PartnerProfile />} />
                 <Route path="components" element={<LazyPages.ComponentMarketplace />} />
+                <Route path="supply" element={<LazyPages.WyshkitSupply />} />
                 <Route path="kitting" element={<LazyPages.KittingDashboard />} />
                 <Route path="kitting/:jobId" element={<LazyPages.KittingWorkflow />} />
               </Route>
@@ -88,6 +90,8 @@ const App = () => (
                 <Route path="settings" element={<LazyPages.AdminSettings />} />
                 <Route path="users" element={<LazyPages.AdminUsers />} />
                 <Route path="audit" element={<LazyPages.AdminAudit />} />
+                <Route path="commission" element={<LazyPages.CommissionManagement />} />
+                <Route path="fees" element={<LazyPages.FeeManagement />} />
                 {/* Legacy route redirect */}
                 <Route path="partner-approvals" element={<Navigate to="/admin/partners" replace />} />
               </Route>

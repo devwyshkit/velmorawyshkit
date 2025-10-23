@@ -1,859 +1,956 @@
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Plus, X, Upload, Info, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/integrations/supabase-client";
-import { Product, AddOn } from "@/pages/partner/Products";
-import { Loader2 } from "lucide-react";
-import { ImageUploader } from "@/components/shared/ImageUploader";
-import { BulkPricingTiers } from "@/components/products/BulkPricingTiers";
-import { SponsoredToggle } from "@/components/products/SponsoredToggle";
-import { SourcingLimits } from "@/components/products/SourcingLimits";
-import { BulkTier } from "@/types/products";
-import { HamperBuilder } from "@/components/partner/products/HamperBuilder";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  Trash2, 
+  Upload, 
+  Check,
+  AlertCircle,
+  Info
+} from 'lucide-react';
+import { ListingType, PricingTier, AddOn } from '@/types/product';
+import { calculateTieredPrice, validatePricingTiers } from '@/lib/pricing/tieredPricing';
 
-// Form validation schema
-const productFormSchema = z.object({
-  name: z.string().min(3, "Product name must be at least 3 characters"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  short_desc: z.string().max(150, "Short description must be under 150 characters").optional(),
-  price: z.number().min(1, "Price must be greater than 0"),
-  stock: z.number().min(0, "Stock cannot be negative"),
-  is_customizable: z.boolean(),
-  category: z.string().optional(),
-  estimated_delivery_days: z.string().optional(),
-});
-
-type ProductFormValues = z.infer<typeof productFormSchema>;
-
-interface ProductFormProps {
-  product?: Product | null;
-  onSuccess: () => void;
-  onCancel: () => void;
+interface ProductFormData {
+  // Step 1: Listing Type
+  listingType: ListingType;
+  
+  // Step 2: Basic Details
+  name: string;
+  description: string;
+  category: string;
+  images: string[];
+  whatsIncluded: string[];
+  
+  // Step 3: Tiered Pricing
+  tieredPricing: PricingTier[];
+  
+  // Step 4: Add-ons
+  addOns: AddOn[];
+  
+  // Step 5: Inventory & Fulfillment
+  isMadeToOrder: boolean;
+  stockAvailable: number;
+  deliveryTimeTiers: Array<{
+    minQty: number;
+    maxQty: number | null;
+    deliveryDays: string;
+  }>;
+  
+  // Step 6: Customization
+  isCustomizable: boolean;
+  previewRequired: boolean;
 }
 
-/**
- * Product Form with Add-ons Builder
- * Swiggy/Zomato add-ons configuration pattern
- * Partners can set add-ons with MOQ and proof requirements
- */
-export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) => {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [productType, setProductType] = useState<'standalone' | 'hamper'>(
-    (product as any)?.is_hamper ? 'hamper' : 'standalone'
-  );
-  const [images, setImages] = useState<string[]>(product?.images || []);
-  const [addOns, setAddOns] = useState<AddOn[]>(product?.add_ons || []);
-  const [isCustomizable, setIsCustomizable] = useState(product?.is_customizable || false);
-  const [bulkTiers, setBulkTiers] = useState<BulkTier[]>(product?.bulk_pricing || []);
-  const [hamperData, setHamperData] = useState<any>(null);
-  const [sponsoredData, setSponsoredData] = useState<{
-    isSponsored: boolean;
-    startDate?: Date;
-    endDate?: Date;
-  }>({
-    isSponsored: product?.sponsored || false,
-    startDate: product?.sponsored_start_date ? new Date(product.sponsored_start_date) : undefined,
-    endDate: product?.sponsored_end_date ? new Date(product.sponsored_end_date) : undefined,
-  });
-  const [sourcingData, setSourcingData] = useState<{
-    available: boolean;
-    monthlyLimit?: number;
-  }>({
-    available: product?.sourcing_available || false,
-    monthlyLimit: product?.sourcing_limit_monthly,
-  });
+const initialFormData: ProductFormData = {
+  listingType: 'individual',
+  name: '',
+  description: '',
+  category: '',
+  images: [],
+  whatsIncluded: [],
+  tieredPricing: [
+    { minQty: 1, maxQty: 9, pricePerItem: 500000, discountPercent: 0 }
+  ],
+  addOns: [],
+  isMadeToOrder: false,
+  stockAvailable: 0,
+  deliveryTimeTiers: [
+    { minQty: 1, maxQty: null, deliveryDays: '2-3 days' }
+  ],
+  isCustomizable: false,
+  previewRequired: false
+};
 
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productFormSchema),
-    defaultValues: {
-      name: product?.name || "",
-      description: product?.description || "",
-      short_desc: product?.short_desc || "",
-      price: product?.price ? product.price / 100 : 0,  // Convert from paise
-      stock: product?.stock || 0,
-      is_customizable: product?.is_customizable || false,
-      category: product?.category || "",
-      estimated_delivery_days: product?.estimated_delivery_days || "3-5 days",
-    },
-  });
+const categories = [
+  'Electronics',
+  'Gourmet',
+  'Wellness',
+  'Corporate',
+  'Lifestyle',
+  'Home & Kitchen',
+  'Books & Media',
+  'Sports & Fitness'
+];
 
-  // Add new add-on (max 5)
-  const handleAddNewAddOn = () => {
-    if (addOns.length >= 5) {
-      toast({
-        title: "Maximum add-ons reached",
-        description: "You can add up to 5 add-ons per product",
-        variant: "destructive",
-      });
-      return;
-    }
+const listingTypeOptions = [
+  {
+    value: 'individual' as ListingType,
+    title: 'Individual Product',
+    description: 'Single item with gifting service (wrapping, card, etc.)',
+    example: 'Boat Airdopes 131 - Premium Gift Packed'
+  },
+  {
+    value: 'hamper' as ListingType,
+    title: 'Hamper/Combo',
+    description: 'Multiple items bundled together as a gift set',
+    example: 'Premium Tech Hamper with speaker, power bank, and accessories'
+  },
+  {
+    value: 'service' as ListingType,
+    title: 'Service Only',
+    description: 'Pure service like gift wrapping, customization, etc.',
+    example: 'Gift Wrapping Service - Premium Package'
+  }
+];
 
-    setAddOns([
-      ...addOns,
-      {
-        id: `addon-${Date.now()}`,
-        name: "",
-        price: 0,
-        moq: 1,
-        requiresProof: false,
-        description: "",
-      },
-    ]);
+export default function ProductForm() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<ProductFormData>(initialFormData);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const totalSteps = 6;
+
+  const updateFormData = (updates: Partial<ProductFormData>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+    // Clear errors when form data changes
+    setErrors({});
   };
 
-  // Remove add-on
-  const handleRemoveAddOn = (index: number) => {
-    setAddOns(addOns.filter((_, i) => i !== index));
-  };
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
 
-  // Update add-on field
-  const updateAddOn = (index: number, field: keyof AddOn, value: any) => {
-    const updated = [...addOns];
-    updated[index] = { ...updated[index], [field]: value };
-    setAddOns(updated);
-  };
+    switch (step) {
+      case 1:
+        if (!formData.listingType) {
+          newErrors.listingType = 'Please select a listing type';
+        }
+        break;
 
-  // Handle form submission
-  const onSubmit = async (values: ProductFormValues) => {
-    if (!user) return;
+      case 2:
+        if (!formData.name.trim()) {
+          newErrors.name = 'Product name is required';
+        }
+        if (!formData.description.trim()) {
+          newErrors.description = 'Product description is required';
+        }
+        if (!formData.category) {
+          newErrors.category = 'Please select a category';
+        }
+        if (formData.whatsIncluded.length === 0) {
+          newErrors.whatsIncluded = 'Please add at least one item to "What\'s Included"';
+        }
+        break;
 
-    // Validate add-ons if customizable
-    if (isCustomizable && addOns.length > 0) {
-      const invalidAddOns = addOns.filter(a => !a.name || a.price <= 0 || a.moq < 1);
-      if (invalidAddOns.length > 0) {
-        toast({
-          title: "Invalid add-ons",
-          description: "All add-ons must have name, price, and valid MOQ",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    setLoading(true);
-
-    try {
-      const productData = {
-        partner_id: user.id,
-        name: values.name,
-        description: values.description,
-        short_desc: values.short_desc,
-        price: Math.round(values.price * 100),  // Convert to paise
-        stock: values.stock,
-        images,
-        is_customizable: isCustomizable,
-        add_ons: isCustomizable ? addOns : [],
-        bulk_pricing: bulkTiers.length > 0 ? bulkTiers : null,  // Bulk pricing tiers
-        sponsored: sponsoredData.isSponsored,
-        sponsored_start_date: sponsoredData.isSponsored && sponsoredData.startDate ? sponsoredData.startDate.toISOString() : null,
-        sponsored_end_date: sponsoredData.isSponsored && sponsoredData.endDate ? sponsoredData.endDate.toISOString() : null,
-        sourcing_available: sourcingData.available,
-        sourcing_limit_monthly: sourcingData.available && sourcingData.monthlyLimit ? sourcingData.monthlyLimit : null,
-        sourcing_limit_enabled: sourcingData.available && !!sourcingData.monthlyLimit,
-        category: values.category,
-        estimated_delivery_days: values.estimated_delivery_days,
-        is_active: true,
-        // Hamper-specific fields
-        is_hamper: productType === 'hamper',
-        auto_order_components: productType === 'hamper' ? true : null,
-        total_component_cost: hamperData?.totalCost || null,
-        suggested_retail_price: hamperData?.suggestedPrice || null,
-      };
-
-      if (product?.id) {
-        // Update existing product - resubmit for approval if was rejected
-        const updateData = {
-          ...productData,
-          ...(product.approval_status === 'rejected' || product.approval_status === 'changes_requested'
-            ? { approval_status: 'pending_review', rejection_reason: null }
-            : {}),
-        };
-
-        const { error } = await supabase
-          .from('partner_products')
-          .update(updateData)
-          .eq('id', product.id);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Product updated",
-          description: product.approval_status === 'rejected' 
-            ? "Product resubmitted for review"
-            : "Your product has been updated successfully",
-        });
-      } else {
-        // Create new product - set to pending review
-        const { data: newProduct, error } = await supabase
-          .from('partner_products')
-          .insert({
-            ...productData,
-            approval_status: 'pending_review', // CRITICAL: All new products need approval
-          })
-          .select()
-          .single();
-        
-        if (error) throw error;
-
-        // If it's a hamper, save components and assembly instructions
-        if (productType === 'hamper' && hamperData && newProduct) {
-          // Save hamper components
-          if (hamperData.components.length > 0) {
-            const componentRecords = hamperData.components.map((comp: any) => ({
-              hamper_product_id: newProduct.id,
-              component_product_id: comp.id,
-              quantity: comp.quantity,
-              wholesale_price: comp.wholesale_price,
-            }));
-
-            const { error: componentError } = await supabase
-              .from('hamper_components')
-              .insert(componentRecords);
-
-            if (componentError) {
-              console.error('Failed to save components:', componentError);
-            }
-          }
-
-          // Save assembly instructions
-          if (hamperData.assemblyInstructions.length > 0) {
-            const instructionRecords = hamperData.assemblyInstructions.map((inst: any) => ({
-              hamper_product_id: newProduct.id,
-              step_number: inst.step_number,
-              instruction_text: inst.instruction_text,
-              instruction_image: inst.instruction_image || null,
-            }));
-
-            const { error: instructionError } = await supabase
-              .from('assembly_instructions')
-              .insert(instructionRecords);
-
-            if (instructionError) {
-              console.error('Failed to save instructions:', instructionError);
-            }
+      case 3:
+        if (formData.tieredPricing.length === 0) {
+          newErrors.tieredPricing = 'At least one pricing tier is required';
+        } else {
+          const validationErrors = validatePricingTiers(formData.tieredPricing);
+          if (validationErrors.length > 0) {
+            newErrors.tieredPricing = validationErrors[0];
           }
         }
-        
-        toast({
-          title: productType === 'hamper' ? "Hamper created" : "Product created",
-          description: "Your product is under review. It will be live within 24 hours if approved.",
-        });
-      }
+        break;
 
-      onSuccess();
-    } catch (error: any) {
-      console.error('Product save error:', error);
-      toast({
-        title: "Save failed",
-        description: error.message || "Could not save product",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      case 4:
+        // Add-ons are optional, no validation needed
+        break;
+
+      case 5:
+        if (!formData.isMadeToOrder && formData.stockAvailable <= 0) {
+          newErrors.stockAvailable = 'Please enter stock quantity or enable made-to-order';
+        }
+        if (formData.deliveryTimeTiers.length === 0) {
+          newErrors.deliveryTimeTiers = 'At least one delivery time tier is required';
+        }
+        break;
+
+      case 6:
+        // Customization settings are optional
+        break;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const addPricingTier = () => {
+    const newTier: PricingTier = {
+      minQty: formData.tieredPricing.length > 0 
+        ? (formData.tieredPricing[formData.tieredPricing.length - 1].maxQty || 0) + 1
+        : 1,
+      maxQty: null,
+      pricePerItem: 0,
+      discountPercent: 0
+    };
+    
+    updateFormData({
+      tieredPricing: [...formData.tieredPricing, newTier]
+    });
+  };
+
+  const updatePricingTier = (index: number, updates: Partial<PricingTier>) => {
+    const updatedTiers = [...formData.tieredPricing];
+    updatedTiers[index] = { ...updatedTiers[index], ...updates };
+    
+    // Auto-calculate discount percentage
+    if (updates.pricePerItem && formData.tieredPricing.length > 0) {
+      const firstTierPrice = formData.tieredPricing[0].pricePerItem;
+      const discountPercent = Math.round(((firstTierPrice - updates.pricePerItem) / firstTierPrice) * 100);
+      updatedTiers[index].discountPercent = Math.max(0, discountPercent);
+    }
+    
+    updateFormData({ tieredPricing: updatedTiers });
+  };
+
+  const removePricingTier = (index: number) => {
+    if (formData.tieredPricing.length > 1) {
+      const updatedTiers = formData.tieredPricing.filter((_, i) => i !== index);
+      updateFormData({ tieredPricing: updatedTiers });
+    }
+  };
+
+  const addWhatsIncluded = () => {
+    updateFormData({
+      whatsIncluded: [...formData.whatsIncluded, '']
+    });
+  };
+
+  const updateWhatsIncluded = (index: number, value: string) => {
+    const updated = [...formData.whatsIncluded];
+    updated[index] = value;
+    updateFormData({ whatsIncluded: updated });
+  };
+
+  const removeWhatsIncluded = (index: number) => {
+    const updated = formData.whatsIncluded.filter((_, i) => i !== index);
+    updateFormData({ whatsIncluded: updated });
+  };
+
+  const addAddOn = () => {
+    const newAddOn: AddOn = {
+      id: Date.now().toString(),
+      name: '',
+      description: '',
+      price: 0,
+      type: 'standard',
+      minimumOrder: undefined,
+      requiresPreview: false,
+      requiresProof: false
+    };
+    
+    updateFormData({
+      addOns: [...formData.addOns, newAddOn]
+    });
+  };
+
+  const updateAddOn = (index: number, updates: Partial<AddOn>) => {
+    const updated = [...formData.addOns];
+    updated[index] = { ...updated[index], ...updates };
+    updateFormData({ addOns: updated });
+  };
+
+  const removeAddOn = (index: number) => {
+    const updated = formData.addOns.filter((_, i) => i !== index);
+    updateFormData({ addOns: updated });
+  };
+
+  const addDeliveryTimeTier = () => {
+    const newTier = {
+      minQty: formData.deliveryTimeTiers.length > 0 
+        ? (formData.deliveryTimeTiers[formData.deliveryTimeTiers.length - 1].maxQty || 0) + 1
+        : 1,
+      maxQty: null,
+      deliveryDays: '2-3 days'
+    };
+    
+    updateFormData({
+      deliveryTimeTiers: [...formData.deliveryTimeTiers, newTier]
+    });
+  };
+
+  const updateDeliveryTimeTier = (index: number, updates: Partial<typeof formData.deliveryTimeTiers[0]>) => {
+    const updated = [...formData.deliveryTimeTiers];
+    updated[index] = { ...updated[index], ...updates };
+    updateFormData({ deliveryTimeTiers: updated });
+  };
+
+  const removeDeliveryTimeTier = (index: number) => {
+    if (formData.deliveryTimeTiers.length > 1) {
+      const updated = formData.deliveryTimeTiers.filter((_, i) => i !== index);
+      updateFormData({ deliveryTimeTiers: updated });
+    }
+  };
+
+  const handleSubmit = () => {
+    if (validateStep(currentStep)) {
+      // Submit form data
+      console.log('Submitting product:', formData);
+      // TODO: Implement actual submission logic
+    }
+  };
+
+  const renderStep1 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">What type of product are you listing?</h2>
+        <p className="text-muted-foreground mt-2">
+          Choose the type that best describes your offering
+        </p>
+      </div>
+
+      <div className="grid gap-4">
+        {listingTypeOptions.map((option) => (
+          <Card 
+            key={option.value}
+            className={`cursor-pointer transition-all ${
+              formData.listingType === option.value 
+                ? 'ring-2 ring-primary border-primary' 
+                : 'hover:border-primary/50'
+            }`}
+            onClick={() => updateFormData({ listingType: option.value })}
+          >
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className={`w-4 h-4 rounded-full border-2 ${
+                  formData.listingType === option.value 
+                    ? 'bg-primary border-primary' 
+                    : 'border-muted-foreground'
+                }`}>
+                  {formData.listingType === option.value && (
+                    <Check className="w-3 h-3 text-white" />
+                  )}
+                </div>
+                <div>
+                  <CardTitle className="text-lg">{option.title}</CardTitle>
+                  <CardDescription>{option.description}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                <strong>Example:</strong> {option.example}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {errors.listingType && (
+        <div className="flex items-center space-x-2 text-destructive">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm">{errors.listingType}</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">Product Details</h2>
+        <p className="text-muted-foreground mt-2">
+          Tell customers about your product
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="name">Product Name *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => updateFormData({ name: e.target.value })}
+            placeholder="e.g., Premium Tech Hamper"
+            className={errors.name ? 'border-destructive' : ''}
+          />
+          {errors.name && (
+            <p className="text-sm text-destructive mt-1">{errors.name}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="description">Description *</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => updateFormData({ description: e.target.value })}
+            placeholder="Describe your product in detail..."
+            rows={4}
+            className={errors.description ? 'border-destructive' : ''}
+          />
+          {errors.description && (
+            <p className="text-sm text-destructive mt-1">{errors.description}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="category">Category *</Label>
+          <select
+            id="category"
+            value={formData.category}
+            onChange={(e) => updateFormData({ category: e.target.value })}
+            className={`w-full px-3 py-2 border rounded-md ${
+              errors.category ? 'border-destructive' : 'border-input'
+            }`}
+          >
+            <option value="">Select a category</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat.toLowerCase()}>{cat}</option>
+            ))}
+          </select>
+          {errors.category && (
+            <p className="text-sm text-destructive mt-1">{errors.category}</p>
+          )}
+        </div>
+
+        <div>
+          <Label>What's Included *</Label>
+          <p className="text-sm text-muted-foreground mb-3">
+            List all items that come with this product
+          </p>
+          <div className="space-y-2">
+            {formData.whatsIncluded.map((item, index) => (
+              <div key={index} className="flex items-center space-x-2">
+                <Input
+                  value={item}
+                  onChange={(e) => updateWhatsIncluded(index, e.target.value)}
+                  placeholder="e.g., Boat Rockerz 450 Wireless Headphones"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => removeWhatsIncluded(index)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addWhatsIncluded}
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Item
+            </Button>
+          </div>
+          {errors.whatsIncluded && (
+            <p className="text-sm text-destructive mt-1">{errors.whatsIncluded}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">Pricing Tiers</h2>
+        <p className="text-muted-foreground mt-2">
+          Set quantity-based pricing (like Swiggy/Zomato)
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {formData.tieredPricing.map((tier, index) => (
+          <Card key={index}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Tier {index + 1}</CardTitle>
+                {formData.tieredPricing.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removePricingTier(index)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Min Quantity</Label>
+                  <Input
+                    type="number"
+                    value={tier.minQty}
+                    onChange={(e) => updatePricingTier(index, { 
+                      minQty: parseInt(e.target.value) || 0 
+                    })}
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <Label>Max Quantity (leave empty for unlimited)</Label>
+                  <Input
+                    type="number"
+                    value={tier.maxQty || ''}
+                    onChange={(e) => updatePricingTier(index, { 
+                      maxQty: e.target.value ? parseInt(e.target.value) : null 
+                    })}
+                    min="1"
+                    placeholder="Unlimited"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label>Price per Item (in paise)</Label>
+                <Input
+                  type="number"
+                  value={tier.pricePerItem}
+                  onChange={(e) => updatePricingTier(index, { 
+                    pricePerItem: parseInt(e.target.value) || 0 
+                  })}
+                  min="0"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  ₹{(tier.pricePerItem / 100).toLocaleString('en-IN')} per item
+                </p>
+              </div>
+              
+              {tier.discountPercent > 0 && (
+                <Badge variant="secondary">
+                  {tier.discountPercent}% off
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={addPricingTier}
+          className="w-full"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Pricing Tier
+        </Button>
+
+        {errors.tieredPricing && (
+          <div className="flex items-center space-x-2 text-destructive">
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-sm">{errors.tieredPricing}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">Add-ons & Customization</h2>
+        <p className="text-muted-foreground mt-2">
+          Offer additional services to customers
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {formData.addOns.map((addOn, index) => (
+          <Card key={addOn.id}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Add-on {index + 1}</CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => removeAddOn(index)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Add-on Name</Label>
+                <Input
+                  value={addOn.name}
+                  onChange={(e) => updateAddOn(index, { name: e.target.value })}
+                  placeholder="e.g., Premium Gift Wrapping"
+                />
+              </div>
+              
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  value={addOn.description || ''}
+                  onChange={(e) => updateAddOn(index, { description: e.target.value })}
+                  placeholder="Describe what this add-on includes..."
+                  rows={2}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Price (in paise)</Label>
+                  <Input
+                    type="number"
+                    value={addOn.price}
+                    onChange={(e) => updateAddOn(index, { 
+                      price: parseInt(e.target.value) || 0 
+                    })}
+                    min="0"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    ₹{(addOn.price / 100).toLocaleString('en-IN')}
+                  </p>
+                </div>
+                
+                <div>
+                  <Label>Type</Label>
+                  <select
+                    value={addOn.type}
+                    onChange={(e) => updateAddOn(index, { 
+                      type: e.target.value as 'standard' | 'bulk' 
+                    })}
+                    className="w-full px-3 py-2 border rounded-md"
+                  >
+                    <option value="standard">Standard (all orders)</option>
+                    <option value="bulk">Bulk (minimum order required)</option>
+                  </select>
+                </div>
+              </div>
+              
+              {addOn.type === 'bulk' && (
+                <div>
+                  <Label>Minimum Order Quantity</Label>
+                  <Input
+                    type="number"
+                    value={addOn.minimumOrder || ''}
+                    onChange={(e) => updateAddOn(index, { 
+                      minimumOrder: parseInt(e.target.value) || undefined 
+                    })}
+                    min="1"
+                    placeholder="e.g., 50"
+                  />
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={addOn.requiresPreview}
+                    onChange={(e) => updateAddOn(index, { 
+                      requiresPreview: e.target.checked 
+                    })}
+                  />
+                  <span className="text-sm">Requires preview for bulk orders</span>
+                </label>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={addAddOn}
+          className="w-full"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Customization Option
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderStep5 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">Inventory & Delivery</h2>
+        <p className="text-muted-foreground mt-2">
+          Set up stock and delivery options
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Stock Management</CardTitle>
+            <CardDescription>
+              Choose how you want to manage inventory
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="stockType"
+                  checked={!formData.isMadeToOrder}
+                  onChange={() => updateFormData({ isMadeToOrder: false })}
+                />
+                <span>Track stock quantity</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="stockType"
+                  checked={formData.isMadeToOrder}
+                  onChange={() => updateFormData({ isMadeToOrder: true })}
+                />
+                <span>Made-to-order (no stock tracking)</span>
+              </label>
+            </div>
+            
+            {!formData.isMadeToOrder && (
+              <div>
+                <Label htmlFor="stockAvailable">Available Stock</Label>
+                <Input
+                  id="stockAvailable"
+                  type="number"
+                  value={formData.stockAvailable}
+                  onChange={(e) => updateFormData({ 
+                    stockAvailable: parseInt(e.target.value) || 0 
+                  })}
+                  min="0"
+                  className={errors.stockAvailable ? 'border-destructive' : ''}
+                />
+                {errors.stockAvailable && (
+                  <p className="text-sm text-destructive mt-1">{errors.stockAvailable}</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Delivery Time Tiers</CardTitle>
+            <CardDescription>
+              Set delivery times based on quantity
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {formData.deliveryTimeTiers.map((tier, index) => (
+              <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
+                <div className="flex-1 grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Min Quantity</Label>
+                    <Input
+                      type="number"
+                      value={tier.minQty}
+                      onChange={(e) => updateDeliveryTimeTier(index, { 
+                        minQty: parseInt(e.target.value) || 0 
+                      })}
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Max Quantity (optional)</Label>
+                    <Input
+                      type="number"
+                      value={tier.maxQty || ''}
+                      onChange={(e) => updateDeliveryTimeTier(index, { 
+                        maxQty: e.target.value ? parseInt(e.target.value) : null 
+                      })}
+                      min="1"
+                      placeholder="Unlimited"
+                    />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <Label>Delivery Time</Label>
+                  <Input
+                    value={tier.deliveryDays}
+                    onChange={(e) => updateDeliveryTimeTier(index, { 
+                      deliveryDays: e.target.value 
+                    })}
+                    placeholder="e.g., 2-3 days"
+                  />
+                </div>
+                {formData.deliveryTimeTiers.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeDeliveryTimeTier(index)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addDeliveryTimeTier}
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Delivery Time Tier
+            </Button>
+            
+            {errors.deliveryTimeTiers && (
+              <p className="text-sm text-destructive">{errors.deliveryTimeTiers}</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  const renderStep6 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">Customization Settings</h2>
+        <p className="text-muted-foreground mt-2">
+          Configure personalization and preview options
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Personalization Options</CardTitle>
+            <CardDescription>
+              Allow customers to customize their orders
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={formData.isCustomizable}
+                  onChange={(e) => updateFormData({ isCustomizable: e.target.checked })}
+                />
+                <span>Allow personalization (custom messages, names, etc.)</span>
+              </label>
+              
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={formData.previewRequired}
+                  onChange={(e) => updateFormData({ previewRequired: e.target.checked })}
+                />
+                <span>Require preview approval for customized orders</span>
+              </label>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview Workflow</CardTitle>
+            <CardDescription>
+              How customers will approve customized orders
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <Info className="w-5 h-5 text-blue-500 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    <strong>Preview Workflow:</strong>
+                  </p>
+                  <ol className="text-sm text-muted-foreground space-y-1">
+                    <li>1. Customer places order with customization</li>
+                    <li>2. You create a preview/mockup</li>
+                    <li>3. Customer approves or requests changes</li>
+                    <li>4. Once approved, order cannot be cancelled</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1: return renderStep1();
+      case 2: return renderStep2();
+      case 3: return renderStep3();
+      case 4: return renderStep4();
+      case 5: return renderStep5();
+      case 6: return renderStep6();
+      default: return null;
     }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-        {/* Approval Status Info */}
-        {product?.approval_status && product.approval_status !== 'approved' && (
-          <Alert variant={product.approval_status === 'rejected' ? 'destructive' : 'default'}>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>
-              {product.approval_status === 'pending_review' && 'Pending Review'}
-              {product.approval_status === 'rejected' && 'Product Rejected'}
-              {product.approval_status === 'changes_requested' && 'Changes Requested'}
-            </AlertTitle>
-            <AlertDescription className="text-sm">
-              {product.approval_status === 'pending_review' && 
-                'This product is under review by our team. It will be live within 24 hours if approved.'}
-              {product.approval_status === 'rejected' && product.rejection_reason && 
-                `Reason: ${product.rejection_reason}. Please make corrections and resubmit.`}
-              {product.approval_status === 'changes_requested' && 
-                'Admin has requested changes. Update the product to resubmit for review.'}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {!product && (
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              New products are reviewed by our team within 24 hours before going live.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Product Type Toggle - Standalone or Hamper */}
-        <Tabs value={productType} onValueChange={(v) => setProductType(v as 'standalone' | 'hamper')}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="standalone">Standalone Product</TabsTrigger>
-            <TabsTrigger value="hamper">Hamper/Combo</TabsTrigger>
-          </TabsList>
-
-          {/* Standalone Product Form */}
-          <TabsContent value="standalone" className="space-y-6 mt-6">
-            {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="font-semibold">Basic Information</h3>
-          
-            <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Premium Gift Hamper" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+    <div className="max-w-4xl mx-auto p-6">
+      {/* Progress Bar */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold">Create New Product</h1>
+          <span className="text-sm text-muted-foreground">
+            Step {currentStep} of {totalSteps}
+          </span>
+        </div>
+        
+        <div className="w-full bg-muted rounded-full h-2">
+          <div 
+            className="bg-primary h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
           />
+        </div>
+        
+        <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+          <span>Listing Type</span>
+          <span>Details</span>
+          <span>Pricing</span>
+          <span>Add-ons</span>
+          <span>Inventory</span>
+          <span>Customization</span>
+        </div>
+      </div>
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Curated selection of premium items perfect for any occasion..."
-                    rows={4}
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Detailed product description (shown in item details)
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      {/* Step Content */}
+      <Card>
+        <CardContent className="p-6">
+          {renderStepContent()}
+        </CardContent>
+      </Card>
 
-          <FormField
-            control={form.control}
-            name="short_desc"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Short Description (Optional)</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Perfect for corporate gifting"
-                    maxLength={150}
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Brief description shown on product cards (max 150 chars)
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-            </div>
-
-            {/* Pricing & Inventory */}
-            <div className="space-y-4">
-              <h3 className="font-semibold">Pricing & Inventory</h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Retail Price (₹)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="2499"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="stock"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Stock Quantity</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="100"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-              </div>
-            </div>
-
-            {/* Images */}
-            {/* Product Images - Shared Component (DRY) */}
-            <div className="space-y-4">
-              <h3 className="font-semibold">Product Images</h3>
-              <ImageUploader
-            images={images}
-            onImagesChange={setImages}
-            maxImages={5}
-            maxSizeMB={5}
-            disabled={loading}
-              />
-            </div>
-
-            {/* Bulk Pricing Tiers - PROMPT 1 Feature */}
-            <BulkPricingTiers
-          basePrice={Math.round((form.watch('price') || 0) * 100)}
-          initialTiers={bulkTiers}
-          onTiersChange={setBulkTiers}
-          disabled={loading}
-            />
-
-            {/* Sponsored Listing Toggle - PROMPT 5 Feature */}
-            <SponsoredToggle
-          productId={product?.id}
-          initialSponsored={sponsoredData.isSponsored}
-          initialStartDate={sponsoredData.startDate?.toISOString()}
-          initialEndDate={sponsoredData.endDate?.toISOString()}
-          onSponsoredChange={(isSponsored, startDate, endDate) => {
-            setSponsoredData({
-              isSponsored,
-              startDate,
-              endDate,
-            });
-          }}
-          disabled={loading}
-            />
-
-            {/* Sourcing Limits - PROMPT 11 Feature */}
-            <SourcingLimits
-          productId={product?.id}
-          initialAvailable={sourcingData.available}
-          initialMonthlyLimit={sourcingData.monthlyLimit}
-          onSourcingChange={(available, monthlyLimit) => {
-            setSourcingData({
-              available,
-              monthlyLimit,
-            });
-          }}
-          disabled={loading}
-            />
-
-            {/* CUSTOMIZATION & ADD-ONS (Swiggy/Zomato Pattern) */}
-            <Accordion type="single" collapsible className="border rounded-lg">
-          <AccordionItem value="customization" className="border-0">
-            <AccordionTrigger className="px-4 hover:no-underline">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">🎨 Customization & Add-ons</span>
-                {isCustomizable && addOns.length > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {addOns.length} add-on{addOns.length !== 1 ? 's' : ''}
-                  </Badge>
-                )}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 pb-4 space-y-4">
-              {/* Customization Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="customizable">Supports Customization</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Allow customers to add greeting cards, logos, gift wrapping, etc.
-                  </p>
-                </div>
-                <Switch
-                  id="customizable"
-                  checked={isCustomizable}
-                  onCheckedChange={setIsCustomizable}
-                />
-              </div>
-
-              {/* Add-ons Builder (only if customizable) */}
-              {isCustomizable && (
-                <div className="space-y-4 pt-4 border-t">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-primary mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Add-on Options</p>
-                      <p className="text-xs text-muted-foreground">
-                        Like Swiggy's "Extra Cheese", add-ons let customers personalize orders.
-                        Set MOQ for bulk customization (e.g., 50 units for logo engraving).
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Add-ons List */}
-                  {addOns.map((addOn, index) => (
-                    <Card key={addOn.id} className="bg-muted/50">
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm font-semibold">Add-on {index + 1}</Label>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveAddOn(index)}
-                            className="h-8 text-destructive hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        {/* Add-on Name */}
-                        <div className="space-y-1.5">
-                          <Label htmlFor={`addon-name-${index}`} className="text-xs">
-                            Add-on Name
-                          </Label>
-                          <Input
-                            id={`addon-name-${index}`}
-                            placeholder="e.g., Company Logo Engraving"
-                            value={addOn.name}
-                            onChange={(e) => updateAddOn(index, 'name', e.target.value)}
-                          />
-                        </div>
-
-                        {/* Price and MOQ */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`addon-price-${index}`} className="text-xs">
-                              Price (+₹)
-                            </Label>
-                            <Input
-                              id={`addon-price-${index}`}
-                              type="number"
-                              placeholder="200"
-                              value={addOn.price / 100 || ""}  // Display in rupees
-                              onChange={(e) => updateAddOn(index, 'price', Number(e.target.value) * 100)}  // Store in paise
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`addon-moq-${index}`} className="text-xs">
-                              Min Quantity
-                            </Label>
-                            <Input
-                              id={`addon-moq-${index}`}
-                              type="number"
-                              placeholder="50"
-                              value={addOn.moq || ""}
-                              onChange={(e) => updateAddOn(index, 'moq', Number(e.target.value))}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Proof Required Checkbox */}
-                        <div className="flex items-start gap-2">
-                          <Checkbox
-                            id={`addon-proof-${index}`}
-                            checked={addOn.requiresProof}
-                            onCheckedChange={(checked) => updateAddOn(index, 'requiresProof', checked)}
-                          />
-                          <div className="flex-1">
-                            <Label
-                              htmlFor={`addon-proof-${index}`}
-                              className="text-sm font-normal cursor-pointer"
-                            >
-                              Requires customer to upload design/logo
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Customer must upload files before order confirmation
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Description (help text for customers) */}
-                        {addOn.requiresProof && (
-                          <div className="space-y-1.5">
-                            <Label htmlFor={`addon-desc-${index}`} className="text-xs">
-                              Instructions for Customer
-                            </Label>
-                            <Input
-                              id={`addon-desc-${index}`}
-                              placeholder="Upload your logo (PNG/SVG, max 5MB)"
-                              value={addOn.description || ""}
-                              onChange={(e) => updateAddOn(index, 'description', e.target.value)}
-                            />
-                          </div>
-                        )}
-
-                        {/* Example Preview */}
-                        <div className="pt-2 border-t text-xs text-muted-foreground">
-                          Preview: <span className="font-medium">"{addOn.name || 'Add-on name'}"</span>
-                          {' '}(+₹{addOn.price / 100 || 0})
-                          {addOn.moq > 1 && <span className="text-orange-600"> • Min {addOn.moq} units</span>}
-                          {addOn.requiresProof && <span className="text-primary"> • Upload required</span>}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-
-                  {/* Add Another Button */}
-                  {addOns.length < 5 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddNewAddOn}
-                      className="w-full gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add Another Add-on ({addOns.length}/5)
-                    </Button>
-                  )}
-
-                  {/* Examples (Swiggy/Zomato pattern) */}
-                  {addOns.length === 0 && (
-                    <Alert>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>Common Add-on Examples</AlertTitle>
-                      <AlertDescription className="text-xs space-y-1 mt-2">
-                        <p>• <strong>Greeting Card</strong> (+₹99, MOQ: 1, No proof)</p>
-                        <p>• <strong>Gift Wrapping</strong> (+₹149, MOQ: 1, No proof)</p>
-                        <p>• <strong>Company Logo</strong> (+₹200, MOQ: 50, Proof required)</p>
-                        <p>• <strong>Custom Message</strong> (+₹50, MOQ: 1, No proof)</p>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              )}
-            </AccordionContent>
-          </AccordionItem>
-            </Accordion>
-
-            {/* Form Actions */}
-            <div className="flex gap-3 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                disabled={loading}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="flex-1"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  product ? 'Update Product' : 'Create Product'
-                )}
-              </Button>
-            </div>
-          </TabsContent>
-
-          {/* Hamper/Combo Product Form */}
-          <TabsContent value="hamper" className="space-y-6 mt-6">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                Build a hamper by selecting components from the Component Marketplace. 
-                The platform will auto-calculate margins and handle sourcing when orders are placed.
-              </AlertDescription>
-            </Alert>
-
-            {/* Basic hamper details */}
-            <div className="space-y-4">
-              <h3 className="font-semibold">Hamper Information</h3>
-              
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hamper Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Premium Tech Gift Set" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Curated tech hamper with premium brands..."
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Hamper Builder Integration */}
-            <HamperBuilder
-              onSave={(data) => setHamperData(data)}
-              initialComponents={hamperData?.components || []}
-              initialInstructions={hamperData?.assemblyInstructions || []}
-            />
-
-            {/* Show suggested price from hamper builder */}
-            {hamperData && (
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="p-4">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Component Cost:</span>
-                      <span className="font-semibold">₹{(hamperData.totalCost / 100).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Suggested Retail Price:</span>
-                      <span className="font-bold text-lg">₹{(hamperData.suggestedPrice / 100).toFixed(2)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      You can override this price in the next step
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Hamper-specific fields */}
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Final Retail Price (₹)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder={hamperData ? String(hamperData.suggestedPrice / 100) : "4999"}
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {hamperData && `Suggested: ₹${(hamperData.suggestedPrice / 100).toFixed(2)} (3x markup)`}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="stock"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Available Hampers</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="50"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Limited by component stock availability
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Images for hamper */}
-            <div className="space-y-4">
-              <h3 className="font-semibold">Hamper Images</h3>
-              <ImageUploader
-                images={images}
-                onImagesChange={setImages}
-                maxImages={5}
-                maxSizeMB={5}
-                disabled={loading}
-              />
-            </div>
-
-            {/* Form Actions for Hamper */}
-            <div className="flex gap-3 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                disabled={loading}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading || !hamperData}
-                className="flex-1"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  product ? 'Update Hamper' : 'Create Hamper'
-                )}
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </form>
-    </Form>
+      {/* Navigation */}
+      <div className="flex justify-between mt-8">
+        <Button
+          variant="outline"
+          onClick={prevStep}
+          disabled={currentStep === 1}
+        >
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          Previous
+        </Button>
+        
+        <div className="flex space-x-4">
+          {currentStep < totalSteps ? (
+            <Button onClick={nextStep}>
+              Next
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
+              <Check className="w-4 h-4 mr-2" />
+              Create Product
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
-};
-
+}

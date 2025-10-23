@@ -33,6 +33,8 @@ export { PartnerBadges } from '../pages/partner/Badges';
 export { ComponentMarketplace } from '../pages/partner/ComponentMarketplace';
 export { KittingDashboard } from '../pages/partner/KittingDashboard';
 export { KittingWorkflow } from '../pages/partner/KittingWorkflow';
+export { ProductFormWizard } from '../components/partner/ProductFormWizard';
+export { WyshkitSupply } from '../pages/partner/WyshkitSupply';
 
 // Admin Pages - Internal Console
 export { AdminLogin } from '../pages/admin/Login';
@@ -48,6 +50,8 @@ export { AdminContent } from '../pages/admin/ContentManagement';
 export { AdminSettings } from '../pages/admin/Settings';
 export { AdminUsers } from '../pages/admin/AdminUsers';
 export { AdminAudit } from '../pages/admin/AuditLogs';
+export { CommissionManagement } from '../pages/admin/CommissionManagement';
+export { FeeManagement } from '../pages/admin/FeeManagement';
 // Legacy
 export { AdminPartnerApprovals } from '../pages/admin/PartnerApprovals';
 

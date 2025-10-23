@@ -1,360 +1,331 @@
 /**
- * Commission Calculator
- * Swiggy/Zomato pattern: Dynamic commission based on vendor, category, volume
- * Admin can override rates in real-time
+ * Commission Calculator - Dynamic Platform Commission
+ * Admin-configurable commission rules with real-time calculation
  */
 
-import { CommissionRule, VendorCommissionOverride, CommissionCalculation } from '@/types/commission';
+import { CommissionRule } from '@/types/commission';
 
-/**
- * Calculate platform commission based on order details and rules
- * Priority order: Vendor Override > Volume > Vendor-specific > Category > Default
- */
-export function calculateCommission(
-  orderValue: number, // in paise
-  orderQuantity: number,
-  vendorId: string,
-  categoryId?: string,
-  commissionRules: CommissionRule[] = [],
-  vendorOverrides: VendorCommissionOverride[] = []
-): CommissionCalculation {
-  // Check for vendor-specific override first (highest priority)
-  const override = findActiveVendorOverride(vendorId, vendorOverrides);
-  if (override) {
-    const commissionAmount = Math.round((orderValue * override.commission_percent) / 100);
-    const vendorPayout = orderValue - commissionAmount;
-    
-    return {
-      commission_amount: commissionAmount,
-      commission_percent: override.commission_percent,
-      vendor_payout: vendorPayout,
-      applied_rule_id: override.id,
-      rule_name: `Vendor Override: ${override.reason || 'Custom rate'}`,
-    };
-  }
-  
-  // Find applicable commission rule
-  const applicableRule = findApplicableCommissionRule(
-    orderValue,
-    orderQuantity,
-    vendorId,
-    categoryId,
-    commissionRules
-  );
-  
-  if (!applicableRule) {
-    // Fallback to default 18% if no rule found
-    const defaultPercent = 18;
-    const commissionAmount = Math.round((orderValue * defaultPercent) / 100);
-    const vendorPayout = orderValue - commissionAmount;
-    
-    return {
-      commission_amount: commissionAmount,
-      commission_percent: defaultPercent,
-      vendor_payout: vendorPayout,
-      applied_rule_id: 'default-fallback',
-      rule_name: 'Default Commission (18%)',
-    };
-  }
-  
-  const commissionAmount = Math.round((orderValue * applicableRule.commission_percent) / 100);
-  const vendorPayout = orderValue - commissionAmount;
-  
-  return {
-    commission_amount: commissionAmount,
-    commission_percent: applicableRule.commission_percent,
-    vendor_payout: vendorPayout,
-    applied_rule_id: applicableRule.id,
-    rule_name: applicableRule.rule_name,
+export interface CommissionResult {
+  commissionAmount: number;
+  commissionPercent: number;
+  vendorPayout: number;
+  appliedRule: CommissionRule;
+  breakdown: {
+    orderValue: number;
+    baseCommission: number;
+    adjustments: number;
+    finalCommission: number;
   };
 }
 
 /**
- * Find active vendor commission override
+ * Calculate platform commission based on rules
+ * Supports category, vendor, volume, and default rules
  */
-function findActiveVendorOverride(
+export function calculateCommission(
+  orderValue: number,
   vendorId: string,
-  overrides: VendorCommissionOverride[]
-): VendorCommissionOverride | null {
-  const now = new Date();
-  
-  const activeOverrides = overrides.filter(
-    (override) =>
-      override.vendor_id === vendorId &&
-      override.is_active &&
-      new Date(override.effective_from) <= now &&
-      (!override.effective_until || new Date(override.effective_until) > now)
-  );
-  
-  // Return most recent override
-  if (activeOverrides.length > 0) {
-    return activeOverrides.sort(
-      (a, b) => new Date(b.effective_from).getTime() - new Date(a.effective_from).getTime()
-    )[0];
+  category: string,
+  rules: CommissionRule[]
+): CommissionResult {
+  if (!rules || rules.length === 0) {
+    throw new Error('Commission rules are required');
   }
-  
+
+  // Filter active rules
+  const activeRules = rules.filter(rule => 
+    rule.isActive && new Date(rule.effectiveFrom) <= new Date()
+  );
+
+  // Find the most specific applicable rule
+  const applicableRule = findApplicableRule(orderValue, vendorId, category, activeRules);
+
+  if (!applicableRule) {
+    throw new Error(`No commission rule found for order value ${orderValue}, vendor ${vendorId}, category ${category}`);
+  }
+
+  // Calculate commission
+  const commissionPercent = applicableRule.commissionPercent;
+  const commissionAmount = Math.round((orderValue * commissionPercent) / 100);
+  const vendorPayout = orderValue - commissionAmount;
+
+  return {
+    commissionAmount,
+    commissionPercent,
+    vendorPayout,
+    appliedRule: applicableRule,
+    breakdown: {
+      orderValue,
+      baseCommission: commissionAmount,
+      adjustments: 0, // For future use (bonuses, penalties, etc.)
+      finalCommission: commissionAmount
+    }
+  };
+}
+
+/**
+ * Find the most specific applicable commission rule
+ * Priority: vendor-specific > category-specific > volume-based > default
+ */
+function findApplicableRule(
+  orderValue: number,
+  vendorId: string,
+  category: string,
+  rules: CommissionRule[]
+): CommissionRule | null {
+  // Sort by specificity (most specific first)
+  const sortedRules = rules.sort((a, b) => {
+    const aSpecificity = getRuleSpecificity(a);
+    const bSpecificity = getRuleSpecificity(b);
+    return bSpecificity - aSpecificity;
+  });
+
+  for (const rule of sortedRules) {
+    if (isRuleApplicable(rule, orderValue, vendorId, category)) {
+      return rule;
+    }
+  }
+
   return null;
 }
 
 /**
- * Find applicable commission rule based on priority
- * Priority: Vendor-specific > Volume > Category > Default
+ * Get rule specificity score (higher = more specific)
  */
-function findApplicableCommissionRule(
-  orderValue: number,
-  orderQuantity: number,
-  vendorId: string,
-  categoryId: string | undefined,
-  rules: CommissionRule[]
-): CommissionRule | null {
-  const now = new Date();
+function getRuleSpecificity(rule: CommissionRule): number {
+  let score = 0;
   
-  // Filter active rules within effective date range
-  const activeRules = rules.filter(
-    (rule) =>
-      rule.is_active &&
-      new Date(rule.effective_from) <= now &&
-      (!rule.effective_until || new Date(rule.effective_until) > now)
-  );
+  if (rule.ruleType === 'vendor' && rule.vendorId) score += 100;
+  if (rule.ruleType === 'category' && rule.categoryId) score += 50;
+  if (rule.ruleType === 'volume') score += 25;
+  if (rule.ruleType === 'default') score += 0;
   
-  // Filter rules that match criteria
-  const matchingRules = activeRules.filter((rule) => {
-    // Check vendor match
-    if (rule.rule_type === 'vendor' && rule.vendor_id !== vendorId) {
-      return false;
-    }
-    
-    // Check category match
-    if (rule.rule_type === 'category' && rule.category_id !== categoryId) {
-      return false;
-    }
-    
-    // Check order value range
-    if (rule.order_value_min > 0 && orderValue < rule.order_value_min) {
-      return false;
-    }
-    if (rule.order_value_max && orderValue > rule.order_value_max) {
-      return false;
-    }
-    
-    // Check order quantity range (for volume-based rules)
-    if (rule.rule_type === 'volume') {
-      if (orderQuantity < rule.order_quantity_min) {
-        return false;
-      }
-      if (rule.order_quantity_max && orderQuantity > rule.order_quantity_max) {
-        return false;
-      }
-    }
-    
-    return true;
-  });
-  
-  // Sort by priority (lower number = higher priority)
-  const sortedRules = matchingRules.sort((a, b) => a.priority - b.priority);
-  
-  // Return highest priority rule
-  return sortedRules.length > 0 ? sortedRules[0] : null;
+  return score;
 }
 
 /**
- * Get commission breakdown for display (admin view)
+ * Check if a rule is applicable to the given parameters
  */
-export function getCommissionBreakdown(
+function isRuleApplicable(
+  rule: CommissionRule,
   orderValue: number,
-  calculation: CommissionCalculation
-): {
-  orderValue: string;
-  commissionPercent: string;
-  commissionAmount: string;
-  vendorPayout: string;
-  ruleName: string;
-} {
-  return {
-    orderValue: formatCurrency(orderValue),
-    commissionPercent: `${calculation.commission_percent}%`,
-    commissionAmount: formatCurrency(calculation.commission_amount),
-    vendorPayout: formatCurrency(calculation.vendor_payout),
-    ruleName: calculation.rule_name,
-  };
-}
-
-/**
- * Calculate effective commission rate for a vendor
- * Useful for showing vendors their commission rate
- */
-export function getEffectiveCommissionRate(
   vendorId: string,
-  categoryId?: string,
-  rules: CommissionRule[] = [],
-  overrides: VendorCommissionOverride[] = []
-): {
-  baseRate: number;
-  volumeRates: Array<{
-    minQuantity: number;
-    maxQuantity?: number;
-    rate: number;
-  }>;
-  hasOverride: boolean;
-  overrideRate?: number;
-  overrideReason?: string;
-} {
-  // Check for override
-  const override = findActiveVendorOverride(vendorId, overrides);
+  category: string
+): boolean {
+  // Check order value range
+  const meetsMinValue = orderValue >= rule.orderValueMin;
+  const meetsMaxValue = rule.orderValueMax === null || orderValue <= rule.orderValueMax;
   
-  if (override) {
-    return {
-      baseRate: override.commission_percent,
-      volumeRates: [],
-      hasOverride: true,
-      overrideRate: override.commission_percent,
-      overrideReason: override.reason,
-    };
+  if (!meetsMinValue || !meetsMaxValue) {
+    return false;
   }
-  
+
+  // Check rule type specific conditions
+  switch (rule.ruleType) {
+    case 'vendor':
+      return rule.vendorId === vendorId;
+    
+    case 'category':
+      return rule.categoryId === category;
+    
+    case 'volume':
+      return true; // Volume rules apply to all vendors/categories
+    
+    case 'default':
+      return true; // Default rules apply to all
+    
+    default:
+      return false;
+  }
+}
+
+/**
+ * Create default commission rules
+ * Based on industry standards and platform requirements
+ */
+export function createDefaultCommissionRules(): CommissionRule[] {
   const now = new Date();
-  const activeRules = rules.filter(
-    (rule) =>
-      rule.is_active &&
-      new Date(rule.effective_from) <= now &&
-      (!rule.effective_until || new Date(rule.effective_until) > now)
-  );
   
-  // Find base rate (vendor-specific or category or default)
-  const baseRule = activeRules
-    .filter((r) => 
-      (r.rule_type === 'vendor' && r.vendor_id === vendorId) ||
-      (r.rule_type === 'category' && r.category_id === categoryId) ||
-      r.rule_type === 'default'
-    )
-    .sort((a, b) => a.priority - b.priority)[0];
-  
-  const baseRate = baseRule ? baseRule.commission_percent : 18; // Default 18%
-  
-  // Find volume-based rates
-  const volumeRules = activeRules
-    .filter((r) => r.rule_type === 'volume')
-    .sort((a, b) => a.order_quantity_min - b.order_quantity_min);
-  
-  const volumeRates = volumeRules.map((rule) => ({
-    minQuantity: rule.order_quantity_min,
-    maxQuantity: rule.order_quantity_max || undefined,
-    rate: rule.commission_percent,
+  return [
+    // Default commission rule
+    {
+      id: 'default-18',
+      ruleType: 'default',
+      orderValueMin: 0,
+      orderValueMax: null,
+      commissionPercent: 18,
+      isActive: true,
+      effectiveFrom: now
+    },
+    
+    // Volume-based rules
+    {
+      id: 'bulk-15',
+      ruleType: 'volume',
+      orderValueMin: 50000,
+      orderValueMax: 200000,
+      commissionPercent: 15,
+      isActive: true,
+      effectiveFrom: now
+    },
+    
+    {
+      id: 'super-bulk-12',
+      ruleType: 'volume',
+      orderValueMin: 200000,
+      orderValueMax: null,
+      commissionPercent: 12,
+      isActive: true,
+      effectiveFrom: now
+    },
+    
+    // Category-specific rules
+    {
+      id: 'electronics-20',
+      ruleType: 'category',
+      categoryId: 'electronics',
+      orderValueMin: 0,
+      orderValueMax: null,
+      commissionPercent: 20,
+      isActive: true,
+      effectiveFrom: now
+    },
+    
+    {
+      id: 'gourmet-15',
+      ruleType: 'category',
+      categoryId: 'gourmet',
+      orderValueMin: 0,
+      orderValueMax: null,
+      commissionPercent: 15,
+      isActive: true,
+      effectiveFrom: now
+    }
+  ];
+}
+
+/**
+ * Calculate commission for multiple orders (batch processing)
+ */
+export function calculateBatchCommission(
+  orders: Array<{
+    orderValue: number;
+    vendorId: string;
+    category: string;
+  }>,
+  rules: CommissionRule[]
+): Array<CommissionResult & { orderIndex: number }> {
+  return orders.map((order, index) => ({
+    ...calculateCommission(order.orderValue, order.vendorId, order.category, rules),
+    orderIndex: index
   }));
+}
+
+/**
+ * Get commission summary for admin dashboard
+ */
+export function getCommissionSummary(
+  orders: Array<{ orderValue: number; vendorId: string; category: string }>,
+  rules: CommissionRule[]
+) {
+  const results = calculateBatchCommission(orders, rules);
+  
+  const totalOrderValue = orders.reduce((sum, order) => sum + order.orderValue, 0);
+  const totalCommission = results.reduce((sum, result) => sum + result.commissionAmount, 0);
+  const totalVendorPayout = results.reduce((sum, result) => sum + result.vendorPayout, 0);
+  const averageCommissionPercent = totalOrderValue > 0 ? (totalCommission / totalOrderValue) * 100 : 0;
   
   return {
-    baseRate,
-    volumeRates,
-    hasOverride: false,
+    totalOrders: orders.length,
+    totalOrderValue,
+    totalCommission,
+    totalVendorPayout,
+    averageCommissionPercent: Math.round(averageCommissionPercent * 100) / 100,
+    results
   };
 }
 
 /**
  * Validate commission rules
  */
-export function validateCommissionRules(rules: CommissionRule[]): {
-  isValid: boolean;
-  errors: string[];
-} {
+export function validateCommissionRules(rules: CommissionRule[]): string[] {
   const errors: string[] = [];
-  
+
   if (!rules || rules.length === 0) {
     errors.push('At least one commission rule is required');
-    return { isValid: false, errors };
+    return errors;
   }
-  
-  // Check for default rule
-  const hasDefaultRule = rules.some((r) => r.rule_type === 'default' && r.is_active);
-  if (!hasDefaultRule) {
-    errors.push('At least one active default commission rule is required');
+
+  // Check for duplicate rule IDs
+  const ruleIds = rules.map(rule => rule.id);
+  const duplicateIds = ruleIds.filter((id, index) => ruleIds.indexOf(id) !== index);
+  if (duplicateIds.length > 0) {
+    errors.push(`Duplicate rule IDs: ${duplicateIds.join(', ')}`);
   }
-  
+
   // Validate each rule
   rules.forEach((rule, index) => {
-    if (rule.commission_percent < 0 || rule.commission_percent > 100) {
-      errors.push(`Rule ${index + 1}: Commission percent must be between 0 and 100`);
+    if (!rule.id || rule.id.trim() === '') {
+      errors.push(`Rule ${index + 1}: ID is required`);
     }
-    
-    if (rule.order_value_min < 0) {
-      errors.push(`Rule ${index + 1}: Order value min cannot be negative`);
+
+    if (rule.commissionPercent < 0 || rule.commissionPercent > 100) {
+      errors.push(`Rule ${index + 1}: Commission percentage must be between 0 and 100`);
     }
-    
-    if (rule.order_value_max && rule.order_value_max < rule.order_value_min) {
-      errors.push(`Rule ${index + 1}: Order value max must be greater than min`);
+
+    if (rule.orderValueMin < 0) {
+      errors.push(`Rule ${index + 1}: Minimum order value cannot be negative`);
     }
-    
-    if (rule.order_quantity_min < 0) {
-      errors.push(`Rule ${index + 1}: Order quantity min cannot be negative`);
+
+    if (rule.orderValueMax !== null && rule.orderValueMax < rule.orderValueMin) {
+      errors.push(`Rule ${index + 1}: Maximum order value cannot be less than minimum order value`);
     }
-    
-    if (rule.order_quantity_max && rule.order_quantity_max < rule.order_quantity_min) {
-      errors.push(`Rule ${index + 1}: Order quantity max must be greater than min`);
+
+    if (rule.ruleType === 'vendor' && !rule.vendorId) {
+      errors.push(`Rule ${index + 1}: Vendor ID is required for vendor-specific rules`);
     }
-    
-    // Type-specific validation
-    if (rule.rule_type === 'vendor' && !rule.vendor_id) {
-      errors.push(`Rule ${index + 1}: Vendor-specific rule must have vendor_id`);
-    }
-    
-    if (rule.rule_type === 'category' && !rule.category_id) {
-      errors.push(`Rule ${index + 1}: Category-specific rule must have category_id`);
-    }
-    
-    if (rule.rule_type === 'volume' && rule.order_quantity_min === 0) {
-      errors.push(`Rule ${index + 1}: Volume-based rule must have minimum quantity > 0`);
+
+    if (rule.ruleType === 'category' && !rule.categoryId) {
+      errors.push(`Rule ${index + 1}: Category ID is required for category-specific rules`);
     }
   });
-  
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
+
+  return errors;
 }
 
 /**
- * Helper: Format currency in Indian rupees
+ * Format commission amount for display
  */
-function formatCurrency(paise: number): string {
-  const rupees = paise / 100;
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(rupees);
+export function formatCommission(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
 }
 
 /**
- * Simulate commission for testing (admin tool)
+ * Get commission rule description for admin display
  */
-export function simulateCommission(
-  orderValue: number,
-  orderQuantity: number,
-  vendorId: string,
-  categoryId: string | undefined,
-  rules: CommissionRule[],
-  overrides: VendorCommissionOverride[]
-): {
-  calculation: CommissionCalculation;
-  breakdown: ReturnType<typeof getCommissionBreakdown>;
-  effectiveRate: ReturnType<typeof getEffectiveCommissionRate>;
-} {
-  const calculation = calculateCommission(
-    orderValue,
-    orderQuantity,
-    vendorId,
-    categoryId,
-    rules,
-    overrides
-  );
+export function getCommissionRuleDescription(rule: CommissionRule): string {
+  const percent = rule.commissionPercent;
+  const minValue = rule.orderValueMin;
+  const maxValue = rule.orderValueMax;
   
-  const breakdown = getCommissionBreakdown(orderValue, calculation);
-  const effectiveRate = getEffectiveCommissionRate(vendorId, categoryId, rules, overrides);
+  let description = `${percent}% commission`;
   
-  return {
-    calculation,
-    breakdown,
-    effectiveRate,
-  };
+  if (rule.ruleType === 'vendor') {
+    description += ` for vendor ${rule.vendorId}`;
+  } else if (rule.ruleType === 'category') {
+    description += ` for category ${rule.categoryId}`;
+  } else if (rule.ruleType === 'volume') {
+    description += ' for volume orders';
+  } else {
+    description += ' (default)';
+  }
+  
+  if (minValue > 0 || maxValue !== null) {
+    const valueRange = maxValue === null 
+      ? `₹${minValue}+` 
+      : `₹${minValue}-₹${maxValue}`;
+    description += ` (${valueRange})`;
+  }
+  
+  return description;
 }
-

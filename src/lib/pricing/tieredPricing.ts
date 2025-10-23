@@ -1,255 +1,193 @@
 /**
- * Tiered Pricing Calculator
- * Swiggy/Zomato pattern: Price automatically updates based on quantity
- * Battle-tested e-commerce pricing logic
+ * Tiered Pricing Calculator - Swiggy/Zomato Style
+ * Auto-updating pricing based on quantity tiers
  */
 
-import { PricingTier, CalculatedPrice } from '@/types/product';
+import { PricingTier } from '@/types/product';
+
+export interface TieredPriceResult {
+  pricePerItem: number;
+  totalPrice: number;
+  discountPercent: number;
+  appliedTier: PricingTier;
+  savings: number;
+  originalPrice: number;
+}
 
 /**
- * Calculate price based on quantity and pricing tiers
- * Returns the applicable tier and calculated values
+ * Calculate tiered price based on quantity and pricing tiers
+ * Follows Swiggy/Zomato pattern: auto-updates, no tier display
  */
 export function calculateTieredPrice(
   quantity: number,
   tiers: PricingTier[]
-): CalculatedPrice {
+): TieredPriceResult {
   if (!tiers || tiers.length === 0) {
-    throw new Error('No pricing tiers defined for product');
+    throw new Error('Pricing tiers are required');
   }
-  
-  if (quantity < 1) {
-    throw new Error('Quantity must be at least 1');
-  }
-  
-  // Find the applicable tier
-  // Tiers are expected to be ordered by minQty ascending
-  const appliedTier = findApplicableTier(quantity, tiers);
-  
-  if (!appliedTier) {
-    // Fallback to first tier if no match (shouldn't happen with proper data)
-    const firstTier = tiers[0];
-    return {
-      quantity,
-      pricePerItem: firstTier.pricePerItem,
-      subtotal: firstTier.pricePerItem * quantity,
-      discountPercent: firstTier.discountPercent,
-      appliedTier: firstTier,
-      savings: 0,
-    };
-  }
-  
-  const pricePerItem = appliedTier.pricePerItem;
-  const subtotal = pricePerItem * quantity;
-  
-  // Calculate savings compared to highest tier (base price)
-  const baseTier = tiers[0]; // First tier is usually the base price
-  const basePriceTotal = baseTier.pricePerItem * quantity;
-  const savings = basePriceTotal - subtotal;
-  
-  return {
-    quantity,
-    pricePerItem,
-    subtotal,
-    discountPercent: appliedTier.discountPercent,
-    appliedTier,
-    savings: Math.max(0, savings),
-  };
-}
 
-/**
- * Find the applicable pricing tier for a given quantity
- */
-function findApplicableTier(
-  quantity: number,
-  tiers: PricingTier[]
-): PricingTier | null {
-  // Find the tier where quantity falls within range
-  for (const tier of tiers) {
-    const isAboveMin = quantity >= tier.minQty;
-    const isBelowMax = tier.maxQty === null || quantity <= tier.maxQty;
-    
-    if (isAboveMin && isBelowMax) {
-      return tier;
-    }
-  }
-  
-  return null;
-}
+  // Sort tiers by minQty to ensure proper order
+  const sortedTiers = [...tiers].sort((a, b) => a.minQty - b.minQty);
 
-/**
- * Get all tiers with their breakpoints for display
- * Used for showing "Save X% when you order Y+" messages
- */
-export function getTierBreakpoints(tiers: PricingTier[]): Array<{
-  minQty: number;
-  maxQty: number | null;
-  pricePerItem: number;
-  discountPercent: number;
-  savingsMessage: string;
-}> {
-  return tiers.map((tier, index) => {
-    const baseTier = tiers[0];
-    const savings = baseTier.pricePerItem - tier.pricePerItem;
-    const savingsPercent = tier.discountPercent;
-    
-    let savingsMessage = '';
-    if (savingsPercent > 0) {
-      savingsMessage = `Save ${savingsPercent}% on orders of ${tier.minQty}+ items`;
-    }
-    
-    return {
-      minQty: tier.minQty,
-      maxQty: tier.maxQty,
-      pricePerItem: tier.pricePerItem,
-      discountPercent: tier.discountPercent,
-      savingsMessage,
-    };
+  // Find the applicable tier for the given quantity
+  const applicableTier = sortedTiers.find(tier => {
+    const meetsMin = quantity >= tier.minQty;
+    const meetsMax = tier.maxQty === null || quantity <= tier.maxQty;
+    return meetsMin && meetsMax;
   });
-}
 
-/**
- * Format price in rupees (Swiggy/Zomato style)
- * @param paise Amount in paise (100 paise = 1 rupee)
- * @returns Formatted string like "₹5,000" or "₹2,52,000"
- */
-export function formatPrice(paise: number): string {
-  const rupees = paise / 100;
-  
-  // Indian number format (lakhs and crores)
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(rupees);
-}
-
-/**
- * Get the next tier information for "Add X more to unlock Y% discount" message
- */
-export function getNextTierInfo(
-  currentQuantity: number,
-  tiers: PricingTier[]
-): {
-  hasNextTier: boolean;
-  nextTier?: PricingTier;
-  quantityNeeded?: number;
-  message?: string;
-} | null {
-  const currentTier = findApplicableTier(currentQuantity, tiers);
-  if (!currentTier) return null;
-  
-  // Find next tier
-  const nextTier = tiers.find(
-    (tier) => tier.minQty > currentQuantity && tier.discountPercent > currentTier.discountPercent
-  );
-  
-  if (!nextTier) {
-    return {
-      hasNextTier: false,
-    };
+  if (!applicableTier) {
+    throw new Error(`No pricing tier found for quantity ${quantity}`);
   }
+
+  // Calculate prices (convert from paise to rupees for display)
+  const pricePerItem = applicableTier.pricePerItem / 100;
+  const totalPrice = pricePerItem * quantity;
   
-  const quantityNeeded = nextTier.minQty - currentQuantity;
-  const message = `Add ${quantityNeeded} more item${quantityNeeded > 1 ? 's' : ''} to unlock ${nextTier.discountPercent}% discount!`;
-  
+  // Calculate discount percentage
+  const basePrice = sortedTiers[0].pricePerItem / 100;
+  const discountPercent = Math.round(((basePrice - pricePerItem) / basePrice) * 100);
+  const savings = (basePrice - pricePerItem) * quantity;
+  const originalPrice = basePrice * quantity;
+
   return {
-    hasNextTier: true,
-    nextTier,
-    quantityNeeded,
-    message,
+    pricePerItem,
+    totalPrice,
+    discountPercent,
+    appliedTier: applicableTier,
+    savings,
+    originalPrice
   };
 }
 
 /**
- * Validate pricing tiers
- * Ensures tiers are properly structured and non-overlapping
+ * Format price for display (handles paise conversion)
  */
-export function validatePricingTiers(tiers: PricingTier[]): {
-  isValid: boolean;
-  errors: string[];
-} {
+export function formatPrice(priceInPaise: number): string {
+  const priceInRupees = priceInPaise / 100;
+  return `₹${priceInRupees.toLocaleString('en-IN')}`;
+}
+
+/**
+ * Get pricing tier description for display
+ */
+export function getTierDescription(tier: PricingTier): string {
+  const minQty = tier.minQty;
+  const maxQty = tier.maxQty;
+  const price = formatPrice(tier.pricePerItem);
+  
+  if (maxQty === null) {
+    return `${minQty}+ items: ${price} per item`;
+  }
+  
+  if (minQty === maxQty) {
+    return `${minQty} items: ${price} per item`;
+  }
+  
+  return `${minQty}-${maxQty} items: ${price} per item`;
+}
+
+/**
+ * Calculate savings message for display
+ */
+export function getSavingsMessage(result: TieredPriceResult): string {
+  if (result.savings <= 0) {
+    return '';
+  }
+  
+  const savingsFormatted = formatPrice(result.savings * 100);
+  return `Save ${savingsFormatted} (${result.discountPercent}% off)`;
+}
+
+/**
+ * Validate pricing tiers for consistency
+ */
+export function validatePricingTiers(tiers: PricingTier[]): string[] {
   const errors: string[] = [];
   
   if (!tiers || tiers.length === 0) {
     errors.push('At least one pricing tier is required');
-    return { isValid: false, errors };
+    return errors;
   }
-  
-  // Check if first tier starts at 1
-  if (tiers[0].minQty !== 1) {
-    errors.push('First pricing tier must start at quantity 1');
-  }
-  
+
+  // Sort by minQty
+  const sortedTiers = [...tiers].sort((a, b) => a.minQty - b.minQty);
+
   // Check for gaps and overlaps
-  for (let i = 0; i < tiers.length - 1; i++) {
-    const currentTier = tiers[i];
-    const nextTier = tiers[i + 1];
-    
-    // Check price is positive
-    if (currentTier.pricePerItem <= 0) {
+  for (let i = 0; i < sortedTiers.length; i++) {
+    const current = sortedTiers[i];
+    const next = sortedTiers[i + 1];
+
+    // Validate current tier
+    if (current.minQty < 1) {
+      errors.push(`Tier ${i + 1}: Minimum quantity must be at least 1`);
+    }
+
+    if (current.maxQty !== null && current.maxQty < current.minQty) {
+      errors.push(`Tier ${i + 1}: Maximum quantity cannot be less than minimum quantity`);
+    }
+
+    if (current.pricePerItem <= 0) {
       errors.push(`Tier ${i + 1}: Price must be greater than 0`);
     }
-    
-    // Check if maxQty is set and is greater than minQty
-    if (currentTier.maxQty !== null && currentTier.maxQty < currentTier.minQty) {
-      errors.push(`Tier ${i + 1}: Max quantity must be greater than min quantity`);
-    }
-    
-    // Check for gaps between tiers
-    if (currentTier.maxQty !== null && nextTier.minQty !== currentTier.maxQty + 1) {
-      errors.push(`Gap between tier ${i + 1} and tier ${i + 2}`);
-    }
-    
-    // Check price decreases as quantity increases (bulk discount pattern)
-    if (nextTier.pricePerItem >= currentTier.pricePerItem) {
-      errors.push(`Tier ${i + 2}: Price should be lower than previous tier for bulk discount`);
+
+    // Check for gaps with next tier
+    if (next) {
+      const currentMax = current.maxQty || Infinity;
+      const nextMin = next.minQty;
+      
+      if (currentMax < nextMin - 1) {
+        errors.push(`Gap between tier ${i + 1} and tier ${i + 2}: quantities ${currentMax + 1} to ${nextMin - 1} are not covered`);
+      }
+      
+      if (currentMax >= nextMin) {
+        errors.push(`Overlap between tier ${i + 1} and tier ${i + 2}: quantities ${Math.max(current.minQty, nextMin)} to ${Math.min(currentMax, next.maxQty || Infinity)} are covered by both tiers`);
+      }
     }
   }
-  
-  // Check last tier
-  const lastTier = tiers[tiers.length - 1];
-  if (lastTier.pricePerItem <= 0) {
-    errors.push(`Last tier: Price must be greater than 0`);
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
+
+  return errors;
 }
 
 /**
- * Create default pricing tiers for a product
- * Useful for partner onboarding
+ * Create default pricing tiers for new products
  */
-export function createDefaultTiers(basePrice: number): PricingTier[] {
+export function createDefaultPricingTiers(basePrice: number): PricingTier[] {
+  const basePriceInPaise = Math.round(basePrice * 100);
+  
   return [
     {
       minQty: 1,
       maxQty: 9,
-      pricePerItem: basePrice,
-      discountPercent: 0,
+      pricePerItem: basePriceInPaise,
+      discountPercent: 0
     },
     {
       minQty: 10,
       maxQty: 49,
-      pricePerItem: Math.round(basePrice * 0.93), // 7% off
-      discountPercent: 7,
+      pricePerItem: Math.round(basePriceInPaise * 0.9), // 10% off
+      discountPercent: 10
     },
     {
       minQty: 50,
-      maxQty: 99,
-      pricePerItem: Math.round(basePrice * 0.87), // 13% off
-      discountPercent: 13,
-    },
-    {
-      minQty: 100,
-      maxQty: null, // unlimited
-      pricePerItem: Math.round(basePrice * 0.80), // 20% off
-      discountPercent: 20,
-    },
+      maxQty: null,
+      pricePerItem: Math.round(basePriceInPaise * 0.8), // 20% off
+      discountPercent: 20
+    }
   ];
 }
 
+/**
+ * Calculate price breakdown for display
+ */
+export function getPriceBreakdown(result: TieredPriceResult, quantity: number) {
+  return {
+    quantity,
+    pricePerItem: result.pricePerItem,
+    totalPrice: result.totalPrice,
+    discount: result.savings,
+    discountPercent: result.discountPercent,
+    originalTotal: result.originalPrice,
+    savingsMessage: getSavingsMessage(result)
+  };
+}
