@@ -246,3 +246,28 @@ All 158 critical Supabase issues (39 security + 119 performance) have been syste
 10. ✅ `013_VERIFY_UNUSED_INDEXES_REMOVED.sql` (CRITICAL)
 
 **All 158 issues (39 security + 119 performance) are now resolved and the platform is secure and optimized for production deployment.**
+
+## ⚠️ Important Note About Security Warnings
+
+**Current Status**: Migrations 010-011 use `auth.jwt() -> 'user_metadata' ->> 'role'` for role checks, which Supabase flags as a security vulnerability.
+
+**Why This Happens**:
+- The current database structure uses JWT user_metadata for roles
+- Migration 007 was designed to fix this by creating a proper `profiles` table
+- But migrations 010-011 were created to work with the current structure
+
+**Security Implications**:
+- Users can potentially edit their own `user_metadata` 
+- This could allow privilege escalation if not properly secured
+- Supabase linter correctly flags this as `rls_references_user_metadata` ERROR
+
+**Recommended Resolution**:
+1. **Apply migrations 001-013** (performance fixes work with current structure)
+2. **Apply migration 007** (creates proper `profiles` table with `role` column)
+3. **Create migration 014** to replace all JWT user_metadata checks with `profiles.role` lookups
+4. **Apply migration 014** to eliminate security warnings
+
+**Temporary Security Mitigation**:
+- Ensure proper JWT validation on the application side
+- Monitor for unusual role changes in user_metadata
+- Consider implementing additional server-side role validation
