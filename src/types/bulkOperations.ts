@@ -21,7 +21,7 @@ export interface PriceUpdate {
   operation: 'increase' | 'decrease';
   type: 'percentage' | 'flat';
   value: number;
-  applyTo: 'retail' | 'wholesale' | 'both';
+  applyTo: 'retail' | 'both';
 }
 
 export interface StockUpdate {
@@ -54,7 +54,6 @@ export interface CSVProductRow {
   sku?: string;
   description?: string;
   price: number;
-  wholesale_price?: number;
   stock: number;
   category?: string;
   tags?: string;

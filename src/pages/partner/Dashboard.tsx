@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Package, ShoppingBag, DollarSign, Star, Plus, TrendingUp, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { StatsCard } from "@/components/shared/StatsCard";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StockAlertsWidget } from "@/components/dashboard/StockAlertsWidget";
-import { SourcingUsageWidget } from "@/components/dashboard/SourcingUsageWidget";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
@@ -48,11 +47,7 @@ export const PartnerHome = () => {
   });
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [user]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -125,7 +120,11 @@ export const PartnerHome = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   if (loading) {
     return (
@@ -233,8 +232,6 @@ export const PartnerHome = () => {
       {/* Stock Alerts Widget - Feature 3 (PROMPT 10) */}
       <StockAlertsWidget />
 
-      {/* Sourcing Usage Widget - Feature 11 (PROMPT 11) */}
-      <SourcingUsageWidget />
 
       {/* Pending Orders (Real-time in production) */}
       {stats.pendingOrders > 0 && (

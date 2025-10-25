@@ -163,7 +163,6 @@ export const BulkStatusChangeDialog = ({
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-xs">
                   Products marked as out of stock will be visible but customers cannot add them to cart.
-                  Sourcing will be auto-disabled.
                 </AlertDescription>
               </Alert>
             )}

@@ -24,7 +24,7 @@ export interface StockAlertThreshold {
 export interface ProductStockFields {
   stock: number;
   stock_alert_threshold: number; // Default 50
-  sourcing_available: boolean; // Auto-disable when stock = 0
+  is_active: boolean; // Product active status
   location?: string;
 }
 

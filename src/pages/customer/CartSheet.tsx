@@ -50,8 +50,8 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     const authenticated = await isAuthenticated();
 
     if (!authenticated) {
-      // Load from localStorage
-      const guestCart = getGuestCart();
+      // Load from encrypted localStorage
+      const guestCart = await getGuestCart();
       setItems(guestCart);
       
       // Load partner name if items exist
@@ -98,7 +98,7 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      setGuestCart(updatedItems);
+      await setGuestCart(updatedItems);
     } else {
       // Update in Supabase
     }
@@ -110,7 +110,7 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      setGuestCart(updatedItems);
+      await setGuestCart(updatedItems);
     } else {
       // Remove from Supabase
     }

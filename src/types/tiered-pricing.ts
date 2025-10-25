@@ -75,13 +75,13 @@ export interface DeliveryFeeConfig {
 export interface CommissionRule {
   id: string;
   ruleType: 'default' | 'vendor' | 'category' | 'volume';
-  marketplaceType: 'b2c' | 'b2b';
+  marketplaceType: 'b2c';
   vendorId?: string;
   category?: string;
   orderValueMinPaise: number;
   orderValueMaxPaise: number | null;
   commissionPercent: number;
-  platformFeePercent?: number; // For B2B only (2%)
+  platformFeePercent?: number;
   isActive: boolean;
   effectiveFrom: string;
   effectiveUntil?: string;
@@ -171,48 +171,6 @@ export interface CustomerProductDisplay {
   isWishlisted?: boolean;
 }
 
-// B2B Procurement interfaces
-export interface SupplyProduct {
-  id: string;
-  name: string;
-  brand: string;
-  category: string;
-  wholesalePricePaise: number;
-  mrpPaise: number;
-  minimumOrder: number;
-  maximumOrder: number;
-  stockAvailable: number;
-  leadTimeDays: number;
-  marginOpportunityPaise: number;
-  images: string[];
-  description: string;
-  specifications: string[];
-  warranty: string;
-  isVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface SupplyCartItem {
-  product: SupplyProduct;
-  quantity: number;
-  totalPricePaise: number;
-}
-
-export interface SupplyOrder {
-  id: string;
-  partnerId: string;
-  items: SupplyCartItem[];
-  totalAmountPaise: number;
-  platformFeePaise: number;
-  gstPaise: number;
-  finalAmountPaise: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
-  deliveryAddress: string;
-  expectedDelivery: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 // Utility types for calculations
 export interface PriceCalculation {
@@ -235,8 +193,8 @@ export interface CommissionCalculation {
   commissionAmount: number;
   vendorReceives: number;
   platformEarns: number;
-  platformFeeAmount?: number; // For B2B only
-  buyerPays?: number; // For B2B only
+  platformFeeAmount?: number;
+  buyerPays?: number;
 }
 
 export interface DeliveryFeeCalculation {

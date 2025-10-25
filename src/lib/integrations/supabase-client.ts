@@ -15,18 +15,33 @@ export const supabase = hasRealCredentials
       },
     });
 
-// Guest mode: Store cart in localStorage
-export const getGuestCart = () => {
-  const cart = localStorage.getItem('wyshkit_guest_cart');
-  return cart ? JSON.parse(cart) : [];
+import { secureStorage } from '@/lib/security/encryption';
+
+// Guest mode: Store cart in encrypted localStorage
+export const getGuestCart = async (): Promise<any[]> => {
+  try {
+    const cart = await secureStorage.getItem('wyshkit_guest_cart');
+    return cart ? JSON.parse(cart) : [];
+  } catch (error) {
+    console.error('Error loading guest cart:', error);
+    return [];
+  }
 };
 
-export const setGuestCart = (items: unknown[]) => {
-  localStorage.setItem('wyshkit_guest_cart', JSON.stringify(items));
+export const setGuestCart = async (items: unknown[]) => {
+  try {
+    await secureStorage.setItem('wyshkit_guest_cart', JSON.stringify(items));
+  } catch (error) {
+    console.error('Error saving guest cart:', error);
+  }
 };
 
-export const clearGuestCart = () => {
-  localStorage.removeItem('wyshkit_guest_cart');
+export const clearGuestCart = async () => {
+  try {
+    await secureStorage.removeItem('wyshkit_guest_cart');
+  } catch (error) {
+    console.error('Error clearing guest cart:', error);
+  }
 };
 
 // Check if user is authenticated

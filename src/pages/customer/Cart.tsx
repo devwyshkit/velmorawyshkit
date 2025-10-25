@@ -60,8 +60,8 @@ export const Cart = () => {
       const authenticated = await isAuthenticated();
 
       if (!authenticated) {
-        // Load from localStorage
-        const guestCart = getGuestCart();
+        // Load from encrypted localStorage
+        const guestCart = await getGuestCart();
         setItems(guestCart);
         
         // Load partner name if items exist
@@ -108,7 +108,7 @@ export const Cart = () => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      setGuestCart(updatedItems);
+      await setGuestCart(updatedItems);
       refreshCartCount();
     } else {
       // Update in Supabase
@@ -133,7 +133,7 @@ export const Cart = () => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      setGuestCart(updatedItems);
+      await setGuestCart(updatedItems);
       refreshCartCount();
     } else {
       // Remove from Supabase

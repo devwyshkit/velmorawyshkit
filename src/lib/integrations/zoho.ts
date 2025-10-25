@@ -1,7 +1,7 @@
 /**
  * Zoho Integration API Client
  * Handles Zoho Books, Desk, and Analytics integrations
- * Professional B2B invoicing and support ticket management
+ * Professional invoicing and support ticket management
  */
 
 // Zoho Books API Client

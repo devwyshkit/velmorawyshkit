@@ -143,13 +143,29 @@ export const Partner = () => {
           </div>
 
           {/* Items Skeleton - Matches CustomerItemCard with aspect-ratio to prevent CLS */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="space-y-1 p-2">
-                <Skeleton className="w-full aspect-square rounded-lg mb-2" />
-                <Skeleton className="h-4 w-3/4" />  {/* Name */}
-                <Skeleton className="h-3 w-2/3" />  {/* Short desc */}
-                <Skeleton className="h-4 w-1/3" />  {/* Price + Rating */}
+              <div key={i} className="relative cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm">
+                <div className="p-2">
+                  {/* Image skeleton - matches aspect-square */}
+                  <Skeleton className="w-full aspect-square rounded-lg mb-2" />
+                  
+                  {/* Content skeleton - matches actual card structure */}
+                  <div className="space-y-1">
+                    {/* Name skeleton - text-base font-bold */}
+                    <Skeleton className="h-4 w-3/4" />
+                    
+                    {/* Short description skeleton - text-xs, 3 lines */}
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
+                    
+                    {/* Price and rating skeleton */}
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-1/3" />  {/* Price */}
+                      <Skeleton className="h-3 w-1/4" />  {/* Rating */}
+                    </div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -190,13 +206,13 @@ export const Partner = () => {
         </section>
 
         {/* Filter Chips - Sticky on scroll for better UX */}
-        <section className="sticky top-14 z-10 bg-background/95 backdrop-blur-sm px-4 py-3 border-b border-border transition-shadow">
+        <section className="sticky top-14 z-10 bg-background/95 backdrop-blur-sm px-4 py-3 border-b border-border transition-shadow mb-4">
           <FilterChips onFilterChange={handleFilterChange} />
         </section>
 
-        {/* Items Grid - Responsive: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
-        <main className="space-y-3">
-          <div className="flex items-center justify-between px-4">
+        {/* Items Grid - Global E-commerce Standard: Grid layout for product browsing */}
+        <main className="mt-4">
+          <div className="flex items-center justify-between px-4 mb-4">
             <h2 className="text-lg font-semibold">
               Browse Items 
               {filteredItems.length !== items.length && (
@@ -233,6 +249,8 @@ export const Partner = () => {
                 badge={item.badge}
                 shortDesc={item.shortDesc}
                 sponsored={item.sponsored}
+                moq={item.moq}
+                eta={item.eta || "1-2 days"}
                 onClick={() => handleItemClick(item.id)}
               />
             ))}
@@ -244,12 +262,16 @@ export const Partner = () => {
         <CustomerBottomNav />
       </div>
 
-      {/* Item Bottom Sheet */}
+      {/* Item Bottom Sheet - Material Design 3 */}
       <Sheet open={isItemSheetOpen} onOpenChange={setIsItemSheetOpen}>
         <SheetContent
           side="bottom"
           className="h-[90vh] rounded-t-xl p-0 overflow-y-auto sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
         >
+          {/* Drag Handle - Material Design 3 */}
+          <div className="flex justify-center py-2">
+            <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
+          </div>
           {selectedItemId && (
             <ItemSheetContent
               itemId={selectedItemId}

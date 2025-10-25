@@ -8,32 +8,22 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { isAuthenticated } from "@/lib/integrations/supabase-client";
 import { fetchWishlistItems, removeFromWishlistSupabase, type WishlistItemData } from "@/lib/integrations/supabase-data";
 
 export const Wishlist = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [items, setItems] = useState<WishlistItemData[]>([]);
-  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuthAndLoadWishlist();
+    loadWishlist();
   }, []);
 
-  const checkAuthAndLoadWishlist = async () => {
+  const loadWishlist = async () => {
     setLoading(true);
     try {
-      const isAuth = await isAuthenticated();
-      setAuthenticated(isAuth);
-
-      if (!isAuth) {
-        setLoading(false);
-        return;
-      }
-
-      // Load wishlist from Supabase
+      // Load wishlist from Supabase (route is already protected by ProtectedRoute)
       const wishlistData = await fetchWishlistItems();
       setItems(wishlistData);
     } catch (error) {

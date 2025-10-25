@@ -30,7 +30,7 @@ const priceUpdateSchema = z.object({
   operation: z.enum(['increase', 'decrease']),
   type: z.enum(['percentage', 'flat']),
   value: z.number().min(0.01, "Value must be greater than 0"),
-  applyTo: z.enum(['price', 'wholesale', 'both']),
+  applyTo: z.enum(['price', 'both']),
 });
 
 type PriceUpdateValues = z.infer<typeof priceUpdateSchema>;
@@ -245,10 +245,6 @@ export const BulkPriceUpdateDialog = ({
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="price" id="price" />
                         <Label htmlFor="price" className="cursor-pointer">Retail Price Only</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="wholesale" id="wholesale" />
-                        <Label htmlFor="wholesale" className="cursor-pointer">Wholesale Price Only</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="both" id="both" />

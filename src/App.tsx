@@ -1,3 +1,4 @@
+
 import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,8 +8,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
-import { LocationProvider } from "@/contexts/LocationContext";
+import { DeliveryProvider } from "@/contexts/DeliveryContext";
 import { SkeletonComponents } from "@/components/ui/skeleton-screen";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Lazy Loaded Pages - Code Splitting
 import * as LazyPages from "./components/LazyRoutes";
@@ -20,7 +22,7 @@ const App = () => (
     <ThemeProvider defaultTheme="system" storageKey="wyshkit-ui-theme">
       <AuthProvider>
         <CartProvider>
-          <LocationProvider>
+          <DeliveryProvider>
             <TooltipProvider>
               <Toaster />
               <Sonner />
@@ -39,12 +41,38 @@ const App = () => (
                       <Route path="search" element={<LazyPages.Search />} />
                       <Route path="partners/:id" element={<LazyPages.Partner />} />
                       <Route path="items/:id" element={<LazyPages.ItemDetails />} />
-                      <Route path="cart" element={<LazyPages.Cart />} />
-                      <Route path="wishlist" element={<LazyPages.Wishlist />} />
-                      <Route path="checkout" element={<LazyPages.Checkout />} />
-                      <Route path="confirmation" element={<LazyPages.Confirmation />} />
-                      <Route path="track/:orderId?" element={<LazyPages.Track />} />
-                      <Route path="profile" element={<LazyPages.Profile />} />
+                      
+                      {/* Protected Customer Routes */}
+                      <Route path="cart" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Cart />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="wishlist" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Wishlist />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="checkout" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Checkout />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="confirmation" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Confirmation />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="track/:orderId?" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Track />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="profile" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Profile />
+                        </ProtectedRoute>
+                      } />
                     </Route>
 
                     {/* Partner Routes - Business Dashboard */}
@@ -55,9 +83,13 @@ const App = () => (
                       <Route path="verify-email" element={<LazyPages.PartnerVerifyEmail />} />
                       <Route path="onboarding" element={<LazyPages.PartnerOnboarding />} />
                       
-                      {/* Protected Dashboard Routes (wrapped in PartnerLayout) */}
-                      <Route element={<LazyPages.PartnerLayout />}>
-                        <Route path="dashboard" element={<LazyPages.PartnerHome />} />
+                      {/* Protected Dashboard Routes - FULLY PROTECTED */}
+                      <Route path="dashboard" element={
+                        <ProtectedRoute requiredRole="seller">
+                          <LazyPages.PartnerLayout />
+                        </ProtectedRoute>
+                      }>
+                        <Route index element={<LazyPages.PartnerHome />} />
                         <Route path="products" element={<LazyPages.PartnerProducts />} />
                         <Route path="orders" element={<LazyPages.PartnerOrders />} />
                         <Route path="earnings" element={<LazyPages.PartnerEarnings />} />
@@ -69,17 +101,18 @@ const App = () => (
                         <Route path="returns" element={<LazyPages.PartnerReturns />} />
                         <Route path="help" element={<LazyPages.PartnerHelp />} />
                         <Route path="profile" element={<LazyPages.PartnerProfile />} />
-                        <Route path="components" element={<LazyPages.ComponentMarketplace />} />
-                        <Route path="supply" element={<LazyPages.WyshkitSupply />} />
                       </Route>
                     </Route>
 
                     {/* Admin Routes - Internal Console (Desktop-only) */}
                     <Route path="/admin">
                       <Route path="login" element={<LazyPages.AdminLogin />} />
-                      <Route element={<LazyPages.AdminLayout />}>
-                        <Route index element={<Navigate to="dashboard" replace />} />
-                        <Route path="dashboard" element={<LazyPages.AdminDashboard />} />
+                      <Route path="dashboard" element={
+                        <ProtectedRoute requiredRole="admin">
+                          <LazyPages.AdminLayout />
+                        </ProtectedRoute>
+                      }>
+                        <Route index element={<LazyPages.AdminDashboard />} />
                         <Route path="partners" element={<LazyPages.AdminPartners />} />
                         <Route path="product-approvals" element={<LazyPages.AdminProductApprovals />} />
                         <Route path="orders" element={<LazyPages.AdminOrders />} />
@@ -97,7 +130,7 @@ const App = () => (
                       </Route>
                     </Route>
 
-                    {/* Legal Routes - TODO: Recreate legal pages */}
+                    {/* Legal Routes - Note: Legal pages can be recreated if needed */}
 
                     {/* Utility Routes */}
                     <Route path="/unauthorized" element={<LazyPages.Unauthorized />} />
@@ -106,7 +139,7 @@ const App = () => (
                 </Suspense>
               </BrowserRouter>
             </TooltipProvider>
-          </LocationProvider>
+          </DeliveryProvider>
         </CartProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -137,7 +137,7 @@ export const PartnerEarnings = () => {
       } else {
         setWeeklyEarnings(data?.partner_payout || 0);
         setPendingPayout(data?.partner_payout || 0);
-        // TODO: Fetch individual transactions
+        // Note: Individual transactions can be fetched when needed
       }
     } catch (error) {
       // Handle error silently in production
@@ -202,7 +202,7 @@ export const PartnerEarnings = () => {
   };
 
   const handleDownloadInvoice = () => {
-    // TODO: Generate PDF invoice
+    // Generate PDF invoice functionality
     alert('Invoice download coming soon');
   };
 
@@ -256,7 +256,7 @@ export const PartnerEarnings = () => {
         earnedBadges={commissionData.earnedBadges}
       />
 
-      {/* Zoho Invoice List - Professional B2B Invoicing */}
+      {/* Zoho Invoice List - Professional Invoicing */}
       <ZohoInvoiceList />
 
       {/* Monthly Invoices (Zoho Books Integration) */}

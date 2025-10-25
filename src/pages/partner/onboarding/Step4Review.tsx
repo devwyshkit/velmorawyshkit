@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, CheckCircle2, Edit2, Loader2, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { zohoSignMock, type SigningRequest } from "@/lib/api/zoho-sign-mock";
+import { getZohoSignClient, type SigningRequest } from "@/lib/api/zoho-sign";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,20 +50,30 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
       if (profile?.contract_signed) {
         setContractSigned(true);
       } else if (profile?.zoho_request_id) {
-        // Check signing status from Zoho
-        const status = await zohoSignMock.getSigningStatus(profile.zoho_request_id);
-        setSigningRequest(status);
-        if (status.status === 'signed') {
-          setContractSigned(true);
-          // Update database
-          await supabase
-            .from('partner_profiles')
-            .update({
-              contract_signed: true,
-              contract_signed_at: status.signed_at,
-              contract_document_url: status.document_url,
-            })
-            .eq('id', user.id);
+        try {
+          // Check signing status from Zoho
+          const status = await getZohoSignClient().getSigningStatus(profile.zoho_request_id);
+          setSigningRequest(status);
+          if (status.status === 'signed') {
+            setContractSigned(true);
+            // Update database
+            await supabase
+              .from('partner_profiles')
+              .update({
+                contract_signed: true,
+                contract_signed_at: status.signed_at,
+                contract_document_url: status.document_url,
+              })
+              .eq('id', user.id);
+          }
+        } catch (error: any) {
+          console.error('Error checking signing status:', error);
+          // If API fails, show a message but don't block the flow
+          toast({
+            title: "Unable to check contract status",
+            description: "Please check your email for the signing link or contact support.",
+            variant: "destructive",
+          });
         }
       }
     } catch (error) {
@@ -77,7 +87,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
     setContractLoading(true);
     try {
       // Send partnership contract via Zoho Sign
-      const request = await zohoSignMock.sendPartnershipContract(user.id, {
+      const request = await getZohoSignClient().sendPartnershipContract(user.id, {
         name: data.business_name,
         email: user.email || '',
         businessName: data.business_name,
@@ -97,9 +107,21 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
         description: "Check your email to sign the partnership agreement",
       });
     } catch (error: any) {
+      console.error('Error sending contract:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message;
+      if (error.message.includes('API key')) {
+        errorMessage = "Zoho Sign API key not configured. Please contact support.";
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        errorMessage = "Invalid API credentials. Please contact support.";
+      }
+      
       toast({
         title: "Failed to send contract",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

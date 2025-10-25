@@ -64,13 +64,13 @@ export const StockAlertListener = () => {
           else if (product.stock === 0 && oldProduct?.stock > 0) {
             toast({
               title: "🚨 Out of Stock!",
-              description: `${product.name} is now unavailable. Disable sourcing to prevent orders?`,
+              description: `${product.name} is now unavailable. Mark as out of stock?`,
               variant: "destructive",
               action: (
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
-                    onClick={() => handleDisableSourcing(product.id, product.name)}
+                    onClick={() => handleDisableProduct(product.id, product.name)}
                   >
                     Yes, Disable
                   </Button>
@@ -95,22 +95,22 @@ export const StockAlertListener = () => {
     };
   }, [user]);
 
-  const handleDisableSourcing = async (productId: string, productName: string) => {
+  const handleDisableProduct = async (productId: string, productName: string) => {
     try {
       const { error } = await supabase
         .from('partner_products')
-        .update({ sourcing_available: false })
+        .update({ is_active: false })
         .eq('id', productId);
 
       if (error) throw error;
 
       toast({
-        title: "Sourcing Disabled",
-        description: `${productName} removed from Component Marketplace`,
+        title: "Product Disabled",
+        description: `${productName} marked as inactive`,
       });
     } catch (error: any) {
       toast({
-        title: "Failed to disable sourcing",
+        title: "Failed to disable product",
         description: error.message,
         variant: "destructive",
       });

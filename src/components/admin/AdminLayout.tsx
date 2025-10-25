@@ -1,4 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -30,6 +31,8 @@ import { AdminBottomNav } from "./AdminBottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useTheme } from "@/components/theme-provider";
+import { useAuth } from "@/contexts/AuthContext";
+import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 
 /**
  * Admin Layout
@@ -42,8 +45,37 @@ export const AdminLayout = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { theme } = useTheme();
+  const { user, loading } = useAuth();
 
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  // 🔒 CRITICAL: Authentication Guard
+  useEffect(() => {
+    // Wait for auth to load
+    if (loading) return;
+    
+    // Redirect if not authenticated
+    if (!user) {
+      navigate('/admin/login', { replace: true });
+      return;
+    }
+    
+    // Redirect if wrong role
+    if (user.role !== 'admin') {
+      navigate('/unauthorized', { replace: true });
+      return;
+    }
+  }, [user, loading, navigate]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return <SkeletonComponents.Dashboard />;
+  }
+
+  // Don't render if not authenticated or wrong role
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
 
   // Admin navigation items (horizontal top nav)
   const navItems = [
@@ -63,12 +95,23 @@ export const AdminLayout = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
+      // 🔒 SECURITY: Clear sensitive data
+      sessionStorage.clear();
+      localStorage.removeItem('wyshkit_guest_cart');
+      localStorage.removeItem('wyshkit_location');
+      
+      // 🔒 SECURITY: Prevent back button from showing cached data
+      window.history.pushState(null, '', window.location.href);
+      window.addEventListener('popstate', () => {
+        window.history.pushState(null, '', window.location.href);
+      });
+
       toast({
         title: "Logged out",
         description: "You've been logged out of admin console",
       });
 
-      navigate("/admin/login");
+      navigate("/admin/login", { replace: true });
     } catch (error: any) {
       toast({
         title: "Logout failed",

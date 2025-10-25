@@ -5,7 +5,7 @@ export const Login = lazy(() => import('../pages/customer/Login').then(m => ({ d
 export const Signup = lazy(() => import('../pages/customer/Signup').then(m => ({ default: m.CustomerMobileSignup })));
 export const Home = lazy(() => import('../pages/customer/CustomerHome').then(m => ({ default: m.CustomerHome })));
 export const Partner = lazy(() => import('../pages/customer/Partner').then(m => ({ default: m.Partner })));
-export const ItemDetails = lazy(() => import('../pages/customer/ItemDetailsNew').then(m => ({ default: m.ItemDetailsNew })));
+export const ItemDetails = lazy(() => import('../pages/customer/ItemDetails').then(m => ({ default: m.ItemDetails })));
 export const Cart = lazy(() => import('../pages/customer/Cart').then(m => ({ default: m.Cart })));
 export const Wishlist = lazy(() => import('../pages/customer/Wishlist').then(m => ({ default: m.Wishlist })));
 export const Checkout = lazy(() => import('../pages/customer/Checkout').then(m => ({ default: m.Checkout })));
@@ -32,8 +32,6 @@ export { Returns as PartnerReturns } from '../pages/partner/Returns';
 export { HelpCenter as PartnerHelp } from '../pages/partner/HelpCenter';
 export { PartnerProfile } from '../pages/partner/Profile';
 export { PartnerBadges } from '../pages/partner/Badges';
-export { ComponentMarketplace } from '../pages/partner/ComponentMarketplace';
-export { WyshkitSupply } from '../pages/partner/WyshkitSupply';
 
 // Admin Pages - Internal Console
 export { AdminLogin } from '../pages/admin/Login';
@@ -55,7 +53,7 @@ export { FeeManagement } from '../pages/admin/FeeManagement';
 export { AdminPartnerApprovals } from '../pages/admin/PartnerApprovals';
 
 // Legal Pages - Placeholder exports (files deleted)
-// TODO: Recreate legal pages if needed
+// Note: Legal pages can be recreated if needed
 
 // Utility Pages
 export { default as NotFound } from '../pages/NotFound';

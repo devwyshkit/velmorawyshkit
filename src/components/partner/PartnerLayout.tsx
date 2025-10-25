@@ -1,7 +1,8 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { 
   Home, Package, ShoppingBag, DollarSign, User, Bell, LogOut, Menu,
-  Megaphone, Star, AlertCircle, PackageX, Users, HelpCircle, Building2
+  Megaphone, Star, AlertCircle, PackageX, Users, HelpCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/theme-provider";
+import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 
 /**
  * Partner Dashboard Layout
@@ -35,16 +37,43 @@ export const PartnerLayout = () => {
   const { toast } = useToast();
   const { theme } = useTheme();
   const isMobile = useIsMobile();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  // 🔒 CRITICAL: Authentication Guard
+  useEffect(() => {
+    // Wait for auth to load
+    if (loading) return;
+    
+    // Redirect if not authenticated
+    if (!user) {
+      navigate('/partner/login', { replace: true });
+      return;
+    }
+    
+    // Redirect if wrong role
+    if (user.role !== 'seller') {
+      navigate('/unauthorized', { replace: true });
+      return;
+    }
+  }, [user, loading, navigate]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return <SkeletonComponents.Dashboard />;
+  }
+
+  // Don't render if not authenticated or wrong role
+  if (!user || user.role !== 'seller') {
+    return null;
+  }
 
   // Partner navigation items - All 12 Features (Swiggy/Zomato pattern expanded)
   const navItems = [
     { icon: Home, label: "Dashboard", path: "/partner/dashboard" },
     { icon: Package, label: "Products", path: "/partner/products" },
     { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // TODO: Real-time count
-    { icon: Building2, label: "Wyshkit Supply", path: "/partner/supply" }, // B2B Procurement Portal
     { icon: Megaphone, label: "Campaigns", path: "/partner/campaigns" },
     { icon: Star, label: "Reviews", path: "/partner/reviews" },
     { icon: AlertCircle, label: "Disputes", path: "/partner/disputes" },
@@ -60,12 +89,23 @@ export const PartnerLayout = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
+      // 🔒 SECURITY: Clear sensitive data
+      sessionStorage.clear();
+      localStorage.removeItem('wyshkit_guest_cart');
+      localStorage.removeItem('wyshkit_location');
+      
+      // 🔒 SECURITY: Prevent back button from showing cached data
+      window.history.pushState(null, '', window.location.href);
+      window.addEventListener('popstate', () => {
+        window.history.pushState(null, '', window.location.href);
+      });
+      
       toast({
         title: "Logged out",
         description: "You've been logged out successfully",
       });
       
-      navigate("/partner/login");
+      navigate("/partner/login", { replace: true });
     } catch (error: any) {
       toast({
         title: "Logout failed",

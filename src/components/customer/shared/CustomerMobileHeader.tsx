@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search } from "lucide-react";
+import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format, addDays } from "date-fns";
 import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
 import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/contexts/CartContext";
-import { useLocation } from "@/contexts/LocationContext";
+import { useDelivery } from "@/contexts/DeliveryContext";
 import { loadGooglePlaces, initAutocomplete, formatAddress, reverseGeocode } from "@/lib/integrations/google-places";
 
 interface CustomerMobileHeaderProps {
@@ -25,10 +28,27 @@ export const CustomerMobileHeader = ({
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { cartCount } = useCart();
-  const { location, setLocation } = useLocation();
+  const { location, setLocation, deliveryDate, setDeliveryDate } = useDelivery();
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [locationInput, setLocationInput] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
+  
+  // Format delivery date for display
+  const formatDeliveryDate = (date: Date) => {
+    const today = new Date();
+    const tomorrow = addDays(today, 1);
+    const dayAfterTomorrow = addDays(today, 2);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return "Tomorrow";
+    } else if (date.toDateString() === dayAfterTomorrow.toDateString()) {
+      return "Day After";
+    } else {
+      return format(date, "MMM dd");
+    }
+  };
   
   // Determine if dark mode is active (for logo switching)
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -106,15 +126,38 @@ export const CustomerMobileHeader = ({
                   className="h-8 hover:opacity-80 transition-opacity" 
                 />
               </Link>
-              {/* Location with city name - Swiggy pattern */}
-              <button 
-                onClick={handleLocationClick}
-                className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
-                aria-label="Change location"
-              >
-                <MapPin className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium max-w-[120px] truncate">{location}</span>
-              </button>
+              {/* Location and Date - Swiggy pattern */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleLocationClick}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
+                  aria-label="Change location"
+                >
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium max-w-[100px] truncate">{location}</span>
+                </button>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button 
+                      className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
+                      aria-label="Change delivery date"
+                    >
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">{formatDeliveryDate(deliveryDate)}</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={deliveryDate}
+                      onSelect={(date) => date && setDeliveryDate(date)}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </>
           )}
         </div>

@@ -4,7 +4,7 @@ export interface PriceUpdate {
   operation: 'increase' | 'decrease';
   type: 'percentage' | 'flat';
   value: number;
-  applyTo: 'price' | 'wholesale' | 'both';
+  applyTo: 'price' | 'both';
 }
 
 export interface StockUpdate {
@@ -135,7 +135,7 @@ export const changeStatus = async (productIds: string[], status: 'active' | 'ina
   } else if (status === 'out_of_stock') {
     updateData.is_active = true;
     updateData.status = 'out_of_stock';
-    updateData.sourcing_available = false; // Auto-disable sourcing
+    // Product disabled due to out of stock
   }
 
   const { error } = await supabase

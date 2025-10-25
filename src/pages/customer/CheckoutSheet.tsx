@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin } from "lucide-react";
+import { MapPin, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import {
   loadGooglePlaces,
@@ -40,6 +43,8 @@ export const CheckoutSheet = ({ isOpen, onClose }: CheckoutSheetProps) => {
   const [paymentMethod, setPaymentMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
   const [contactlessDelivery, setContactlessDelivery] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState<Date>();
+  const [deliverySlot, setDeliverySlot] = useState<string>("anytime");
 
   useEffect(() => {
     if (isOpen && !savedAddress && addressInputRef.current) {
@@ -54,13 +59,24 @@ export const CheckoutSheet = ({ isOpen, onClose }: CheckoutSheetProps) => {
     }
   }, [isOpen, savedAddress]);
 
-  // Mock cart data
-  const cartItems = getGuestCart();
-  const subtotal = cartItems.reduce(
-    (sum: number, item: any) => sum + item.price * item.quantity,
-    0
-  );
-  const total = calculateTotalWithGST(subtotal);
+  // Mock cart data - using state to handle async
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [subtotal, setSubtotal] = useState(0);
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    const loadCart = async () => {
+      const items = await getGuestCart();
+      setCartItems(items);
+      const sub = items.reduce(
+        (sum: number, item: any) => sum + item.price * item.quantity,
+        0
+      );
+      setSubtotal(sub);
+      setTotal(calculateTotalWithGST(sub));
+    };
+    loadCart();
+  }, [isOpen]);
 
   const handleDownloadEstimate = () => {
     const estimate = generateEstimate(cartItems, gstin);
@@ -100,6 +116,15 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
       toast({
         title: "Address required",
         description: "Please provide a delivery address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!deliveryDate) {
+      toast({
+        title: "Delivery date required",
+        description: "Please select a delivery date for your gift",
         variant: "destructive",
       });
       return;
@@ -156,9 +181,9 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
         side="bottom"
         className="h-[90vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
       >
-        {/* Grabber */}
-        <div className="flex justify-center pt-2">
-          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+        {/* Drag Handle - Material Design 3 */}
+        <div className="flex justify-center py-2">
+          <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
@@ -195,6 +220,52 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
+            )}
+          </div>
+
+          {/* Scheduled Delivery - MANDATORY for gifting */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">
+              Delivery Date <span className="text-destructive">*</span>
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-start">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {deliveryDate ? format(deliveryDate, "PPP") : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <CalendarComponent
+                  mode="single"
+                  selected={deliveryDate}
+                  onSelect={setDeliveryDate}
+                  disabled={(date) => date < new Date() || date > addDays(new Date(), 30)}
+                />
+              </PopoverContent>
+            </Popover>
+            
+            {/* Optional Time Slots */}
+            {deliveryDate && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Delivery Time (Optional)</Label>
+                <RadioGroup value={deliverySlot} onValueChange={setDeliverySlot}>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="morning" id="morning" />
+                      <Label htmlFor="morning" className="text-sm">Morning (9-12)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="afternoon" id="afternoon" />
+                      <Label htmlFor="afternoon" className="text-sm">Afternoon (12-5)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="evening" id="evening" />
+                      <Label htmlFor="evening" className="text-sm">Evening (5-9)</Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
             )}
           </div>
 

@@ -77,7 +77,7 @@ const customerMapping = {
 
 #### 2.2 Lead Generation
 **Endpoint**: `POST /api/zoho/crm/leads`
-**Purpose**: Create leads for potential B2B customers
+**Purpose**: Create leads for potential business customers
 
 **Lead Creation Triggers**:
 - Corporate account registration

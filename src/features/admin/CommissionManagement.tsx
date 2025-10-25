@@ -73,33 +73,6 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
       effectiveFrom: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    },
-    // B2B Commission Rules
-    {
-      id: '4',
-      ruleType: 'default',
-      marketplaceType: 'b2b',
-      commissionPercent: 7.00,
-      platformFeePercent: 2.00,
-      orderValueMinPaise: 0,
-      orderValueMaxPaise: null,
-      isActive: true,
-      effectiveFrom: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '5',
-      ruleType: 'volume',
-      marketplaceType: 'b2b',
-      commissionPercent: 5.00,
-      platformFeePercent: 2.00,
-      orderValueMinPaise: 10000000, // ₹1,00,000+ (volume partner)
-      orderValueMaxPaise: null,
-      isActive: true,
-      effectiveFrom: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
     }
   ]);
 
@@ -115,7 +88,7 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
   const [previewOrderValue, setPreviewOrderValue] = useState(100000); // ₹1,000
   const [previewCalculation, setPreviewCalculation] = useState<CommissionCalculation | null>(null);
   const [activeTab, setActiveTab] = useState('rules');
-  const [marketplaceFilter, setMarketplaceFilter] = useState<'all' | 'b2c' | 'b2b'>('all');
+  const [marketplaceFilter, setMarketplaceFilter] = useState<'all' | 'b2c'>('all');
 
   // Calculate commission for preview
   useEffect(() => {
@@ -170,7 +143,7 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
     const rule: CommissionRule = {
       id: Date.now().toString(),
       ruleType: newRule.ruleType as 'default' | 'vendor' | 'category' | 'volume',
-      marketplaceType: newRule.marketplaceType as 'b2c' | 'b2b',
+      marketplaceType: 'b2c',
       commissionPercent: newRule.commissionPercent || 18.00,
       platformFeePercent: newRule.platformFeePercent,
       orderValueMinPaise: newRule.orderValueMinPaise || 0,
@@ -274,13 +247,6 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
           >
             B2C (Retail)
           </Button>
-          <Button
-            variant={marketplaceFilter === 'b2b' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setMarketplaceFilter('b2b')}
-          >
-            B2B (Wholesale)
-          </Button>
         </div>
       </div>
 
@@ -369,14 +335,13 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
                   <Label htmlFor="marketplaceType">Marketplace Type</Label>
                   <Select 
                     value={newRule.marketplaceType} 
-                    onValueChange={(value) => setNewRule({ ...newRule, marketplaceType: value as 'b2c' | 'b2b' })}
+                    onValueChange={(value) => setNewRule({ ...newRule, marketplaceType: 'b2c' })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select marketplace" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="b2c">B2C (Retail)</SelectItem>
-                      <SelectItem value="b2b">B2B (Wholesale)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -412,21 +377,6 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
                   />
                 </div>
 
-                {newRule.marketplaceType === 'b2b' && (
-                  <div>
-                    <Label htmlFor="platformFeePercent">Platform Fee % (B2B only)</Label>
-                    <Input
-                      id="platformFeePercent"
-                      type="number"
-                      value={newRule.platformFeePercent || 2}
-                      onChange={(e) => setNewRule({ ...newRule, platformFeePercent: parseFloat(e.target.value) })}
-                      min="0"
-                      max="10"
-                      step="0.1"
-                      placeholder="2"
-                    />
-                  </div>
-                )}
 
                 <div>
                   <Label htmlFor="minValue">Minimum Order Value (₹)</Label>
@@ -490,7 +440,7 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
                       <div>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className={rule.marketplaceType === 'b2c' ? 'text-blue-600' : 'text-green-600'}>
-                            {rule.marketplaceType === 'b2c' ? 'B2C' : 'B2B'}
+                            B2C
                           </Badge>
                           <p className="font-medium">
                             {rule.commissionPercent}% Commission
@@ -570,7 +520,7 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
                       <div className="flex justify-between">
                         <span>Marketplace:</span>
                         <Badge variant="outline" className={previewCalculation.appliedRule.marketplaceType === 'b2c' ? 'text-blue-600' : 'text-green-600'}>
-                          {previewCalculation.appliedRule.marketplaceType === 'b2c' ? 'B2C (Retail)' : 'B2B (Wholesale)'}
+                          B2C (Retail)
                         </Badge>
                       </div>
                       <div className="flex justify-between">
@@ -600,7 +550,7 @@ export const CommissionManagement: React.FC<CommissionManagementProps> = ({
                       </div>
                       {previewCalculation.buyerPays && (
                         <div className="flex justify-between">
-                          <span>Buyer Pays (B2B):</span>
+                          <span>Buyer Pays:</span>
                           <span className="font-bold text-blue-600">{formatPrice(previewCalculation.buyerPays)}</span>
                         </div>
                       )}

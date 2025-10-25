@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/integrations/supabase-client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { useToast } from '@/hooks/use-toast';
+import { initializeCSRFProtection, cleanupCSRFProtection } from '@/lib/security/csrf';
+// Removed OneSignal complexity - using simple browser notifications only
 
 interface User {
   id: string;
@@ -22,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Get initial session from Supabase
@@ -34,9 +38,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Listen for auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         if (session?.user) {
-          setUser(mapSupabaseUser(session.user));
+          const userData = mapSupabaseUser(session.user);
+          setUser(userData);
         } else {
           setUser(null);
         }
@@ -49,6 +54,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // 🔒 SESSION TIMEOUT: Auto logout after inactivity (15 min for admin, 30 min for others)
+  useEffect(() => {
+    if (!user) return;
+
+    let timeoutId: NodeJS.Timeout;
+    
+    const resetTimeout = () => {
+      clearTimeout(timeoutId);
+      
+      // Admin users get shorter session timeout for security
+      const timeoutMs = user.role === 'admin' ? 15 * 60 * 1000 : 30 * 60 * 1000;
+      
+      timeoutId = setTimeout(async () => {
+        // Auto logout after inactivity
+        await supabase.auth.signOut();
+        setUser(null);
+        
+        // Cleanup CSRF protection
+        cleanupCSRFProtection();
+        
+        toast({
+          title: "Session expired",
+          description: "Please login again for security",
+          variant: "destructive",
+        });
+      }, timeoutMs);
+    };
+    
+    // Reset on any user activity
+    const handleActivity = () => resetTimeout();
+    
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('click', handleActivity);
+    window.addEventListener('scroll', handleActivity);
+    window.addEventListener('touchstart', handleActivity);
+    
+    resetTimeout();
+    
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
+  }, [user, toast]);
+
   // Map Supabase user to our User interface
   const mapSupabaseUser = (supabaseUser: SupabaseUser): User => {
     // Extract role from app_metadata (set by admin) or user_metadata (fallback)
@@ -56,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   supabaseUser.user_metadata?.role || 
                   'customer') as 'customer' | 'seller' | 'admin' | 'kam';
     
-    return {
+    const user = {
       id: supabaseUser.id,
       email: supabaseUser.email || '',
       name: supabaseUser.user_metadata?.full_name || 
@@ -66,6 +120,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isEmailVerified: !!supabaseUser.email_confirmed_at,
       role,
     };
+    
+    // Initialize CSRF protection for authenticated users
+    if (user.id) {
+      initializeCSRFProtection();
+    }
+    
+    return user;
   };
 
   const value = {

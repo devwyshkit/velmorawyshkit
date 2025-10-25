@@ -1,26 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Star, Gift, TrendingDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import { Stepper } from "@/components/customer/shared/Stepper";
-import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
-import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
@@ -30,26 +9,19 @@ import { ToastAction } from "@/components/ui/toast";
 import { useCart } from "@/contexts/CartContext";
 import { isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
 import { fetchItemById, addToCartSupabase, fetchPartnerById, type Item as ItemType } from "@/lib/integrations/supabase-data";
+import { ProductDetail } from "@/features/customer/product/components/ProductDetail";
+import { ProductCard } from "@/features/customer/product/components/ProductCard";
+import { CustomerProductDisplay } from "@/types/tiered-pricing";
 
-interface AddOn {
-  id: string;
-  name: string;
-  price: number;
-}
-
-export const ItemDetails = () => {
+export const ItemDetailsNew = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { refreshCartCount, currentPartnerId, clearCart } = useCart();
-  const [quantity, setQuantity] = useState(1);
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [showCartReplacementModal, setShowCartReplacementModal] = useState(false);
-  const [currentPartnerName, setCurrentPartnerName] = useState("");
-  const [newPartnerName, setNewPartnerName] = useState("");
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<ItemType | null>(null);
+  const [product, setProduct] = useState<CustomerProductDisplay | null>(null);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     const loadItemData = async () => {
@@ -59,8 +31,56 @@ export const ItemDetails = () => {
       try {
         const itemData = await fetchItemById(id);
         setItem(itemData);
+        
+        // Convert to CustomerProductDisplay format
+        if (itemData) {
+          const customerProduct: CustomerProductDisplay = {
+            id: itemData.id,
+            name: itemData.name,
+            description: itemData.description,
+            category: itemData.category || 'General',
+            images: itemData.images || ['/placeholder.svg'],
+            listingType: itemData.listing_type || 'individual',
+            whatsIncluded: itemData.whats_included || [],
+            currentPrice: itemData.price / 100, // Convert from paise to rupees
+            originalPrice: itemData.original_price ? itemData.original_price / 100 : undefined,
+            discount: itemData.discount,
+            pricingTiers: itemData.tiered_pricing?.map((tier: any) => ({
+              quantity: tier.maxQty ? `${tier.minQty}-${tier.maxQty}` : `${tier.minQty}+`,
+              price: tier.pricePerItem / 100, // Convert from paise to rupees
+              discountPercent: tier.discountPercent || 0
+            })) || [{
+              quantity: '1+',
+              price: itemData.price / 100,
+              discountPercent: 0
+            }],
+            deliveryTime: itemData.delivery_time || '2-3 days',
+            isInStock: itemData.stock > 0,
+            stockCount: itemData.stock,
+            isCustomizable: itemData.is_customizable || false,
+            addOns: itemData.add_ons?.map((addon: any) => ({
+              id: addon.id,
+              name: addon.name,
+              price: addon.price_paise / 100, // Convert from paise to rupees
+              minimumOrderQuantity: addon.minimum_order_quantity || 1,
+              requiresProof: addon.requires_proof || false,
+              description: addon.description
+            })) || [],
+            vendor: {
+              id: itemData.partner_id,
+              name: itemData.partner_name || 'Vendor',
+              rating: itemData.partner_rating || 4.5,
+              reviewCount: itemData.partner_review_count || 100
+            },
+            rating: itemData.rating || 4.5,
+            reviewCount: itemData.review_count || 100,
+            isWishlisted: false
+          };
+          
+          setProduct(customerProduct);
+        }
       } catch (error) {
-        console.error('Failed to load item:', error);
+        // Handle error silently in production
         toast({
           title: "Loading error",
           description: "Failed to load item details",
@@ -74,91 +94,26 @@ export const ItemDetails = () => {
     loadItemData();
   }, [id, toast]);
 
-  // Get add-ons from product data (from partner ProductForm)
-  const addOns: AddOn[] = item?.add_ons?.map((addon: any) => ({
-    id: addon.id,
-    name: `${addon.name} (+₹${addon.price / 100})`,
-    price: addon.price / 100,
-  })) || [];
+  const handleAddToCart = async (quantity: number, selectedAddOns: string[], customizationData?: any) => {
+    if (!item) return;
 
-  const handleAddOnToggle = (addOnId: string) => {
-    setSelectedAddOns(prev =>
-      prev.includes(addOnId)
-        ? prev.filter(id => id !== addOnId)
-        : [...prev, addOnId]
-    );
-  };
-
-  const calculateTotal = () => {
-    const basePrice = item.price * quantity;
-    const addOnsPrice = selectedAddOns.reduce((sum, addOnId) => {
-      const addOn = addOns.find(a => a.id === addOnId);
-      return sum + (addOn?.price || 0);
-    }, 0);
-    return basePrice + addOnsPrice;
-  };
-
-  const handleAddToCart = async () => {
-    // Check if adding item from different partner
-    if (currentPartnerId && currentPartnerId !== item.partner_id) {
-      // Fetch partner names for modal
-      const currentPartner = await fetchPartnerById(currentPartnerId);
-      const newPartner = await fetchPartnerById(item.partner_id);
-      
-      setCurrentPartnerName(currentPartner?.name || "Current Partner");
-      setNewPartnerName(newPartner?.name || "New Partner");
-      setShowCartReplacementModal(true);
-      return;
-    }
-
-    // Same partner or empty cart - proceed normally
-    await proceedWithAddToCart();
-  };
-
-  const proceedWithAddToCart = async () => {
-    const authenticated = await isAuthenticated();
-
-    const cartItem = {
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      quantity,
-      image: item.images[0],
-      partner_id: item.partner_id,
-      addOns: selectedAddOns.map(id => addOns.find(a => a.id === id)).filter(Boolean),
-      total: calculateTotal(),
-    };
-
-    if (!authenticated) {
-      // Guest mode: save to localStorage
-      const guestCart = getGuestCart();
-      guestCart.push(cartItem);
-      setGuestCart(guestCart);
-      refreshCartCount();
-
-      toast({
-        title: "Added to cart",
-        description: "Sign in to checkout",
-        action: (
-          <ToastAction 
-            altText="Sign in"
-            onClick={() => setShowLoginPrompt(true)}
-          >
-            Sign In
-          </ToastAction>
-        ),
-      });
-
-      // Show login prompt overlay
-      setTimeout(() => {
-        setShowLoginPrompt(true);
-      }, 500);
-    } else {
-      // Authenticated: save to Supabase
-      const success = await addToCartSupabase(cartItem);
-      
-      if (success) {
-        refreshCartCount();
+    try {
+      if (!isAuthenticated()) {
+        // Handle guest cart
+        const guestCart = getGuestCart();
+        const cartItem = {
+          id: item.id,
+          name: item.name,
+          price: item.price / 100,
+          quantity,
+          partner_id: item.partner_id,
+          addOns: selectedAddOns.map(id => product?.addOns.find(a => a.id === id)).filter(Boolean),
+          customization: customizationData
+        };
+        
+        const updatedCart = [...guestCart, cartItem];
+        setGuestCart(updatedCart);
+        
         toast({
           title: "Added to cart",
           description: `${quantity}x ${item.name}`,
@@ -171,258 +126,116 @@ export const ItemDetails = () => {
             </ToastAction>
           ),
         });
-        // Auto-navigate to cart after 2 seconds (or user can click toast)
-        setTimeout(() => navigate("/customer/cart"), 2000);
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to add item to cart",
-          variant: "destructive",
-        });
+        // Handle authenticated cart
+        const cartItem = {
+          id: item.id,
+          name: item.name,
+          price: item.price / 100,
+          quantity,
+          partner_id: item.partner_id,
+          addOns: selectedAddOns.map(id => product?.addOns.find(a => a.id === id)).filter(Boolean),
+          customization: customizationData
+        };
+        
+        const success = await addToCartSupabase(cartItem);
+        
+        if (success) {
+          refreshCartCount();
+          toast({
+            title: "Added to cart",
+            description: `${quantity}x ${item.name}`,
+            action: (
+              <ToastAction 
+                altText="View cart"
+                onClick={() => navigate('/customer/cart')}
+              >
+                View Cart
+              </ToastAction>
+            ),
+          });
+        } else {
+          throw new Error('Failed to add to cart');
+        }
       }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleReplaceCart = async () => {
-    // Clear existing cart
-    clearCart();
-    setShowCartReplacementModal(false);
-    
-    // Proceed with adding new item
-    await proceedWithAddToCart();
+  const handleToggleWishlist = async () => {
+    setIsWishlisted(!isWishlisted);
+    // TODO: Implement wishlist functionality
+    toast({
+      title: isWishlisted ? "Removed from wishlist" : "Added to wishlist",
+      description: item?.name,
+    });
   };
 
-  if (loading || !item) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader showBackButton title="Item Details" />
-        
-        <main className="max-w-screen-xl mx-auto px-4 py-6">
-          <div className="max-w-2xl mx-auto space-y-6">
-            <Skeleton className="aspect-square rounded-xl" />
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-6 w-1/2" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-12 w-full" />
-          </div>
-        </main>
+      <div className="min-h-screen bg-gray-50">
+        <CustomerMobileHeader />
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+        <CustomerBottomNav />
+      </div>
+    );
+  }
 
+  if (!item || !product) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <CustomerMobileHeader />
+        <div className="p-4 text-center">
+          <h1 className="text-xl font-semibold mb-2">Product not found</h1>
+          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
+          <button
+            onClick={() => navigate('/customer/home')}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            Go back to home
+          </button>
+        </div>
         <CustomerBottomNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <CustomerMobileHeader showBackButton title="Item Details" />
+    <div className="min-h-screen bg-gray-50">
+      <CustomerMobileHeader />
       
-      <main className="max-w-screen-xl mx-auto px-4 py-6">
-        <div className="max-w-2xl mx-auto space-y-6">
-          {/* Image Carousel */}
-          <Carousel className="w-full">
-            <CarouselContent>
-              {(item?.images || [item?.image]).map((image, index) => (
-                <CarouselItem key={index}>
-                  <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
-                    <img
-                      src={image}
-                      alt={`${item.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    {/* Fallback icon */}
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
-                      <Gift className="w-16 h-16" />
-                    </div>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="left-2" />
-            <CarouselNext className="right-2" />
-          </Carousel>
+      {/* Desktop/Tablet View */}
+      <div className="hidden md:block max-w-6xl mx-auto p-6">
+        <ProductDetail
+          product={product}
+          onAddToCart={handleAddToCart}
+          onToggleWishlist={handleToggleWishlist}
+        />
+      </div>
 
-          {/* Title and Rating */}
-          <div>
-            <h1 className="text-2xl font-bold mb-2">{item.name}</h1>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-yellow-600">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold text-lg">{item.rating}</span>
-              </div>
-              <span className="text-muted-foreground">• {item.ratingCount || 156} ratings</span>
-            </div>
-          </div>
-
-          {/* Price with Bulk Discount */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-3xl font-bold text-primary">
-                ₹{(item.price / 100).toLocaleString('en-IN')}
-              </span>
-              <span className="text-sm text-muted-foreground">(incl. GST)</span>
-            </div>
-            
-            {/* Bulk Pricing Display - From Partner ProductForm */}
-            {item.bulk_pricing && item.bulk_pricing.length > 0 && (
-              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                <p className="text-sm font-medium text-primary mb-2">💰 Bulk Pricing Available!</p>
-                <div className="space-y-1">
-                  {item.bulk_pricing.map((tier: any, idx: number) => (
-                    <p key={idx} className="text-xs text-muted-foreground">
-                      <span className="font-medium">{tier.minQty}+ units:</span> ₹{(tier.price / 100).toLocaleString('en-IN')} each
-                      {tier.discountPercent && (
-                        <span className="text-primary font-medium"> ({tier.discountPercent}% off)</span>
-                      )}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Description */}
-          <div>
-            <h2 className="text-lg font-semibold mb-2">About this item</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {item.description}
-            </p>
-          </div>
-
-          {/* Quantity Stepper */}
-          <div>
-            <Label className="text-base font-semibold mb-3 block">Quantity</Label>
-            <Stepper 
-              value={quantity} 
-              onChange={(newQty) => {
-                const oldQty = quantity;
-                setQuantity(newQty);
-                
-                // Auto-apply bulk pricing if tiers exist
-                if (item?.bulk_pricing && item.bulk_pricing.length > 0) {
-                  const sortedTiers = [...item.bulk_pricing].sort((a, b) => b.minQty - a.minQty);
-                  const applicableTier = sortedTiers.find((tier: any) => newQty >= tier.minQty);
-                  const oldTier = sortedTiers.find((tier: any) => oldQty >= tier.minQty);
-                  
-                  // Show toast only if tier changed
-                  if (applicableTier && applicableTier !== oldTier) {
-                    const savings = ((item.price - applicableTier.price) * newQty) / 100;
-                    toast({
-                      title: "Bulk pricing applied!",
-                      description: `Save ₹${savings.toLocaleString('en-IN')} on ${newQty} units`,
-                      duration: 3000,
-                    });
-                  }
-                }
-              }} 
-              min={1} 
-              max={99} 
-            />
-          </div>
-
-          {/* Add-ons */}
-          {addOns.length > 0 && (
-            <div>
-              <Label className="text-base font-semibold mb-3 block">Customize Your Gift</Label>
-              <div className="space-y-3">
-                {addOns.map((addOn) => (
-                  <div key={addOn.id} className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                    <Checkbox
-                      id={addOn.id}
-                      checked={selectedAddOns.includes(addOn.id)}
-                      onCheckedChange={() => handleAddOnToggle(addOn.id)}
-                    />
-                    <Label
-                      htmlFor={addOn.id}
-                      className="text-sm cursor-pointer flex-1"
-                    >
-                      {addOn.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Specifications & Compliance */}
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="specs">
-              <AccordionTrigger className="text-base font-semibold">
-                Product Specifications
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground space-y-2 pt-4">
-                <div className="grid grid-cols-2 gap-3">
-                  {item?.specs?.weight && (
-                    <div>
-                      <span className="font-medium text-foreground">Weight</span>
-                      <p>{item.specs.weight}</p>
-                    </div>
-                  )}
-                  {item?.specs?.dimensions && (
-                    <div>
-                      <span className="font-medium text-foreground">Dimensions</span>
-                      <p>{item.specs.dimensions}</p>
-                    </div>
-                  )}
-                  {item?.specs?.materials && (
-                    <div className="col-span-2">
-                      <span className="font-medium text-foreground">Materials</span>
-                      <p>{item.specs.materials}</p>
-                    </div>
-                  )}
-                  {!item?.specs && (
-                    <p className="col-span-2">Specifications will be provided upon request</p>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-
-          {/* Important Notice */}
-          <p className="text-xs text-muted-foreground">
-            Note: Custom items are non-refundable after proof approval
-          </p>
-
-          {/* Add to Cart Section */}
-          <div className="sticky bottom-20 md:bottom-4 bg-white border border-border rounded-lg p-4 shadow-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Total Amount</span>
-              <span className="text-2xl font-bold text-primary">
-                ₹{calculateTotal().toLocaleString('en-IN')}
-              </span>
-            </div>
-            <Button
-              onClick={handleAddToCart}
-              className="w-full h-12 text-base"
-              size="lg"
-            >
-              Add to Cart
-            </Button>
-          </div>
-        </div>
-      </main>
+      {/* Mobile View */}
+      <div className="md:hidden p-4">
+        <ProductDetail
+          product={product}
+          onAddToCart={handleAddToCart}
+          onToggleWishlist={handleToggleWishlist}
+        />
+      </div>
 
       <ComplianceFooter />
       <CustomerBottomNav />
-
-      {/* Login Prompt Overlay */}
-      <LoginPromptSheet
-        isOpen={showLoginPrompt}
-        onClose={() => setShowLoginPrompt(false)}
-      />
-
-      {/* Cart Replacement Modal - Swiggy Pattern */}
-      <CartReplacementModal
-        isOpen={showCartReplacementModal}
-        currentPartner={currentPartnerName}
-        newPartner={newPartnerName}
-        onConfirm={handleReplaceCart}
-        onCancel={() => setShowCartReplacementModal(false)}
-      />
     </div>
   );
 };
-

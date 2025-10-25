@@ -11,6 +11,7 @@ import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter"
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 import { useTheme } from "@/components/theme-provider";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Order {
   id: string;
@@ -24,14 +25,13 @@ export const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const [authenticated, setAuthenticated] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
 
   // Mock user data
   const userData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: '',
+    name: user?.name || 'John Doe',
+    email: user?.email || 'john.doe@example.com',
+    avatar: user?.avatar || '',
     phone: '+91 98765 43210',
   };
 
@@ -60,19 +60,6 @@ export const Profile = () => {
     },
   ];
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const isAuth = await isAuthenticated();
-      setAuthenticated(isAuth);
-      
-      if (isAuth) {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
-      }
-    };
-    checkAuth();
-  }, []);
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
@@ -85,39 +72,6 @@ export const Profile = () => {
   const handleToggleDarkMode = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
-
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader />
-        <div className="flex flex-col items-center justify-center h-[80vh] px-4">
-          <User className="h-20 w-20 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Sign in to your account</h2>
-          <p className="text-sm text-muted-foreground mb-6 text-center">
-            Access your orders, wishlist, and personalized recommendations
-          </p>
-          <div className="space-y-3 w-full max-w-sm">
-            <Button
-              onClick={() => navigate("/customer/login")}
-              className="w-full h-12"
-              size="lg"
-            >
-              Sign In
-            </Button>
-            <Button
-              onClick={() => navigate("/customer/signup")}
-              variant="outline"
-              className="w-full h-12"
-              size="lg"
-            >
-              Create Account
-            </Button>
-          </div>
-        </div>
-        <CustomerBottomNav />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background pb-20">

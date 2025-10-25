@@ -1,4 +1,5 @@
 import { supabase, isAuthenticated } from './supabase-client';
+import { ValidationSchemas } from '@/lib/validation/schemas';
 
 // Type definitions
 export interface Partner {
@@ -15,6 +16,7 @@ export interface Partner {
   sponsored?: boolean; // Promoted/sponsored partner
   status?: 'pending' | 'approved' | 'rejected';  // Partner approval status
   is_active?: boolean;  // Partner can self-disable
+  startingPrice?: number; // Starting price from cheapest item
 }
 
 export interface Item {
@@ -204,49 +206,102 @@ const mockItems: Item[] = [
   },
 ];
 
+// Helper function to group partners by delivery time
+export const groupPartnersByDelivery = (partners: Partner[], selectedDate: Date) => {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayAfterTomorrow = new Date(today);
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+  
+  const tomorrowPartners = partners.filter(p => 
+    p.delivery?.includes('1-2') || 
+    p.delivery?.includes('Tomorrow') || 
+    p.delivery?.includes('Same day') ||
+    p.delivery?.includes('Today')
+  );
+  
+  const regionalPartners = partners.filter(p => 
+    p.delivery?.includes('2-3') || 
+    p.delivery?.includes('3-4') || 
+    p.delivery?.includes('Regional')
+  );
+  
+  const panIndiaPartners = partners.filter(p => 
+    p.delivery?.includes('5-7') || 
+    p.delivery?.includes('7+') || 
+    p.delivery?.includes('Pan-India')
+  );
+  
+  return {
+    tomorrow: tomorrowPartners,
+    regional: regionalPartners,
+    panIndia: panIndiaPartners
+  };
+};
+
 // Data fetching functions
 export const fetchPartners = async (location?: string): Promise<Partner[]> => {
   try {
-    // Query partners table (no status/is_active columns in this table)
+    // Query partners table with items to calculate starting price
     const { data, error } = await supabase
       .from('partners')
-      .select('*')
+      .select(`
+        *,
+        items!inner(price)
+      `)
       .order('rating', { ascending: false });
 
     if (error) throw error;
     
     if (data && data.length > 0) {
-      return data.map(p => ({
-        id: p.id,
-        name: p.name,
-        image: p.image || 'https://picsum.photos/seed/partner/400/400',
-        rating: p.rating || 4.5,
-        delivery: p.delivery_time || '3-5 days',
-        location: p.location,
-        category: p.category,
-        ratingCount: 100, // Default until we have actual data
-      }));
+      return data.map(p => {
+        // Calculate starting price from cheapest item
+        const startingPrice = p.items && p.items.length > 0 
+          ? Math.min(...p.items.map((item: any) => item.price))
+          : 299; // Default fallback price
+        
+        return {
+          id: p.id,
+          name: p.name,
+          image: p.image || 'https://picsum.photos/seed/partner/400/400',
+          rating: p.rating || 4.5,
+          delivery: p.delivery_time || '3-5 days',
+          location: p.location,
+          category: p.category,
+          ratingCount: 100, // Default until we have actual data
+          startingPrice,
+        };
+      });
     }
   } catch (error) {
     // Handle error silently in production
   }
   
-  // Fallback to mock data
-  return mockPartners;
+  // Fallback to mock data with starting prices
+  return mockPartners.map(p => ({
+    ...p,
+    startingPrice: p.startingPrice || 299
+  }));
 };
 
 export const fetchPartnerById = async (id: string): Promise<Partner | null> => {
   try {
+    // Validate input
+    const validatedId = ValidationSchemas.UUID.parse(id);
+    
     const { data, error } = await supabase
       .from('partners')
       .select('*')
-      .eq('id', id)
+      .eq('id', validatedId)
       .single();
 
     if (error) throw error;
     if (data) return data;
   } catch (error) {
-    // Handle error silently in production
+    // Handle validation or database errors
+    console.error('Error fetching partner:', error);
+    throw new Error('Invalid partner ID or partner not found');
   }
   
   // Fallback to mock data

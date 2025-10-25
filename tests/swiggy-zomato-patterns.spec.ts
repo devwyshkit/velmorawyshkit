@@ -165,22 +165,6 @@ test.describe('Partner Portal - Restaurant Dashboard Patterns', () => {
     expect(formText).not.toContain('Fulfillment');
   });
 
-  test('B2B procurement portal (Wyshkit Supply)', async ({ page }) => {
-    await page.setViewportSize(MOBILE_VIEWPORT);
-    
-    // Navigate to Wyshkit Supply
-    await page.goto(`${BASE_URL}/partner/supply`);
-    await waitForPageLoad(page);
-    
-    // Check for wholesale products
-    const products = await page.locator('[data-testid="product-card"], .product-card').all();
-    expect(products.length).toBeGreaterThan(0);
-    
-    // Check for B2C friendly language
-    const pageText = await page.textContent('body');
-    expect(pageText).toContain('Wholesale');
-    expect(pageText).not.toContain('Procurement');
-  });
 
   test('Earnings page with Zoho integration', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);

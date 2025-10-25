@@ -15,6 +15,9 @@ interface CustomerItemCardProps {
   sponsored?: boolean;
   isCustomizable?: boolean;
   campaignDiscount?: { type: 'percentage' | 'flat'; value: number }; // NEW!
+  // Removed variant prop - grid is the global e-commerce standard
+  moq?: number; // NEW: Minimum order quantity
+  eta?: string; // NEW: Delivery ETA
   onClick?: () => void;
   className?: string;
 }
@@ -31,9 +34,13 @@ export const CustomerItemCard = ({
   sponsored,
   isCustomizable,
   campaignDiscount,
+  // Removed variant prop
+  moq,
+  eta,
   onClick,
   className,
 }: CustomerItemCardProps) => {
+  // Grid variant (global e-commerce standard)
   return (
     <Card
       className={cn(
@@ -96,6 +103,12 @@ export const CustomerItemCard = ({
           {isCustomizable && (
             <Badge className="absolute bottom-2 right-2 p-1 bg-background/90 dark:bg-card/90 backdrop-blur-sm border border-border" aria-label="Customizable">
               <Gift className="h-3 w-3 text-primary" />
+            </Badge>
+          )}
+          {/* MOQ Badge - Bottom Left */}
+          {moq && moq > 1 && (
+            <Badge variant="secondary" className="absolute bottom-2 left-2 text-xs px-1.5 py-0.5">
+              Min {moq}
             </Badge>
           )}
         </div>

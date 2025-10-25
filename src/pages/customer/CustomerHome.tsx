@@ -20,10 +20,9 @@ import { EmailVerificationBanner } from "@/components/customer/shared/EmailVerif
 import { CampaignCard } from "@/components/customer/campaigns/CampaignCard";
 import { OptimizedImage } from "@/components/ui/skeleton-screen";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getRecommendations } from "@/lib/integrations/openai";
-import { fetchPartners, type Partner } from "@/lib/integrations/supabase-data";
+import { fetchPartners, groupPartnersByDelivery, type Partner } from "@/lib/integrations/supabase-data";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { useLocation } from "@/contexts/LocationContext";
+import { useDelivery } from "@/contexts/DeliveryContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import Autoplay from "embla-carousel-autoplay";
@@ -34,14 +33,14 @@ interface Occasion {
   name: string;
   image: string;
   icon: string;
+  slug: string;
 }
 
 export const CustomerHome = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { location } = useLocation();
+  const { location, deliveryDate } = useDelivery();
   const { user } = useAuth();
-  const [recommendations, setRecommendations] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -50,84 +49,132 @@ export const CustomerHome = () => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
+  const [groupedPartners, setGroupedPartners] = useState<{
+    tomorrow: Partner[];
+    regional: Partner[];
+    panIndia: Partner[];
+  }>({ tomorrow: [], regional: [], panIndia: [] });
+
+  // Group partners by delivery time using helper function
+  const groupPartners = (partners: Partner[]) => {
+    return groupPartnersByDelivery(partners, deliveryDate);
+  };
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Load banners from Supabase (we have 4 in database!)
-        try {
-          const { data: bannersData, error: bannersError } = await supabase
-            .from('banners')
-            .select('*')
-            .eq('is_active', true)
-            .order('display_order', { ascending: true });
-          
-          if (bannersError) {
-            // Handle error silently in production
+        // Load banners from Supabase
+        const { data: bannersData } = await supabase
+          .from('banners')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
+        
+        if (bannersData && bannersData.length > 0) {
+          setBanners(bannersData);
+        } else {
+          // Fallback data for development
+          setBanners([
+            {
+              id: '1',
+              title: 'Welcome to Wyshkit',
+              image_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=128&fit=crop',
+              cta_link: '/customer/search',
+              is_active: true
+            }
+          ]);
+        }
+
+        // Load occasions from Supabase
+        const { data: occasionsData } = await supabase
+          .from('occasions')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
+        
+        if (occasionsData && occasionsData.length > 0) {
+          setOccasions(occasionsData.map(occ => ({
+            id: occ.id,
+            name: occ.name,
+            image: occ.image_url,
+            icon: occ.icon_emoji,
+            slug: occ.slug,
+          })));
+        } else {
+          // Fallback data for development
+          setOccasions([
+            { id: '1', name: 'Birthday', image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=100&h=100&fit=crop', icon: '🎂', slug: 'birthday' },
+            { id: '2', name: 'Anniversary', image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=100&h=100&fit=crop', icon: '💍', slug: 'anniversary' },
+            { id: '3', name: 'Wedding', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=100&h=100&fit=crop', icon: '💒', slug: 'wedding' },
+            { id: '4', name: 'Corporate', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=100&h=100&fit=crop', icon: '🏢', slug: 'corporate' }
+          ]);
+        }
+
+          // Load partners from Supabase
+          const partnersData = await fetchPartners(location);
+          if (partnersData && partnersData.length > 0) {
+            setPartners(partnersData);
+            setFilteredPartners(partnersData);
+            // Group partners by delivery time
+            const grouped = groupPartners(partnersData);
+            setGroupedPartners(grouped);
           } else {
-            setBanners(bannersData || []);
+          // Fallback data for development
+          const fallbackPartners = [
+            {
+              id: '1',
+              name: 'GiftCraft Studio',
+              image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
+              rating: 4.8,
+              delivery: '1-2 days',
+              badge: 'bestseller' as const,
+              location: 'Bangalore',
+              category: 'Custom Gifts',
+              tagline: 'Handcrafted personalized gifts',
+              ratingCount: 156,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            },
+            {
+              id: '2',
+              name: 'Luxury Hampers Co',
+              image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop',
+              rating: 4.6,
+              delivery: '2-3 days',
+              badge: 'trending' as const,
+              location: 'Mumbai',
+              category: 'Hampers',
+              tagline: 'Premium gift hampers',
+              ratingCount: 89,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            }
+            ];
+            setPartners(fallbackPartners);
+            setFilteredPartners(fallbackPartners);
+            // Group fallback partners by delivery time
+            const grouped = groupPartners(fallbackPartners);
+            setGroupedPartners(grouped);
           }
-        } catch (error) {
-          // Handle error silently in production
-        }
 
-        // Load occasions from Supabase (we have 8 in database!)
-        try {
-          const { data: occasionsData, error: occasionsError } = await supabase
-            .from('occasions')
-            .select('*')
-            .eq('is_active', true)
-            .order('display_order', { ascending: true });
-          
-          if (occasionsError) {
-            // Handle error silently in production
-          } else {
-            setOccasions(occasionsData?.map(occ => ({
-              id: occ.id,
-              name: occ.name,
-              image: occ.image_url,
-              icon: occ.icon_emoji,
-              slug: occ.slug,
-            })) || []);
-          }
-        } catch (error) {
-          // Handle error silently in production
-        }
-
-        // Load recommendations with user context (fallback if no banners)
-        if (banners.length === 0) {
-          const browsingHistory = JSON.parse(localStorage.getItem('wyshkit_browsing_history') || '[]');
-          const recs = await getRecommendations({
-            location: location || 'India',
-            browsing_history: browsingHistory.slice(0, 10),
-            occasion: 'General',
-          });
-          setRecommendations(recs);
-        }
-
-        // Load partners from Supabase (with fallback to mock data)
-        const partnersData = await fetchPartners(location);
-        setPartners(partnersData);
-        setFilteredPartners(partnersData);
-
-        // Load featured campaigns (PROMPT 4 - Campaign Management)
-        try {
-          const { data: campaigns } = await supabase
-            .from('campaigns')
-            .select('*')
-            .eq('featured', true)
-            .eq('status', 'active')
-            .lte('start_date', new Date().toISOString())
-            .gte('end_date', new Date().toISOString())
-            .limit(5);
-          
-          setFeaturedCampaigns(campaigns || []);
-        } catch (error) {
-          // Handle error silently in production
+        // Load featured campaigns
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('featured', true)
+          .eq('status', 'active')
+          .lte('start_date', new Date().toISOString())
+          .gte('end_date', new Date().toISOString())
+          .limit(5);
+        
+        if (campaigns) {
+          setFeaturedCampaigns(campaigns);
         }
       } catch (error) {
-        // Handle error silently in production
+        console.error('Error loading data:', error);
         toast({
           title: "Loading error",
           description: "Some content may not be available",
@@ -139,7 +186,7 @@ export const CustomerHome = () => {
     };
 
     loadData();
-  }, [location, toast]);
+  }, [location, deliveryDate]);
 
   useEffect(() => {
     if (!carouselApi) {
@@ -234,109 +281,113 @@ export const CustomerHome = () => {
 
       {/* Main Content */}
       <main className="max-w-screen-xl mx-auto space-y-4 pt-4">
-        {/* Hero Banners - Responsive Grid: 85% mobile, 50% tablet, 33% desktop */}
+        {/* Hero Banners - Always show section to prevent layout shift */}
         <section className="px-4">
-          <div>
-            <Carousel
-              setApi={setCarouselApi}
-              opts={{
-                align: "start",
-                loop: true,
-              }}
-              plugins={[
-                Autoplay({
-                  delay: 5000,
-                  stopOnInteraction: true,      // Pause on click/drag
-                  stopOnMouseEnter: true,       // Pause on hover (Zomato pattern)
-                  stopOnFocusIn: true,          // Pause on keyboard focus (WCAG 2.2.2)
-                }),
-              ]}
-              className="w-full"
-            >
-              <CarouselContent className="-ml-2">
-                {(banners.length > 0 ? banners : recommendations).map((item) => (
-                  <CarouselItem key={item.id} className="basis-[85%] pl-2">
-                    <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 border-0 overflow-hidden">
-                      <CardContent className="p-0">
-                        <div
-                          className="relative h-32"
-                          onClick={() => navigate(item.cta_link || item.link || `/customer/partners/${item.partner_id}`)}
-                        >
-                          {/* Banner Image (if from database) */}
-                          {item.image_url && (
-                            <OptimizedImage
-                              src={item.image_url}
-                              alt={item.title}
-                              width={400}
-                              height={128}
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                          )}
-                          
-                          {/* Gradient Overlay (for better text readability) */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-transparent" />
-                          
-                          {/* Content - Center-aligned */}
-                          <div className="relative z-10 p-4 h-full flex flex-col justify-center text-center space-y-1">
-                            <div className="h-10 w-10 bg-white/20 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                              <Gift className="h-6 w-6 text-white" />
-                            </div>
-                            <h3 className="font-semibold text-white text-sm">{item.title}</h3>
-                            <p className="text-white/90 text-xs">{item.subtitle || item.description}</p>
-                            {item.cta_text && (
-                              <span className="text-white/80 text-xs font-medium">{item.cta_text} →</span>
+          {banners.length === 0 ? (
+            <Skeleton className="h-40 w-full rounded-xl" />
+          ) : (
+            <div>
+              <Carousel
+                setApi={setCarouselApi}
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                plugins={[
+                  Autoplay({
+                    delay: 3500,  // 3.5 seconds (Swiggy standard)
+                    stopOnInteraction: true,      // Pause on click/drag
+                    stopOnMouseEnter: true,       // Pause on hover (Zomato pattern)
+                    stopOnFocusIn: true,          // Pause on keyboard focus (WCAG 2.2.2)
+                  }),
+                ]}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2">
+                  {banners.map((item) => (
+                    <CarouselItem key={item.id} className="basis-[90%] pl-2 md:basis-[45%]">
+                      <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] border-0 overflow-hidden">
+                        <CardContent className="p-0">
+                          <div
+                            className="relative h-40 md:h-48"  // 160px mobile, 192px desktop (Swiggy standard)
+                            onClick={() => navigate(item.cta_link || item.link || `/customer/partners/${item.partner_id}`)}
+                          >
+                            {/* Banner Image */}
+                            {item.image_url && (
+                              <OptimizedImage
+                                src={item.image_url}
+                                alt={item.title}
+                                width={400}
+                                height={128}
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
                             )}
+                            
+                            {/* Gradient Overlay (for better text readability) */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-transparent" />
+                            
+                            {/* Content - Center-aligned */}
+                            <div className="relative z-10 p-4 h-full flex flex-col justify-center text-center space-y-1">
+                              <div className="h-10 w-10 bg-white/20 rounded-lg mx-auto mb-2 flex items-center justify-center">
+                                <Gift className="h-6 w-6 text-white" />
+                              </div>
+                              <h3 className="font-semibold text-white text-sm">{item.title}</h3>
+                              <p className="text-white/90 text-xs">{item.subtitle || item.description}</p>
+                              {item.cta_text && (
+                                <span className="text-white/80 text-xs font-medium">{item.cta_text} →</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-            
-            {/* Indicators (left) & Small Navigation Arrows (right) - Below carousel */}
-            <div className="flex items-center justify-between mt-3 px-2">
-              {/* Left: Dot Indicators */}
-              <div className="flex gap-1">
-                {(banners.length > 0 ? banners : recommendations).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => carouselApi?.scrollTo(idx)}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all duration-300",
-                      idx === currentSlide ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
-                    )}
-                    aria-label={`Go to slide ${idx + 1}`}
-                  />
-                ))}
-              </div>
+                        </CardContent>
+                      </Card>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
               
-              {/* Right: Small Navigation Arrows Grouped Together */}
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full"
-                  onClick={() => carouselApi?.scrollPrev()}
-                  disabled={!carouselApi?.canScrollPrev()}
-                  aria-label="Previous recommendation"
-                >
-                  <span className="text-sm">←</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full"
-                  onClick={() => carouselApi?.scrollNext()}
-                  disabled={!carouselApi?.canScrollNext()}
-                  aria-label="Next recommendation"
-                >
-                  <span className="text-sm">→</span>
-                </Button>
+              {/* Indicators (left) & Small Navigation Arrows (right) - Below carousel */}
+              <div className="flex items-center justify-between mt-3 px-2">
+                {/* Left: Dot Indicators */}
+                <div className="flex gap-1">
+                  {banners.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => carouselApi?.scrollTo(idx)}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-300",
+                        idx === currentSlide ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                      )}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+                
+                {/* Right: Small Navigation Arrows Grouped Together */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full"
+                    onClick={() => carouselApi?.scrollPrev()}
+                    disabled={!carouselApi?.canScrollPrev()}
+                    aria-label="Previous banner"
+                  >
+                    <span className="text-sm">←</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full"
+                    onClick={() => carouselApi?.scrollNext()}
+                    disabled={!carouselApi?.canScrollNext()}
+                    aria-label="Next banner"
+                  >
+                    <span className="text-sm">→</span>
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Active Campaigns - Swiggy/Zomato Offers Pattern */}
@@ -398,20 +449,26 @@ export const CustomerHome = () => {
           <FilterChips onFilterChange={handleFilterChange} />
         </section>
 
-        {/* Partners - Responsive Grid: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between px-4">
-            <h2 className="text-lg font-semibold">Partners near you</h2>
-            <Button
-              variant="link"
-              className="text-primary p-0 h-auto"
-              onClick={() => navigate("/customer/search?view=partners")}
-            >
-              View All
-            </Button>
-          </div>
-          <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
-            {filteredPartners.slice(0, 6).map((partner) => (
+        {/* Partners Grouped by Delivery Time - Swiggy Pattern */}
+        {groupedPartners.tomorrow.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                ⚡ Delivering Tomorrow (Local)
+                <Badge variant="secondary" className="text-xs">
+                  {groupedPartners.tomorrow.length}
+                </Badge>
+              </h2>
+              <Button
+                variant="link"
+                className="text-primary p-0 h-auto"
+                onClick={() => navigate("/customer/search?delivery=tomorrow")}
+              >
+                View All →
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
+              {groupedPartners.tomorrow.slice(0, 6).map((partner) => (
               <Card
                 key={partner.id}
                 className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
@@ -475,6 +532,12 @@ export const CustomerHome = () => {
                       <span>{partner.delivery}</span>
                     </div>
                     
+                    {/* Starting Price - Swiggy/Zomato Pattern */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Starting from</span>
+                      <span className="font-semibold text-primary">₹{partner.startingPrice || 299}</span>
+                    </div>
+                    
                     {/* Tagline - 12px gray, 1 line per spec */}
                     {partner.tagline && (
                       <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
@@ -501,6 +564,143 @@ export const CustomerHome = () => {
             ))}
           </div>
         </section>
+        )}
+
+        {/* Regional Partners - 2-3 Days */}
+        {groupedPartners.regional.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                📦 Delivering in 2-3 Days (Regional)
+                <Badge variant="secondary" className="text-xs">
+                  {groupedPartners.regional.length}
+                </Badge>
+              </h2>
+              <Button
+                variant="link"
+                className="text-primary p-0 h-auto"
+                onClick={() => navigate("/customer/search?delivery=regional")}
+              >
+                View All →
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
+              {groupedPartners.regional.slice(0, 6).map((partner) => (
+                <Card
+                  key={partner.id}
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/customer/partners/${partner.id}`)}
+                >
+                  <CardContent className="p-2">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
+                      <OptimizedImage
+                        src={partner.image}
+                        alt={partner.name}
+                        width={200}
+                        height={200}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {partner.sponsored && (
+                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
+                          <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+                        </Badge>
+                      )}
+                      {partner.badge && (
+                        <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground px-1.5 py-0.5 text-[10px]">
+                          {partner.badge === 'bestseller' ? '🔥' : '📈'} {partner.badge}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-base font-semibold line-clamp-1">{partner.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          {partner.rating}
+                        </span>
+                        <span>•</span>
+                        <span>{partner.delivery}</span>
+                      </div>
+                      {partner.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Pan-India Partners - 5-7 Days */}
+        {groupedPartners.panIndia.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                🌐 More Options (Pan-India)
+                <Badge variant="secondary" className="text-xs">
+                  {groupedPartners.panIndia.length}
+                </Badge>
+              </h2>
+              <Button
+                variant="link"
+                className="text-primary p-0 h-auto"
+                onClick={() => navigate("/customer/search?delivery=pan-india")}
+              >
+                View All →
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
+              {groupedPartners.panIndia.slice(0, 6).map((partner) => (
+                <Card
+                  key={partner.id}
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/customer/partners/${partner.id}`)}
+                >
+                  <CardContent className="p-2">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
+                      <OptimizedImage
+                        src={partner.image}
+                        alt={partner.name}
+                        width={200}
+                        height={200}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {partner.sponsored && (
+                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
+                          <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+                        </Badge>
+                      )}
+                      {partner.badge && (
+                        <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground px-1.5 py-0.5 text-[10px]">
+                          {partner.badge === 'bestseller' ? '🔥' : '📈'} {partner.badge}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-base font-semibold line-clamp-1">{partner.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          {partner.rating}
+                        </span>
+                        <span>•</span>
+                        <span>{partner.delivery}</span>
+                      </div>
+                      {partner.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Enhanced Footer - Swiggy/Zomato Pattern */}
