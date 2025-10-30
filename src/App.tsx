@@ -11,6 +11,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { DeliveryProvider } from "@/contexts/DeliveryContext";
 import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { OfflineBanner } from "@/components/system/OfflineBanner";
 
 // Lazy Loaded Pages - Code Splitting
 import * as LazyPages from "./components/LazyRoutes";
@@ -26,6 +27,7 @@ const App = () => (
             <TooltipProvider>
               <Toaster />
               <Sonner />
+              <OfflineBanner />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Suspense fallback={<SkeletonComponents.Dashboard />}>
                   <Routes>

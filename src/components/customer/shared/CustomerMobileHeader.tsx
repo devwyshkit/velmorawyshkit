@@ -185,6 +185,7 @@ export const CustomerMobileHeader = ({
           <Button
             variant="ghost"
             size="icon"
+            className="h-11 w-11"
             onClick={() => navigate(RouteMap.search())}
             aria-label="Search"
           >
@@ -193,7 +194,7 @@ export const CustomerMobileHeader = ({
           <Button
             variant="ghost"
             size="icon"
-            className="relative"
+            className="relative h-11 w-11"
               onClick={() => navigate(RouteMap.cart())}
             aria-label={`Shopping cart with ${cartCount} items`}
           >
@@ -210,6 +211,7 @@ export const CustomerMobileHeader = ({
           <Button
             variant="ghost"
             size="icon"
+            className="h-11 w-11"
               onClick={() => navigate(RouteMap.wishlist())}
             aria-label="Wishlist"
           >
@@ -218,6 +220,7 @@ export const CustomerMobileHeader = ({
           <Button
             variant="ghost"
             size="icon"
+            className="h-11 w-11"
               onClick={() => navigate(RouteMap.profile())}
             aria-label="Account"
           >
