@@ -573,8 +573,8 @@ export const CustomerHome = () => {
                     )}
                   </div>
                   
-                    {/* Content */}
-                    <div className="space-y-1">
+                  {/* Content */}
+                  <div className="space-y-1">
                     {/* Name - clamp to 2 lines for stability */}
                     <h3 className="text-base font-bold line-clamp-2">
                       {partner.name}

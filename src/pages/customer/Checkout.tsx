@@ -499,7 +499,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           {/* Pay Button */}
           <Button
             onClick={handlePayment}
-            className="w-full h-12 text-base sticky bottom-20 md:bottom-4"
+            className="w-full h-12 text-base sticky bottom-20 md:bottom-4 pwa-safe-bottom"
             size="lg"
             disabled={loading}
           >

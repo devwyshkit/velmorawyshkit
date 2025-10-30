@@ -404,7 +404,7 @@ HSN Code: 9985
         </div>
         
         {/* Action Buttons */}
-        <div className="sticky bottom-20 md:bottom-4 space-y-3">
+        <div className="sticky bottom-20 md:bottom-4 space-y-3 pwa-safe-bottom">
           <Button 
             onClick={handleProceedToCheckout}
             className="w-full h-12 text-base"

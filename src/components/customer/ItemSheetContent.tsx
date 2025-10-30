@@ -133,7 +133,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
     const authenticated = await isAuthenticated();
 
     if (!authenticated) {
-      onClose();
+              onClose();
       navigate(RouteMap.login());
       return;
     } else {

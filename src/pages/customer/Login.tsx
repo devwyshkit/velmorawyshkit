@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { RouteMap } from "@/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,18 +80,10 @@ export const CustomerMobileLogin = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <CustomerMobileHeader showBackButton title="Sign in" />
       <div className="flex-1 flex items-center justify-center p-4 pb-20">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="space-y-1">
-            <div className="flex justify-center mb-4">
-              <Link to={RouteMap.home()}>
-                <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"}
-                  alt="Wyshkit - Go to home"
-                  className="h-12 hover:opacity-80 transition-opacity cursor-pointer"
-                />
-              </Link>
-            </div>
             <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
             <CardDescription className="text-center">
               Sign in to continue shopping

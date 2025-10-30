@@ -40,35 +40,35 @@ const App = () => (
                     <Route path="/items/:id" element={<LazyPages.ItemDetails />} />
                     {/* Protected Consumer Routes */}
                     <Route path="/cart" element={
-                      <ProtectedRoute requiredRole="customer">
-                        <LazyPages.Cart />
-                      </ProtectedRoute>
-                    } />
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Cart />
+                        </ProtectedRoute>
+                      } />
                     <Route path="/wishlist" element={
-                      <ProtectedRoute requiredRole="customer">
-                        <LazyPages.Wishlist />
-                      </ProtectedRoute>
-                    } />
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Wishlist />
+                        </ProtectedRoute>
+                      } />
                     <Route path="/checkout" element={
-                      <ProtectedRoute requiredRole="customer">
-                        <LazyPages.Checkout />
-                      </ProtectedRoute>
-                    } />
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Checkout />
+                        </ProtectedRoute>
+                      } />
                     <Route path="/confirmation" element={
-                      <ProtectedRoute requiredRole="customer">
-                        <LazyPages.Confirmation />
-                      </ProtectedRoute>
-                    } />
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Confirmation />
+                        </ProtectedRoute>
+                      } />
                     <Route path="/track/:orderId?" element={
-                      <ProtectedRoute requiredRole="customer">
-                        <LazyPages.Track />
-                      </ProtectedRoute>
-                    } />
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Track />
+                        </ProtectedRoute>
+                      } />
                     <Route path="/profile" element={
-                      <ProtectedRoute requiredRole="customer">
-                        <LazyPages.Profile />
-                      </ProtectedRoute>
-                    } />
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Profile />
+                        </ProtectedRoute>
+                      } />
 
                     {/* Legacy redirects from /customer/* */}
                     <Route path="/customer/home" element={<Navigate to="/" replace />} />

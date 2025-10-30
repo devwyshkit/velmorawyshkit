@@ -56,7 +56,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
 
       if (profile?.contract_signed) {
         setContractSigned(true);
-      } 
+      }
     } catch (error) {
       console.error('Contract status check failed:', error);
     }

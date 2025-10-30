@@ -15,8 +15,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshCartCount = async () => {
     // Guest cart removed: default to server-backed count (not implemented yet)
-    setCartCount(0);
-    setCurrentPartnerId(null);
+      setCartCount(0);
+      setCurrentPartnerId(null);
   };
 
   const clearCart = async () => {
