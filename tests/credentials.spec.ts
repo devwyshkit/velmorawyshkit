@@ -31,13 +31,13 @@ const CREDENTIALS = {
 
 test.describe('Customer Interface', () => {
   test('should navigate to customer login page', async ({ page }) => {
-    await page.goto(`${BASE_URL}/customer/login`);
+    await page.goto(`${BASE_URL}/login`);
     await expect(page).toHaveTitle(/Wyshkit/i);
     await expect(page.locator('text=Customer Login')).toBeVisible();
   });
 
   test('should login with customer credentials', async ({ page }) => {
-    await page.goto(`${BASE_URL}/customer/login`);
+    await page.goto(`${BASE_URL}/login`);
 
     // Fill login form
     await page.fill('input[type="email"]', CREDENTIALS.customer.email);
@@ -50,7 +50,7 @@ test.describe('Customer Interface', () => {
     await page.waitForURL(/\/customer\/home/, { timeout: 5000 });
 
     // Verify logged in
-    expect(page.url()).toContain('/customer/home');
+    expect(page.url()).toContain('/');
 
     // Check no errors
     const errors = await page.locator('.text-red-500, .text-destructive').count();
@@ -59,7 +59,7 @@ test.describe('Customer Interface', () => {
 
   test('should display customer home page after login', async ({ page }) => {
     // Login first
-    await page.goto(`${BASE_URL}/customer/login`);
+    await page.goto(`${BASE_URL}/login`);
     await page.fill('input[type="email"]', CREDENTIALS.customer.email);
     await page.fill('input[type="password"]', CREDENTIALS.customer.password);
     await page.click('button[type="submit"]');
@@ -72,14 +72,14 @@ test.describe('Customer Interface', () => {
 
   test('should navigate to cart', async ({ page }) => {
     // Login
-    await page.goto(`${BASE_URL}/customer/login`);
+    await page.goto(`${BASE_URL}/login`);
     await page.fill('input[type="email"]', CREDENTIALS.customer.email);
     await page.fill('input[type="password"]', CREDENTIALS.customer.password);
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/customer\/home/);
 
     // Navigate to cart
-    await page.goto(`${BASE_URL}/customer/cart`);
+    await page.goto(`${BASE_URL}/cart`);
     await expect(page.locator('text=Cart')).toBeVisible();
   });
 });
@@ -251,7 +251,7 @@ test.describe('Admin Interface', () => {
 
 test.describe('Authentication Flow', () => {
   test('should reject invalid credentials', async ({ page }) => {
-    await page.goto(`${BASE_URL}/customer/login`);
+    await page.goto(`${BASE_URL}/login`);
 
     await page.fill('input[type="email"]', 'wrong@example.com');
     await page.fill('input[type="password"]', 'wrongpassword');
@@ -296,7 +296,7 @@ test.describe('Console Errors', () => {
       }
     });
 
-    await page.goto(`${BASE_URL}/customer/login`);
+    await page.goto(`${BASE_URL}/login`);
     await page.fill('input[type="email"]', CREDENTIALS.customer.email);
     await page.fill('input[type="password"]', CREDENTIALS.customer.password);
     await page.click('button[type="submit"]');

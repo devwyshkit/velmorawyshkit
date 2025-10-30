@@ -6,13 +6,13 @@ The customer mobile UI is **ALREADY RUNNING** with mock data!
 
 ### Open in Browser:
 ```
-http://localhost:8080/customer/mobile/home
+http://localhost:8080/
 ```
 
 Or use these direct links:
-- **Home**: http://localhost:8080/customer/mobile/home
-- **Login**: http://localhost:8080/customer/mobile/login
-- **Search**: http://localhost:8080/customer/mobile/search
+- **Home**: http://localhost:8080/
+- **Login**: http://localhost:8080/login
+- **Search**: http://localhost:8080/search
 
 ## 🎮 Try These Flows (Mock Data)
 
@@ -116,8 +116,8 @@ npm run dev
 ## 📂 Where is Everything?
 
 ```
-src/pages/customer/mobile/     → All pages
-src/components/customer/        → Shared components
+src/pages/customer/     → Customer pages
+src/components/customer/  → Customer shared components
 src/lib/integrations/           → API integrations
 ```
 
@@ -128,7 +128,7 @@ src/lib/integrations/           → API integrations
 - Clear browser cache (Ctrl+Shift+R)
 
 ### Bottom sheets not working?
-- Make sure you're on `/customer/mobile/*` routes
+- Use root consumer routes (`/`, `/search`, etc.)
 - Old customer routes use different UI
 
 ### Dark mode not working?
@@ -148,7 +148,7 @@ src/lib/integrations/           → API integrations
 - Traditional navigation
 - Standard modals
 
-### New (`/customer/mobile` routes):
+### New (root routes):
 - Mobile-first (320px base)
 - Bottom navigation
 - **Bottom sheets** (Zomato pattern)

@@ -112,7 +112,7 @@ test.describe('Customer Portal - Swiggy Patterns', () => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     
     // Navigate to cart
-    await page.goto(`${BASE_URL}/customer/cart`);
+    await page.goto(`${BASE_URL}/cart`);
     await waitForPageLoad(page);
     
     // Check for cart items
