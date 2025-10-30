@@ -200,14 +200,7 @@ export const CustomerMobileSignup = () => {
               Google
             </Button>
 
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={handleGuestMode}
-            >
-              Continue as Guest
-            </Button>
+            {/* Guest mode removed */}
 
             <div className="text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>

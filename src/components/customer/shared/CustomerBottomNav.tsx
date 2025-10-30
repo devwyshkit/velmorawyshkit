@@ -41,7 +41,14 @@ export const CustomerBottomNav = () => {
   }, []);
 
   return (
-    <nav className={cn("fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-card border-t border-border safe-bottom transition-transform duration-200", hidden ? "translate-y-full" : "translate-y-0") }>
+    <nav
+      role="navigation"
+      aria-label="Primary"
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-card border-t border-border pwa-safe-bottom transition-transform duration-200",
+        hidden ? "translate-y-full" : "translate-y-0"
+      )}
+    >
       <div className="flex items-center justify-around h-14 max-w-screen-xl mx-auto px-4">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -54,11 +61,12 @@ export const CustomerBottomNav = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors relative",
+                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
+              aria-current={isActive ? "page" : undefined}
               aria-label={showBadge ? `${item.label} with ${cartCount} items` : item.label}
             >
               <div className="relative">
