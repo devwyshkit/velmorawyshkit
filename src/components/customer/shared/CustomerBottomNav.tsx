@@ -22,8 +22,25 @@ export const CustomerBottomNav = () => {
   // Only render on mobile - following original pattern
   if (!isMobile) return null;
 
+  // Scroll-aware hide/reveal
+  const [hidden, setHidden] = useState(false as boolean);
+  const lastY = (globalThis as any).__bn_lastY || { current: 0 };
+  ;(globalThis as any).__bn_lastY = lastY;
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const goingDown = y > lastY.current + 4;
+      const goingUp = y < lastY.current - 4;
+      if (goingDown && y > 24) setHidden(true);
+      else if (goingUp) setHidden(false);
+      lastY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-card border-t border-border safe-bottom">
+    <nav className={cn("fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-card border-t border-border safe-bottom transition-transform duration-200", hidden ? "translate-y-full" : "translate-y-0") }>
       <div className="flex items-center justify-around h-14 max-w-screen-xl mx-auto px-4">
         {navItems.map((item) => {
           const Icon = item.icon;

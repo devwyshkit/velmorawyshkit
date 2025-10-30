@@ -107,8 +107,24 @@ export const CustomerMobileHeader = ({
     "Ahmedabad",
   ];
 
+  // Scroll-aware hide/reveal
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const goingDown = y > lastY.current + 4;
+      const goingUp = y < lastY.current - 4;
+      if (goingDown && y > 24) setHidden(true);
+      else if (goingUp) setHidden(false);
+      lastY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 bg-white dark:bg-card border-b border-border">
+    <header className={"sticky top-0 z-40 bg-white dark:bg-card border-b border-border transition-transform duration-200 " + (hidden ? "-translate-y-full" : "translate-y-0") }>
       <div className="flex items-center justify-between h-14 px-4">
         <div className="flex items-center gap-3 flex-1">
           {showBackButton ? (
