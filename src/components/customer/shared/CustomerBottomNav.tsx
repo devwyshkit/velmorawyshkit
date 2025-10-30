@@ -20,14 +20,12 @@ export const CustomerBottomNav = () => {
     { icon: User, label: "Account", path: RouteMap.profile() },
   ];
 
-  // Only render on mobile - following original pattern
-  if (!isMobile) return null;
-
-  // Scroll-aware hide/reveal
+  // Scroll-aware hide/reveal (hooks must be unconditional)
   const [hidden, setHidden] = useState(false as boolean);
   const lastY = (globalThis as any).__bn_lastY || { current: 0 };
   ;(globalThis as any).__bn_lastY = lastY;
   useEffect(() => {
+    if (!isMobile) return;
     const onScroll = () => {
       const y = window.scrollY;
       const goingDown = y > lastY.current + 4;
@@ -38,7 +36,10 @@ export const CustomerBottomNav = () => {
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [isMobile]);
+
+  // Only render on mobile - following original pattern
+  if (!isMobile) return null;
 
   return (
     <nav
