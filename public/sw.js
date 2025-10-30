@@ -54,7 +54,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: network-first for other requests
+  // Default: network-first for other requests with offline fallback page for navigations
   event.respondWith(handleDefaultRequest(request));
 });
 
@@ -143,7 +143,13 @@ async function handleDefaultRequest(request) {
     return networkResponse;
   } catch (error) {
     const cachedResponse = await cache.match(request);
-    return cachedResponse || new Response('Offline', { status: 503 });
+    if (cachedResponse) return cachedResponse;
+    if (request.mode === 'navigate') {
+      // Serve offline fallback page for navigations
+      const offline = await cache.match('/offline.html');
+      if (offline) return offline;
+    }
+    return new Response('Offline', { status: 503 });
   }
 }
 
