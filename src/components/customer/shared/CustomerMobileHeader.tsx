@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format, addDays } from "date-fns";
-import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/contexts/CartContext";
 import { useDelivery } from "@/contexts/DeliveryContext";

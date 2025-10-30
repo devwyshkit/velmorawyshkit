@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PartnerBottomNav } from "@/components/partner/PartnerBottomNav";
-import { ThemeToggle } from "@/components/customer/shared/ThemeToggle";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { StockAlertListener } from "@/components/StockAlertListener";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
