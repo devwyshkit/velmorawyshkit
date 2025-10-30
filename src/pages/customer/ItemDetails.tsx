@@ -5,6 +5,7 @@ import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobil
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useCart } from "@/contexts/CartContext";
@@ -211,6 +212,23 @@ export const ItemDetailsNew = () => {
 
       <ComplianceFooter />
       <CustomerBottomNav />
+
+      {/* Sticky Add to Cart - Swiggy pattern */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-border p-4 pwa-safe-bottom md:hidden">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs text-muted-foreground">Total</div>
+            <div className="text-lg font-semibold text-primary">₹{(item.price / 100).toLocaleString('en-IN')}</div>
+          </div>
+          <Button
+            className="h-12 text-base"
+            size="lg"
+            onClick={() => handleAddToCart(1, [])}
+          >
+            Add to Cart
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
