@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { CheckCircle, Circle, Package, Truck, Home as HomeIcon, Phone, HelpCircle, RotateCcw, FileText, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -418,7 +419,7 @@ export const Track = () => {
 
         {/* Actions - Continue Shopping (Swiggy pattern) */}
         <Button
-          onClick={() => navigate("/customer/home")}
+          onClick={() => navigate(RouteMap.home())}
           className="w-full h-12"
         >
           Continue Shopping

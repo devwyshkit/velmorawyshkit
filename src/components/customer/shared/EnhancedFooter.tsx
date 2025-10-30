@@ -1,5 +1,6 @@
 import { Instagram, Twitter, Facebook, Linkedin, Phone, Mail, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { RouteMap } from "@/routes";
 
 /**
  * Enhanced Footer - Swiggy/Zomato Pattern
@@ -104,7 +105,7 @@ export const EnhancedFooter = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/customer/track" className="hover:text-primary transition-colors">
+                <Link to={RouteMap.track()} className="hover:text-primary transition-colors">
                   Track Order
                 </Link>
               </li>

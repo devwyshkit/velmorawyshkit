@@ -9,13 +9,10 @@ import { mobilePerformanceOptimizer } from '@/lib/mobile-performance-optimizer';
 MobileOverflowFix.initialize();
 mobilePerformanceOptimizer.initialize();
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
+// Register service worker only in production
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .catch(() => {
-        // SW registration failed - development only logging
-      });
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
 }
 

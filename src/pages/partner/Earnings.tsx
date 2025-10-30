@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { CommissionBreakdown } from "@/components/partner/earnings/CommissionBreakdown";
-import { ZohoInvoiceList } from "@/features/partner/earnings/components/ZohoInvoiceList";
+// Zoho invoice list removed
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { zohoBooksMock } from "@/lib/api/zoho-books-mock";
+// Zoho mocks removed
 import { ColumnDef } from "@tanstack/react-table";
 
 interface Transaction {
@@ -158,23 +158,7 @@ export const PartnerEarnings = () => {
         .order('month', { ascending: false })
         .limit(6); // Last 6 months
 
-      if (error) {
-        // Handle error silently in production
-        // Use Zoho Books mock API
-        const zohoInvoices = await zohoBooksMock.getPartnerInvoices(user.id);
-        setMonthlyInvoices(
-          zohoInvoices.map((invoice) => ({
-            id: invoice.invoice_id,
-            month: invoice.month,
-            total_revenue: invoice.total_revenue,
-            commission_amount: invoice.commission_amount,
-            zoho_invoice_id: invoice.invoice_id,
-            zoho_invoice_url: invoice.invoice_url,
-            status: invoice.status === 'sent' ? 'invoiced' : invoice.status,
-            paid_at: invoice.status === 'paid' ? invoice.created_at : undefined,
-          }))
-        );
-      } else {
+      if (!error && data) {
         setMonthlyInvoices(
           data.map((invoice) => ({
             id: invoice.id,
@@ -187,6 +171,8 @@ export const PartnerEarnings = () => {
             paid_at: invoice.paid_at,
           }))
         );
+      } else {
+        setMonthlyInvoices([]);
       }
     } catch (error) {
       // Handle error silently in production
@@ -256,8 +242,7 @@ export const PartnerEarnings = () => {
         earnedBadges={commissionData.earnedBadges}
       />
 
-      {/* Zoho Invoice List - Professional Invoicing */}
-      <ZohoInvoiceList />
+      {/* Invoicing section removed */}
 
       {/* Monthly Invoices (Zoho Books Integration) */}
       <Card>
@@ -266,10 +251,7 @@ export const PartnerEarnings = () => {
             <span className="flex items-center gap-2">
               📄 Monthly Commission Invoices
             </span>
-            <Badge variant="secondary" className="text-xs">
-              <span className="mr-1">⚡</span>
-              Powered by Zoho Books
-            </Badge>
+            
           </CardTitle>
         </CardHeader>
         <CardContent>

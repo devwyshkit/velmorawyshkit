@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { Trash2, ShoppingBag, Store, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +14,7 @@ import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
-import {
-  supabase,
-  isAuthenticated,
-  getGuestCart,
-  setGuestCart,
-} from "@/lib/integrations/supabase-client";
+import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 import { 
   fetchCartItems,
   updateCartItemSupabase,
@@ -60,15 +56,7 @@ export const Cart = () => {
       const authenticated = await isAuthenticated();
 
       if (!authenticated) {
-        // Load from encrypted localStorage
-        const guestCart = await getGuestCart();
-        setItems(guestCart);
-        
-        // Load partner name if items exist
-        if (guestCart.length > 0 && guestCart[0].partner_id) {
-          const partner = await fetchPartnerById(guestCart[0].partner_id);
-          setPartnerName(partner?.name || "");
-        }
+        navigate(RouteMap.login());
       } else {
         // Load from Supabase
         const cartData = await fetchCartItems();
@@ -108,8 +96,7 @@ export const Cart = () => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      await setGuestCart(updatedItems);
-      refreshCartCount();
+      navigate(RouteMap.login());
     } else {
       // Update in Supabase
       const success = await updateCartItemSupabase(itemId, newQuantity);
@@ -133,8 +120,7 @@ export const Cart = () => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      await setGuestCart(updatedItems);
-      refreshCartCount();
+      navigate(RouteMap.login());
     } else {
       // Remove from Supabase
       const success = await removeCartItemSupabase(itemId);
@@ -204,12 +190,12 @@ HSN Code: 9985
         title: "Login required",
         description: "Please sign in to checkout",
       });
-      navigate("/customer/login");
+      navigate(RouteMap.login());
       return;
     }
 
     // Navigate to checkout page
-    navigate("/customer/checkout");
+    navigate(RouteMap.checkout());
   };
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -250,7 +236,7 @@ HSN Code: 9985
           <p className="text-sm text-muted-foreground mb-6 text-center">
             Add items from our partners to get started
           </p>
-          <Button onClick={() => navigate("/customer/home")} className="w-full max-w-sm">
+          <Button onClick={() => navigate(RouteMap.home())} className="w-full max-w-sm">
             Browse Partners
           </Button>
         </div>
@@ -278,7 +264,7 @@ HSN Code: 9985
               variant="link"
               size="sm"
               className="text-primary h-auto p-0 text-sm font-medium"
-              onClick={() => navigate(`/customer/partners/${items[0].partner_id}`)}
+              onClick={() => navigate(RouteMap.vendor(items[0].partner_id))}
             >
               Add more items
             </Button>
@@ -332,7 +318,7 @@ HSN Code: 9985
                   <Card
                     key={item.id}
                     className="snap-start flex-shrink-0 w-32 cursor-pointer border-0 shadow-sm hover:shadow-md transition-shadow"
-                    onClick={() => navigate(`/customer/partners/${item.partner_id}#item-${item.id}`)}
+                    onClick={() => navigate(`${RouteMap.vendor(item.partner_id)}#item-${item.id}`)}
                   >
                     <div className="p-2">
                       <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
@@ -355,7 +341,7 @@ HSN Code: 9985
                         className="w-full h-7 text-xs"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/customer/partners/${item.partner_id}#item-${item.id}`);
+                          navigate(`${RouteMap.vendor(item.partner_id)}#item-${item.id}`);
                         }}
                       >
                         <Plus className="h-3 w-3 mr-1" />
@@ -428,7 +414,7 @@ HSN Code: 9985
           </Button>
         <Button 
             variant="outline"
-            onClick={() => navigate('/customer/home')}
+            onClick={() => navigate(RouteMap.home())}
           className="w-full h-12 text-base"
             size="lg"
         >

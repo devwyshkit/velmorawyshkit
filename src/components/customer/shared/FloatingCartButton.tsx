@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@ export const FloatingCartButton = ({ className }: FloatingCartButtonProps) => {
 
   return (
     <Button
-      onClick={() => navigate("/customer/cart")}
+      onClick={() => navigate(RouteMap.cart())}
       className={cn(
         "fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110",
         "bg-primary text-primary-foreground",

@@ -45,24 +45,7 @@ interface ZohoInvoice {
 
 // Mock data for demonstration
 const mockInvoices: ZohoInvoice[] = [
-  {
-    id: '1',
-    invoiceNumber: 'WYS-OCT2025-001',
-    month: 'October',
-    year: 2025,
-    totalAmount: 45000,
-    commissionAmount: 45000,
-    status: 'paid',
-    dueDate: '2025-11-07',
-    paidDate: '2025-11-05',
-    zohoInvoiceId: 'ZOHO-12345',
-    gstAmount: 8100,
-    netAmount: 36900,
-    orderCount: 23,
-    gmv: 250000,
-    createdAt: '2025-10-31T00:00:00Z',
-    updatedAt: '2025-11-05T10:30:00Z'
-  },
+  // Zoho removed — mock data retained for UI demo only (no external links)
   {
     id: '2',
     invoiceNumber: 'WYS-SEP2025-001',
@@ -73,7 +56,7 @@ const mockInvoices: ZohoInvoice[] = [
     status: 'paid',
     dueDate: '2025-10-07',
     paidDate: '2025-10-03',
-    zohoInvoiceId: 'ZOHO-12344',
+    zohoInvoiceId: 'INVOICE-12344',
     gstAmount: 6840,
     netAmount: 31160,
     orderCount: 19,
@@ -91,7 +74,7 @@ const mockInvoices: ZohoInvoice[] = [
     status: 'paid',
     dueDate: '2025-09-07',
     paidDate: '2025-09-01',
-    zohoInvoiceId: 'ZOHO-12343',
+    zohoInvoiceId: 'INVOICE-12343',
     gstAmount: 5760,
     netAmount: 26240,
     orderCount: 16,
@@ -109,7 +92,7 @@ const mockInvoices: ZohoInvoice[] = [
     status: 'paid',
     dueDate: '2025-08-07',
     paidDate: '2025-08-02',
-    zohoInvoiceId: 'ZOHO-12342',
+    zohoInvoiceId: 'INVOICE-12342',
     gstAmount: 5040,
     netAmount: 22960,
     orderCount: 14,

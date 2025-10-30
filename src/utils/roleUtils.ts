@@ -82,7 +82,7 @@ export const getDefaultDashboardPath = (role: UserRole): string => {
 
 export const getLoginPath = (role?: UserRole): string => {
   const isBusinessRole = role === 'seller' || role === 'admin' || role === 'kam';
-  return isBusinessRole ? '/auth/business-login' : '/auth/customer-login';
+  return isBusinessRole ? '/partner/login' : '/login';
 };
 
 export const getRegisterPath = (role?: UserRole): string => {

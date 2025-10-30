@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { Trash2, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { useToast } from "@/hooks/use-toast";
-import {
-  supabase,
-  isAuthenticated,
-  getGuestCart,
-  setGuestCart,
-} from "@/lib/integrations/supabase-client";
+import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
 import { fetchPartnerById } from "@/lib/integrations/supabase-data";
 
@@ -50,15 +46,9 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     const authenticated = await isAuthenticated();
 
     if (!authenticated) {
-      // Load from encrypted localStorage
-      const guestCart = await getGuestCart();
-      setItems(guestCart);
-      
-      // Load partner name if items exist
-      if (guestCart.length > 0 && guestCart[0].partner_id) {
-        const partner = await fetchPartnerById(guestCart[0].partner_id);
-        setPartnerName(partner?.name || "");
-      }
+      onClose();
+      navigate(RouteMap.login());
+      return;
     } else {
       // Load from Supabase
       // Implementation would go here
@@ -98,7 +88,8 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      await setGuestCart(updatedItems);
+      onClose();
+      navigate(RouteMap.login());
     } else {
       // Update in Supabase
     }
@@ -110,7 +101,8 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
 
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      await setGuestCart(updatedItems);
+      onClose();
+      navigate(RouteMap.login());
     } else {
       // Remove from Supabase
     }
@@ -169,13 +161,13 @@ HSN Code: 9985
         title: "Login required",
         description: "Please sign in to checkout",
       });
-      navigate("/customer/login");
+      navigate(RouteMap.login());
       return;
     }
 
     onClose();
     // Open checkout sheet
-    navigate("/customer/checkout");
+    navigate(RouteMap.checkout());
   };
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);

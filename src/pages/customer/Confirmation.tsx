@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { CheckCircle2, Package, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -111,14 +112,14 @@ export const Confirmation = () => {
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button
-            onClick={() => navigate(`/customer/track?orderId=${order.id}`)}
+            onClick={() => navigate(`${RouteMap.track()}?orderId=${order.id}`)}
             className="w-full h-12"
             size="lg"
           >
             Track Order
           </Button>
           <Button
-            onClick={() => navigate("/customer/home")}
+            onClick={() => navigate(RouteMap.home())}
             variant="outline"
             className="w-full h-12"
             size="lg"

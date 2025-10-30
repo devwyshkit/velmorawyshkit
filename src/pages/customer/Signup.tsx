@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,14 +49,14 @@ export const CustomerMobileSignup = () => {
             ? "Your account is ready!" 
             : "Please verify your email to unlock all features.",
         });
-        navigate("/customer/home");
+        navigate(RouteMap.home());
       } else {
         // Email confirmation required before login (rare case - depends on Supabase settings)
         toast({
           title: "Check your email",
           description: "Click the verification link to activate your account.",
         });
-        navigate("/customer/login");
+        navigate(RouteMap.login());
       }
     } catch (error: unknown) {
       toast({
@@ -74,7 +75,7 @@ export const CustomerMobileSignup = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/customer/home',
+          redirectTo: window.location.origin + RouteMap.home(),
         },
       });
 
@@ -91,7 +92,7 @@ export const CustomerMobileSignup = () => {
   };
 
   const handleGuestMode = () => {
-    navigate("/customer/home");
+    navigate(RouteMap.home());
   };
 
   return (
@@ -100,7 +101,7 @@ export const CustomerMobileSignup = () => {
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <Link to="/customer/home">
+              <Link to={RouteMap.home()}>
                 <img
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"}
                   alt="Wyshkit - Go to home"
@@ -220,7 +221,7 @@ export const CustomerMobileSignup = () => {
               <Button
                 variant="link"
                 className="p-0 h-auto font-normal"
-                onClick={() => navigate("/customer/login")}
+                onClick={() => navigate(RouteMap.login())}
               >
                 Sign in
               </Button>

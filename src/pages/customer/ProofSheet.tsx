@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { AlertCircle, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -67,7 +68,7 @@ export const ProofSheet = ({ isOpen, onClose, orderId }: ProofSheetProps) => {
       });
 
       onClose();
-      navigate(`/customer/track?orderId=${proof.orderId}`);
+      navigate(`${RouteMap.track()}?orderId=${proof.orderId}`);
     } catch (error) {
       toast({
         title: "Approval failed",

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { Search as SearchIcon, ArrowLeft, X, TrendingUp, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -157,9 +158,9 @@ export const CustomerMobileSearch = () => {
 
   const handleItemClick = (item: SearchResult) => {
     if (item.type === 'item') {
-      navigate(`/customer/items/${item.id}`);
+      navigate(RouteMap.item(item.id));
     } else {
-      navigate(`/customer/partners/${item.id}`);
+      navigate(RouteMap.vendor(item.id));
     }
   };
 
@@ -171,7 +172,7 @@ export const CustomerMobileSearch = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/customer/home")}
+            onClick={() => navigate(RouteMap.home())}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

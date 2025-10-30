@@ -37,7 +37,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Handle cart data caching for offline functionality
-  if (url.pathname.includes('/api/cart') || url.pathname.includes('/customer/cart')) {
+  if (url.pathname.includes('/api/cart')) {
     event.respondWith(handleCartRequest(request));
     return;
   }

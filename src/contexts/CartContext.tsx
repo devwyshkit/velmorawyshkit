@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getGuestCart, setGuestCart, clearGuestCart } from "@/lib/integrations/supabase-client";
 
 interface CartContextType {
   cartCount: number;
@@ -15,40 +14,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [currentPartnerId, setCurrentPartnerId] = useState<string | null>(null);
 
   const refreshCartCount = async () => {
-    try {
-      const cart = await getGuestCart();
-      
-      // Validate cart items - filter out items with invalid IDs (old data cleanup)
-      const validCart = cart.filter((item: any) => {
-        // Valid UUID format check (UUIDs are 36 chars with dashes)
-        const isValidItemId = item.id && item.id.length >= 36;
-        const isValidPartnerId = item.partner_id && item.partner_id.length >= 36;
-        return isValidItemId && isValidPartnerId;
-      });
-      
-      // Auto-clean invalid items from localStorage
-      if (validCart.length !== cart.length) {
-        await setGuestCart(validCart);
-      }
-      
-      const count = validCart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-      setCartCount(count);
-      
-      // Track current partner from valid cart
-      if (validCart.length > 0 && validCart[0].partner_id) {
-        setCurrentPartnerId(validCart[0].partner_id);
-      } else {
-        setCurrentPartnerId(null);
-      }
-    } catch (error) {
-      console.error('Error refreshing cart count:', error);
-      setCartCount(0);
-      setCurrentPartnerId(null);
-    }
+    // Guest cart removed: default to server-backed count (not implemented yet)
+    setCartCount(0);
+    setCurrentPartnerId(null);
   };
 
   const clearCart = async () => {
-    await clearGuestCart();
     setCartCount(0);
     setCurrentPartnerId(null);
   };
@@ -56,15 +27,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     refreshCartCount();
     
-    // Listen for storage changes (for cart updates)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'wyshkit_guest_cart') {
-        refreshCartCount();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {};
   }, []);
 
   return (

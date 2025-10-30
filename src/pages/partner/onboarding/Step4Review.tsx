@@ -8,7 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, CheckCircle2, Edit2, Loader2, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { getZohoSignClient, type SigningRequest } from "@/lib/api/zoho-sign";
+// Zoho Sign removed; define a minimal local shape for UI state only
+type SigningRequest = {
+  status: 'sent' | 'signed' | 'draft';
+  signing_url?: string;
+  document_url?: string;
+  signed_at?: string;
+  request_id?: string;
+};
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -49,33 +56,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
 
       if (profile?.contract_signed) {
         setContractSigned(true);
-      } else if (profile?.zoho_request_id) {
-        try {
-          // Check signing status from Zoho
-          const status = await getZohoSignClient().getSigningStatus(profile.zoho_request_id);
-          setSigningRequest(status);
-          if (status.status === 'signed') {
-            setContractSigned(true);
-            // Update database
-            await supabase
-              .from('partner_profiles')
-              .update({
-                contract_signed: true,
-                contract_signed_at: status.signed_at,
-                contract_document_url: status.document_url,
-              })
-              .eq('id', user.id);
-          }
-        } catch (error: any) {
-          console.error('Error checking signing status:', error);
-          // If API fails, show a message but don't block the flow
-          toast({
-            title: "Unable to check contract status",
-            description: "Please check your email for the signing link or contact support.",
-            variant: "destructive",
-          });
-        }
-      }
+      } 
     } catch (error) {
       console.error('Contract status check failed:', error);
     }
@@ -86,44 +67,17 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
 
     setContractLoading(true);
     try {
-      // Send partnership contract via Zoho Sign
-      const request = await getZohoSignClient().sendPartnershipContract(user.id, {
-        name: data.business_name,
-        email: user.email || '',
-        businessName: data.business_name,
-        commissionPercent: 20, // Default commission
-      });
-
-      setSigningRequest(request);
-
-      // Save request ID to database
+      // Contract e-sign is disabled. Mark as signed after confirmation for MVP.
+      setSigningRequest({ status: 'signed', signed_at: new Date().toISOString() });
+      setContractSigned(true);
       await supabase
         .from('partner_profiles')
-        .update({ zoho_request_id: request.request_id })
+        .update({ contract_signed: true, contract_signed_at: new Date().toISOString() })
         .eq('id', user.id);
-
-      toast({
-        title: "Contract sent! 📧",
-        description: "Check your email to sign the partnership agreement",
-      });
+      toast({ title: 'Contract acknowledged', description: 'You can proceed with submission.' });
     } catch (error: any) {
       console.error('Error sending contract:', error);
-      
-      // Provide more specific error messages
-      let errorMessage = error.message;
-      if (error.message.includes('API key')) {
-        errorMessage = "Zoho Sign API key not configured. Please contact support.";
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        errorMessage = "Network error. Please check your connection and try again.";
-      } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        errorMessage = "Invalid API credentials. Please contact support.";
-      }
-      
-      toast({
-        title: "Failed to send contract",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: 'Action failed', description: 'Please try again', variant: 'destructive' });
     } finally {
       setContractLoading(false);
     }
@@ -275,7 +229,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
         </CardContent>
       </Card>
 
-      {/* Partnership Agreement (Zoho Sign Integration) */}
+      {/* Partnership Agreement */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center justify-between">
@@ -283,9 +237,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
               <FileText className="h-4 w-4" />
               Partnership Agreement
             </span>
-            <Badge variant="secondary" className="text-xs">
-              Powered by Zoho Sign
-            </Badge>
+            
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

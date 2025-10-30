@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { User, Moon, Sun, Package, Heart, MapPin, LogOut, Settings, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,7 +67,7 @@ export const Profile = () => {
       title: "Logged out",
       description: "You've been successfully logged out",
     });
-    navigate("/customer/login");
+    navigate(RouteMap.login());
   };
 
   const handleToggleDarkMode = () => {
@@ -110,7 +111,7 @@ export const Profile = () => {
           <Button
             variant="outline"
             className="h-20 flex flex-col gap-2"
-            onClick={() => navigate("/customer/wishlist")}
+            onClick={() => navigate(RouteMap.wishlist())}
           >
             <Heart className="h-5 w-5" />
             <span className="text-xs">Wishlist</span>
@@ -166,7 +167,7 @@ export const Profile = () => {
                 <div
                   key={order.id}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => navigate(`/customer/track/${order.id}`)}
+                  onClick={() => navigate(`${RouteMap.track(order.id)}`)}
                 >
                   <div className="flex-1">
                     <p className="text-sm font-medium mb-1">{order.id}</p>

@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { formatDistanceToNow } from "date-fns";
 
 interface Campaign {
@@ -48,7 +49,7 @@ export const CampaignCard = ({ campaign }: CampaignCardProps) => {
   return (
     <Card 
       className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-      onClick={() => navigate(`/customer/search?campaign=${campaign.id}`)}
+      onClick={() => navigate(RouteMap.search(`campaign=${campaign.id}`))}
     >
       <div className="flex gap-3 p-3">
         {/* Campaign Icon/Image */}
@@ -105,7 +106,7 @@ export const CampaignCard = ({ campaign }: CampaignCardProps) => {
               className="h-6 px-2 text-xs gap-1"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/customer/search?campaign=${campaign.id}`);
+                navigate(RouteMap.search(`campaign=${campaign.id}`));
               }}
             >
               Shop Now

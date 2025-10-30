@@ -114,7 +114,7 @@ export const EmptyStates = {
       description="Add some products to get started with your order"
       action={{
         label: "Browse Products",
-        onClick: () => window.location.href = '/customer/home'
+        onClick: () => window.location.href = '/'
       }}
       {...props}
     />
@@ -127,11 +127,11 @@ export const EmptyStates = {
       description="Create an account to save your favorite items for later"
       action={{
         label: "Sign In",
-        onClick: () => window.location.href = '/customer/login'
+        onClick: () => window.location.href = '/login'
       }}
       secondaryAction={{
         label: "Browse Partners",
-        onClick: () => window.location.href = '/customer/home'
+        onClick: () => window.location.href = '/'
       }}
       {...props}
     />
@@ -157,7 +157,7 @@ export const EmptyStates = {
       description="Your order history will appear here once you start shopping"
       action={{
         label: "Start Shopping",
-        onClick: () => window.location.href = '/customer/home'
+        onClick: () => window.location.href = '/'
       }}
       {...props}
     />

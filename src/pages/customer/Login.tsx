@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +39,7 @@ export const CustomerMobileLogin = () => {
         description: "You've successfully logged in.",
       });
 
-      navigate("/customer/home");
+      navigate(RouteMap.home());
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -56,7 +57,7 @@ export const CustomerMobileLogin = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/customer/home',
+          redirectTo: window.location.origin + RouteMap.home(),
         },
       });
 
@@ -73,7 +74,7 @@ export const CustomerMobileLogin = () => {
   };
 
   const handleGuestMode = () => {
-    navigate("/customer/home");
+    navigate(RouteMap.home());
   };
 
   return (
@@ -82,7 +83,7 @@ export const CustomerMobileLogin = () => {
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <Link to="/customer/home">
+              <Link to={RouteMap.home()}>
                 <img
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"}
                   alt="Wyshkit - Go to home"
@@ -193,7 +194,7 @@ export const CustomerMobileLogin = () => {
               <Button
                 variant="link"
                 className="p-0 h-auto font-normal"
-                onClick={() => navigate("/customer/signup")}
+                onClick={() => navigate(RouteMap.signup())}
               >
                 Sign up
               </Button>

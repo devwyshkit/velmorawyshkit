@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ import {
   formatAmountForRazorpay,
   generateEstimate,
 } from "@/lib/integrations/razorpay";
-import { getGuestCart, clearGuestCart, supabase } from "@/lib/integrations/supabase-client";
+import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 
 export const Checkout = () => {
   const navigate = useNavigate();
@@ -65,7 +66,13 @@ export const Checkout = () => {
   }, [savedAddress]);
 
   // Load cart data
-  const cartItems = getGuestCart();
+  // Enforce auth: redirect if not authenticated
+  useEffect(() => {
+    (async () => {
+      const authed = await isAuthenticated();
+      if (!authed) navigate(RouteMap.login());
+    })();
+  }, []);
   const subtotal = cartItems.reduce(
     (sum: number, item: any) => sum + item.price * item.quantity,
     0
@@ -140,7 +147,7 @@ export const Checkout = () => {
         description: "Add items to proceed with checkout",
         variant: "destructive",
       });
-      navigate("/customer/cart");
+      navigate(RouteMap.cart());
     }
   }, [cartItems.length, navigate, toast]);
 
@@ -270,7 +277,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           });
 
           // Navigate to confirmation
-          navigate(`/customer/confirmation?orderId=${orderNumber}`);
+          navigate(`${RouteMap.confirmation()}?orderId=${orderNumber}`);
         },
         prefill: {
           name: 'User Name',

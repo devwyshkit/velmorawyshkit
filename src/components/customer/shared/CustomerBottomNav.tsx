@@ -1,5 +1,6 @@
 import { Home, Search, ShoppingBag, Heart, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +12,11 @@ export const CustomerBottomNav = () => {
   const { cartCount } = useCart();
 
   const navItems = [
-    { icon: Home, label: "Home", path: "/customer/home" },
-    { icon: Search, label: "Search", path: "/customer/search" },
-    { icon: ShoppingBag, label: "Cart", path: "/customer/cart" },
-    { icon: Heart, label: "Wishlist", path: "/customer/wishlist" },
-    { icon: User, label: "Account", path: "/customer/profile" },
+    { icon: Home, label: "Home", path: RouteMap.home() },
+    { icon: Search, label: "Search", path: RouteMap.search() },
+    { icon: ShoppingBag, label: "Cart", path: RouteMap.cart() },
+    { icon: Heart, label: "Wishlist", path: RouteMap.wishlist() },
+    { icon: User, label: "Account", path: RouteMap.profile() },
   ];
 
   // Only render on mobile - following original pattern

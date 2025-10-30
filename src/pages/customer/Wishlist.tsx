@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { Heart, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
@@ -62,7 +63,7 @@ export const Wishlist = () => {
   };
 
   const handleItemClick = (itemId: string) => {
-    navigate(`/customer/items/${itemId}`);
+    navigate(RouteMap.item(itemId));
   };
 
   if (loading) {
@@ -100,11 +101,11 @@ export const Wishlist = () => {
             Create an account to save your favorite items
           </p>
           <div className="space-y-3 w-full max-w-sm">
-            <Button onClick={() => navigate("/customer/login")} className="w-full">
+            <Button onClick={() => navigate(RouteMap.login())} className="w-full">
               Sign In
             </Button>
             <Button
-              onClick={() => navigate("/customer/home")}
+              onClick={() => navigate(RouteMap.home())}
               variant="outline"
               className="w-full"
             >
@@ -129,7 +130,7 @@ export const Wishlist = () => {
           <p className="text-sm text-muted-foreground mb-6 text-center">
             Save items you love for later
           </p>
-          <Button onClick={() => navigate("/customer/home")} className="w-full max-w-sm">
+          <Button onClick={() => navigate(RouteMap.home())} className="w-full max-w-sm">
             Browse Partners
           </Button>
         </div>

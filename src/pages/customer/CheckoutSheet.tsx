@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { MapPin, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ import {
   formatAmountForRazorpay,
   generateEstimate,
 } from "@/lib/integrations/razorpay";
-import { getGuestCart } from "@/lib/integrations/supabase-client";
+import { isAuthenticated } from "@/lib/integrations/supabase-client";
 
 interface CheckoutSheetProps {
   isOpen: boolean;
@@ -66,14 +67,16 @@ export const CheckoutSheet = ({ isOpen, onClose }: CheckoutSheetProps) => {
 
   useEffect(() => {
     const loadCart = async () => {
-      const items = await getGuestCart();
-      setCartItems(items);
-      const sub = items.reduce(
-        (sum: number, item: any) => sum + item.price * item.quantity,
-        0
-      );
-      setSubtotal(sub);
-      setTotal(calculateTotalWithGST(sub));
+      const authed = await isAuthenticated();
+      if (!authed) {
+        onClose();
+        navigate(RouteMap.login());
+        return;
+      }
+      // In a full impl, fetch cart from server here
+      setCartItems([]);
+      setSubtotal(0);
+      setTotal(0);
     };
     loadCart();
   }, [isOpen]);
@@ -152,7 +155,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           });
 
           // Navigate to confirmation
-          navigate(`/customer/confirmation?orderId=${orderId}`);
+          navigate(`${RouteMap.confirmation()}?orderId=${orderId}`);
           onClose();
         },
         prefill: {

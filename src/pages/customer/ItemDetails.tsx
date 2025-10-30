@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
@@ -7,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useCart } from "@/contexts/CartContext";
-import { isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
+import { isAuthenticated } from "@/lib/integrations/supabase-client";
 import { fetchItemById, addToCartSupabase, fetchPartnerById, type Item as ItemType } from "@/lib/integrations/supabase-data";
 import { ProductDetail } from "@/features/customer/product/components/ProductDetail";
 import { ProductCard } from "@/features/customer/product/components/ProductCard";
@@ -99,33 +100,7 @@ export const ItemDetailsNew = () => {
 
     try {
       if (!isAuthenticated()) {
-        // Handle guest cart
-        const guestCart = getGuestCart();
-        const cartItem = {
-          id: item.id,
-          name: item.name,
-          price: item.price / 100,
-          quantity,
-          partner_id: item.partner_id,
-          addOns: selectedAddOns.map(id => product?.addOns.find(a => a.id === id)).filter(Boolean),
-          customization: customizationData
-        };
-        
-        const updatedCart = [...guestCart, cartItem];
-        setGuestCart(updatedCart);
-        
-        toast({
-          title: "Added to cart",
-          description: `${quantity}x ${item.name}`,
-          action: (
-            <ToastAction 
-              altText="View cart"
-              onClick={() => navigate('/customer/cart')}
-            >
-              View Cart
-            </ToastAction>
-          ),
-        });
+        navigate(RouteMap.login());
       } else {
         // Handle authenticated cart
         const cartItem = {
@@ -148,7 +123,7 @@ export const ItemDetailsNew = () => {
             action: (
               <ToastAction 
                 altText="View cart"
-                onClick={() => navigate('/customer/cart')}
+                onClick={() => navigate(RouteMap.cart())}
               >
                 View Cart
               </ToastAction>
@@ -201,7 +176,7 @@ export const ItemDetailsNew = () => {
           <h1 className="text-xl font-semibold mb-2">Product not found</h1>
           <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
           <button
-            onClick={() => navigate('/customer/home')}
+            onClick={() => navigate(RouteMap.home())}
             className="text-blue-600 hover:text-blue-800"
           >
             Go back to home

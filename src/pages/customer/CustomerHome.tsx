@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Gift, Trophy, Flame, Sparkles } from "lucide-react";
+import { RouteMap } from "@/routes";
+import { Gift, Trophy, Flame, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,66 @@ export const CustomerHome = () => {
     const loadData = async () => {
       setLoading(true);
       try {
+        const hasSupabaseEnv = Boolean(
+          import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+        );
+
+        if (!hasSupabaseEnv) {
+          // No Supabase env in dev → rely on fallbacks immediately
+          setBanners([
+            {
+              id: '1',
+              title: 'Welcome to Wyshkit',
+              image_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=128&fit=crop',
+              cta_link: '/search',
+              is_active: true
+            }
+          ]);
+          const fallbackOccasions: Occasion[] = [
+            { id: '1', name: 'Birthday', image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=100&h=100&fit=crop', icon: '🎂', slug: 'birthday' },
+            { id: '2', name: 'Anniversary', image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=100&h=100&fit=crop', icon: '💍', slug: 'anniversary' },
+            { id: '3', name: 'Wedding', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=100&h=100&fit=crop', icon: '💒', slug: 'wedding' },
+            { id: '4', name: 'Corporate', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=100&h=100&fit=crop', icon: '🏢', slug: 'corporate' }
+          ];
+          setOccasions(fallbackOccasions);
+          const fallbackPartners = [
+            {
+              id: '1',
+              name: 'GiftCraft Studio',
+              image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
+              rating: 4.8,
+              delivery: '35–45 min',
+              badge: 'bestseller' as const,
+              location: 'Bangalore',
+              category: 'Custom Gifts',
+              tagline: 'Handcrafted personalized gifts',
+              ratingCount: 156,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            },
+            {
+              id: '2',
+              name: 'Luxury Hampers Co',
+              image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop',
+              rating: 4.6,
+              delivery: '2–3 days',
+              badge: 'trending' as const,
+              location: 'Mumbai',
+              category: 'Hampers',
+              tagline: 'Premium gift hampers',
+              ratingCount: 89,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            }
+          ];
+          setPartners(fallbackPartners);
+          setFilteredPartners(fallbackPartners);
+          setGroupedPartners(groupPartners(fallbackPartners));
+          return;
+        }
+
         // Load banners from Supabase
         const { data: bannersData } = await supabase
           .from('banners')
@@ -80,7 +141,7 @@ export const CustomerHome = () => {
               id: '1',
               title: 'Welcome to Wyshkit',
               image_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=128&fit=crop',
-              cta_link: '/customer/search',
+              cta_link: '/search',
               is_active: true
             }
           ]);
@@ -310,7 +371,7 @@ export const CustomerHome = () => {
                         <CardContent className="p-0">
                           <div
                             className="relative h-40 md:h-48"  // 160px mobile, 192px desktop (Swiggy standard)
-                            onClick={() => navigate(item.cta_link || item.link || `/customer/partners/${item.partner_id}`)}
+                            onClick={() => navigate(item.cta_link || item.link || RouteMap.vendor(item.partner_id))}
                           >
                             {/* Banner Image */}
                             {item.image_url && (
@@ -403,7 +464,7 @@ export const CustomerHome = () => {
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto text-sm"
-                onClick={() => navigate("/customer/search?filter=offers")}
+                onClick={() => navigate(RouteMap.search("filter=offers"))}
               >
                 View All →
               </Button>
@@ -424,7 +485,7 @@ export const CustomerHome = () => {
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
-                onClick={() => navigate(`/customer/search?occasion=${occasion.name.toLowerCase()}`)}
+                onClick={() => navigate(RouteMap.search(`occasion=${occasion.name.toLowerCase()}`))}
                 className="snap-start flex flex-col items-center gap-2 min-w-[80px] shrink-0 md:min-w-0"
                 aria-label={`Browse ${occasion.name} gifts`}
               >
@@ -462,7 +523,7 @@ export const CustomerHome = () => {
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto"
-                onClick={() => navigate("/customer/search?delivery=tomorrow")}
+                onClick={() => navigate(RouteMap.search("delivery=tomorrow"))}
               >
                 View All →
               </Button>
@@ -472,7 +533,7 @@ export const CustomerHome = () => {
               <Card
                 key={partner.id}
                 className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/customer/partners/${partner.id}`)}
+                onClick={() => navigate(RouteMap.vendor(partner.id))}
               >
                 <CardContent className="p-2">
                   {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
@@ -512,10 +573,10 @@ export const CustomerHome = () => {
                     )}
                   </div>
                   
-                  {/* Content */}
-                  <div className="space-y-1">
-                    {/* Name - 16px bold per spec */}
-                    <h3 className="text-base font-bold line-clamp-1">
+                    {/* Content */}
+                    <div className="space-y-1">
+                    {/* Name - clamp to 2 lines for stability */}
+                    <h3 className="text-base font-bold line-clamp-2">
                       {partner.name}
                     </h3>
                     
@@ -524,19 +585,22 @@ export const CustomerHome = () => {
                       <p className="text-xs text-muted-foreground">{partner.category}</p>
                     )}
                     
-                    {/* Rating (14px) and Delivery (12px) per spec */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1 text-sm">
-                        ★ {partner.rating} {partner.ratingCount && `(${partner.ratingCount})`}
+                    {/* Meta row: rating (+count) • ETA • distance (if available) */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
                       </span>
+                      <span>•</span>
                       <span>{partner.delivery}</span>
+                      {partner.distance && (
+                        <>
+                          <span>•</span>
+                          <span>{partner.distance}</span>
+                        </>
+                      )}
                     </div>
-                    
-                    {/* Starting Price - Swiggy/Zomato Pattern */}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Starting from</span>
-                      <span className="font-semibold text-primary">₹{partner.startingPrice || 299}</span>
-                    </div>
+                    {/* No price in vendor cards to keep to 3 signals */}
                     
                     {/* Tagline - 12px gray, 1 line per spec */}
                     {partner.tagline && (
@@ -579,7 +643,7 @@ export const CustomerHome = () => {
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto"
-                onClick={() => navigate("/customer/search?delivery=regional")}
+                onClick={() => navigate(RouteMap.search("delivery=regional"))}
               >
                 View All →
               </Button>
@@ -589,7 +653,7 @@ export const CustomerHome = () => {
                 <Card
                   key={partner.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/customer/partners/${partner.id}`)}
+                  onClick={() => navigate(RouteMap.vendor(partner.id))}
                 >
                   <CardContent className="p-2">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
@@ -614,14 +678,20 @@ export const CustomerHome = () => {
                       )}
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-base font-semibold line-clamp-1">{partner.name}</h3>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <h3 className="text-base font-semibold line-clamp-2">{partner.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {partner.rating}
+                          {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
                         </span>
                         <span>•</span>
                         <span>{partner.delivery}</span>
+                        {partner.distance && (
+                          <>
+                            <span>•</span>
+                            <span>{partner.distance}</span>
+                          </>
+                        )}
                       </div>
                       {partner.tagline && (
                         <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
@@ -647,7 +717,7 @@ export const CustomerHome = () => {
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto"
-                onClick={() => navigate("/customer/search?delivery=pan-india")}
+                onClick={() => navigate(RouteMap.search("delivery=pan-india"))}
               >
                 View All →
               </Button>
@@ -657,7 +727,7 @@ export const CustomerHome = () => {
                 <Card
                   key={partner.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/customer/partners/${partner.id}`)}
+                  onClick={() => navigate(RouteMap.vendor(partner.id))}
                 >
                   <CardContent className="p-2">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
@@ -682,14 +752,20 @@ export const CustomerHome = () => {
                       )}
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-base font-semibold line-clamp-1">{partner.name}</h3>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <h3 className="text-base font-semibold line-clamp-2">{partner.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {partner.rating}
+                          {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
                         </span>
                         <span>•</span>
                         <span>{partner.delivery}</span>
+                        {partner.distance && (
+                          <>
+                            <span>•</span>
+                            <span>{partner.distance}</span>
+                          </>
+                        )}
                       </div>
                       {partner.tagline && (
                         <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +78,7 @@ export const CustomerMobileHeader = ({
       if (window.history.length > 2) {
         navigate(-1);
       } else {
-        navigate('/customer/home');
+        navigate(RouteMap.home());
       }
     }
   };
@@ -119,7 +120,7 @@ export const CustomerMobileHeader = ({
             </>
           ) : (
             <>
-              <Link to="/customer/home" className="flex-shrink-0" aria-label="Go to home">
+              <Link to={RouteMap.home()} className="flex-shrink-0" aria-label="Go to home">
                 <img 
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"} 
                   alt="Wyshkit" 
@@ -168,7 +169,7 @@ export const CustomerMobileHeader = ({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/customer/search")}
+            onClick={() => navigate(RouteMap.search())}
             aria-label="Search"
           >
             <Search className="h-6 w-6" />
@@ -177,7 +178,7 @@ export const CustomerMobileHeader = ({
             variant="ghost"
             size="icon"
             className="relative"
-            onClick={() => navigate("/customer/cart")}
+              onClick={() => navigate(RouteMap.cart())}
             aria-label={`Shopping cart with ${cartCount} items`}
           >
             <ShoppingBag className="h-6 w-6" />
@@ -193,7 +194,7 @@ export const CustomerMobileHeader = ({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/customer/wishlist")}
+              onClick={() => navigate(RouteMap.wishlist())}
             aria-label="Wishlist"
           >
             <Heart className="h-6 w-6" />
@@ -201,7 +202,7 @@ export const CustomerMobileHeader = ({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/customer/profile")}
+              onClick={() => navigate(RouteMap.profile())}
             aria-label="Account"
           >
             <User className="h-6 w-6" />

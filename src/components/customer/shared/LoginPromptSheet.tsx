@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
@@ -12,12 +13,12 @@ export const LoginPromptSheet = ({ isOpen, onClose }: LoginPromptSheetProps) => 
 
   const handleLogin = () => {
     onClose();
-    navigate("/customer/login");
+    navigate(RouteMap.login());
   };
 
   const handleSignup = () => {
     onClose();
-    navigate("/customer/signup");
+    navigate(RouteMap.signup());
   };
 
   return (

@@ -16,7 +16,7 @@ import { PayoutCard } from "@/components/admin/mobile/PayoutCard";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { zohoBooksMock } from "@/lib/api/zoho-books-mock";
+// Zoho removed; invoicing integration placeholder
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 
@@ -134,23 +134,13 @@ export const AdminPayouts = () => {
         const payout = payouts.find(p => p.id === payoutId);
         if (!payout) continue;
 
-        // Generate invoice via Zoho Books
-        const invoice = await zohoBooksMock.createCommissionInvoice(
-          payout.partner_id,
-          format(new Date(payout.period_start), 'MMM yyyy'),
-          {
-            totalRevenue: payout.earnings,
-            commissionPercent: 20, // Default 20%
-          }
-        );
-
-        // Update payout with invoice details
+        // Invoicing removed; mark as scheduled without invoice
         await supabase
           .from('payouts')
           .update({
             status: 'scheduled',
-            zoho_invoice_id: invoice.invoice_id,
-            zoho_invoice_number: invoice.invoice_id, // Use invoice_id as number too
+            zoho_invoice_id: null,
+            zoho_invoice_number: null,
           })
           .eq('id', payoutId);
       }
@@ -385,7 +375,7 @@ export const AdminPayouts = () => {
                   className="gap-2"
                 >
                   <FileText className="h-4 w-4" />
-                  Generate Invoices (Zoho)
+                  Generate Invoices
                 </Button>
                 <Button 
                   onClick={handleMarkAsPaid} 

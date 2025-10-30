@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { RouteMap } from "@/routes";
 import { Star, Plus, Minus, Gift, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,7 +23,7 @@ import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet"
 import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { supabase, isAuthenticated, getGuestCart, setGuestCart } from "@/lib/integrations/supabase-client";
+import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 import { addToCartSupabase, getMockItems, fetchPartnerById, fetchItemById } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
@@ -132,41 +133,9 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
     const authenticated = await isAuthenticated();
 
     if (!authenticated) {
-      // Guest mode: save to localStorage
-      const guestCart = getGuestCart();
-      const cartItem = {
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity,
-        partner_id: item.partner_id,
-        addOns: selectedAddOns.map(id => addOns.find(a => a.id === id)).filter(Boolean),
-        total: calculateTotal(),
-      };
-      guestCart.push(cartItem);
-      setGuestCart(guestCart);
-      refreshCartCount();
-
-      toast({
-        title: "Added to cart",
-        description: "Sign in to checkout",
-        action: (
-          <ToastAction 
-            altText="Sign in"
-            onClick={() => {
-              onClose();
-              setShowLoginPrompt(true);
-            }}
-          >
-            Sign In
-          </ToastAction>
-        ),
-      });
-
-      // Show login prompt overlay
-      setTimeout(() => {
-        setShowLoginPrompt(true);
-      }, 500);
+      onClose();
+      navigate(RouteMap.login());
+      return;
     } else {
       // Authenticated: save to Supabase
       const cartItem = {
@@ -190,7 +159,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
               altText="View cart"
               onClick={() => {
                 onClose();
-                navigate('/customer/cart');
+                navigate(RouteMap.cart());
               }}
             >
               View Cart
@@ -370,7 +339,7 @@ export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => 
                     sponsored={item.sponsored}
                     onClick={() => {
                       onClose(); // Close current sheet
-                      navigate(`/customer/items/${item.id}`);
+                      navigate(RouteMap.item(item.id));
                     }}
                   />
                 </div>

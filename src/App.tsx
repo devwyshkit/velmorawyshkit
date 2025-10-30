@@ -29,51 +29,60 @@ const App = () => (
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Suspense fallback={<SkeletonComponents.Dashboard />}>
                   <Routes>
-                    {/* Root redirect to customer home */}
-                    <Route path="/" element={<Navigate to="/customer/home" replace />} />
+                    {/* Root is consumer home */}
+                    <Route path="/" element={<LazyPages.Home />} />
                     
-                    {/* Customer Routes - Mobile-First UI */}
-                    <Route path="/customer">
-                      <Route index element={<Navigate to="home" replace />} />
-                      <Route path="login" element={<LazyPages.Login />} />
-                      <Route path="signup" element={<LazyPages.Signup />} />
-                      <Route path="home" element={<LazyPages.Home />} />
-                      <Route path="search" element={<LazyPages.Search />} />
-                      <Route path="partners/:id" element={<LazyPages.Partner />} />
-                      <Route path="items/:id" element={<LazyPages.ItemDetails />} />
-                      
-                      {/* Protected Customer Routes */}
-                      <Route path="cart" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Cart />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="wishlist" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Wishlist />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="checkout" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Checkout />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="confirmation" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Confirmation />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="track/:orderId?" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Track />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="profile" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Profile />
-                        </ProtectedRoute>
-                      } />
-                    </Route>
+                    {/* Consumer Routes at root */}
+                    <Route path="/login" element={<LazyPages.Login />} />
+                    <Route path="/signup" element={<LazyPages.Signup />} />
+                    <Route path="/search" element={<LazyPages.Search />} />
+                    <Route path="/partners/:id" element={<LazyPages.Partner />} />
+                    <Route path="/items/:id" element={<LazyPages.ItemDetails />} />
+                    {/* Protected Consumer Routes */}
+                    <Route path="/cart" element={
+                      <ProtectedRoute requiredRole="customer">
+                        <LazyPages.Cart />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/wishlist" element={
+                      <ProtectedRoute requiredRole="customer">
+                        <LazyPages.Wishlist />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/checkout" element={
+                      <ProtectedRoute requiredRole="customer">
+                        <LazyPages.Checkout />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/confirmation" element={
+                      <ProtectedRoute requiredRole="customer">
+                        <LazyPages.Confirmation />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/track/:orderId?" element={
+                      <ProtectedRoute requiredRole="customer">
+                        <LazyPages.Track />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/profile" element={
+                      <ProtectedRoute requiredRole="customer">
+                        <LazyPages.Profile />
+                      </ProtectedRoute>
+                    } />
+
+                    {/* Legacy redirects from /customer/* */}
+                    <Route path="/customer/home" element={<Navigate to="/" replace />} />
+                    <Route path="/customer/search" element={<Navigate to="/search" replace />} />
+                    <Route path="/customer/partners/:id" element={<Navigate to="/partners/:id" replace />} />
+                    <Route path="/customer/items/:id" element={<Navigate to="/items/:id" replace />} />
+                    <Route path="/customer/login" element={<Navigate to="/login" replace />} />
+                    <Route path="/customer/signup" element={<Navigate to="/signup" replace />} />
+                    <Route path="/customer/cart" element={<Navigate to="/cart" replace />} />
+                    <Route path="/customer/wishlist" element={<Navigate to="/wishlist" replace />} />
+                    <Route path="/customer/checkout" element={<Navigate to="/checkout" replace />} />
+                    <Route path="/customer/confirmation" element={<Navigate to="/confirmation" replace />} />
+                    <Route path="/customer/track/:orderId?" element={<Navigate to="/track/:orderId" replace />} />
+                    <Route path="/customer/profile" element={<Navigate to="/profile" replace />} />
 
                     {/* Partner Routes - Business Dashboard */}
                     <Route path="/partner">
