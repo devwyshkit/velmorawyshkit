@@ -28,7 +28,7 @@ import { addToCartSupabase, getMockItems, fetchPartnerById, fetchItemById } from
 import { useCart } from "@/contexts/CartContext";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 
-interface ItemSheetContentProps {
+interface ProductSheetProps {
   itemId: string;
   onClose: () => void;
 }
@@ -39,7 +39,7 @@ interface AddOn {
   price: number;
 }
 
-export const ItemSheetContent = ({ itemId, onClose }: ItemSheetContentProps) => {
+export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { refreshCartCount, currentPartnerId, clearCart } = useCart();

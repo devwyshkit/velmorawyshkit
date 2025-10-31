@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
-import { ProofSheet } from "@/pages/customer/ProofSheet";
+import { PreviewApprovalSheet } from "@/components/customer/shared/PreviewApprovalSheet";
 import { useToast } from "@/hooks/use-toast";
 import { getETAEstimate } from "@/lib/integrations/openai";
 import { supabase } from "@/lib/integrations/supabase-client";
@@ -429,8 +429,8 @@ export const Track = () => {
       <ComplianceFooter />
       <CustomerBottomNav />
 
-      {/* Proof Approval Sheet */}
-      <ProofSheet
+      {/* Preview Approval Sheet */}
+      <PreviewApprovalSheet
         isOpen={isProofSheetOpen}
         onClose={() => setIsProofSheetOpen(false)}
         orderId={orderId}

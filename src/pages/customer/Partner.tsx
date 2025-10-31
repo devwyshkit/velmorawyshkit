@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ItemSheetContent } from "@/components/customer/ItemSheetContent";
+import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { fetchPartnerById, fetchItemsByPartner, type Item as ItemType, type Partner as PartnerType } from "@/lib/integrations/supabase-data";
 import { useToast } from "@/hooks/use-toast";
 
@@ -297,7 +297,7 @@ export const Partner = () => {
             <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
           </div>
           {selectedItemId && (
-            <ItemSheetContent
+            <ProductSheet
               itemId={selectedItemId}
               onClose={handleCloseItemSheet}
             />

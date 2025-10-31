@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/carousel";
 import { useToast } from "@/hooks/use-toast";
 
-interface ProofSheetProps {
+interface PreviewApprovalSheetProps {
   isOpen: boolean;
   onClose: () => void;
   orderId?: string;
 }
 
-export const ProofSheet = ({ isOpen, onClose, orderId }: ProofSheetProps) => {
+export const PreviewApprovalSheet = ({ isOpen, onClose, orderId }: PreviewApprovalSheetProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [revisions, setRevisions] = useState<string[]>([]);
