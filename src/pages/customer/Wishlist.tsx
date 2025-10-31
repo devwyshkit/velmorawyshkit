@@ -4,7 +4,9 @@ import { RouteMap } from "@/routes";
 import { Heart, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
+import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +18,7 @@ export const Wishlist = () => {
   const { toast } = useToast();
   const [items, setItems] = useState<WishlistItemData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   useEffect(() => {
     loadWishlist();
@@ -63,7 +66,7 @@ export const Wishlist = () => {
   };
 
   const handleItemClick = (itemId: string) => {
-    navigate(RouteMap.item(itemId));
+    setSelectedItemId(itemId);
   };
 
   if (loading) {
@@ -181,6 +184,22 @@ export const Wishlist = () => {
 
       <ComplianceFooter />
       <CustomerBottomNav />
+      
+      {/* Product Sheet for items */}
+      {selectedItemId && (
+        <Sheet open={!!selectedItemId} onOpenChange={(open) => !open && setSelectedItemId(null)}>
+          <SheetContent 
+            side="bottom" 
+            className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
+            hideCloseButton
+          >
+            <ProductSheet
+              itemId={selectedItemId}
+              onClose={() => setSelectedItemId(null)}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 };

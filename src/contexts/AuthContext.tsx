@@ -87,36 +87,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
     } else {
       // Real Supabase - use normal auth flow
-      // Get initial session from Supabase
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          setUser(mapSupabaseUser(session.user));
+    // Get initial session from Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(mapSupabaseUser(session.user));
         } else {
           // Fallback to mock if no Supabase session
           checkMockAuth();
-        }
-        setLoading(false);
-      });
+      }
+      setLoading(false);
+    });
 
-      // Listen for auth state changes (login, logout, token refresh)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (_event, session) => {
-          if (session?.user) {
-            const userData = mapSupabaseUser(session.user);
-            setUser(userData);
-          } else {
+    // Listen for auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          const userData = mapSupabaseUser(session.user);
+          setUser(userData);
+        } else {
             // Check for mock auth as fallback
             if (!checkMockAuth()) {
-              setUser(null);
+          setUser(null);
             }
-          }
-          setLoading(false);
         }
-      );
+        setLoading(false);
+      }
+    );
 
-      return () => {
-        subscription.unsubscribe();
-      };
+    return () => {
+      subscription.unsubscribe();
+    };
     }
   }, []);
 

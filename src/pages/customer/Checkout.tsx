@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { MapPin } from "lucide-react";
+import { MapPin, Calendar, Clock, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,9 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
+import { DatePickerSheet } from "@/components/customer/shared/DatePickerSheet";
+import { TimeSlotSheet } from "@/components/customer/shared/TimeSlotSheet";
+import { PaymentMethodsSheet } from "@/components/customer/shared/PaymentMethodsSheet";
 import {
   loadGooglePlaces,
   initAutocomplete,
@@ -58,17 +61,14 @@ export const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
   const [contactlessDelivery, setContactlessDelivery] = useState(false);
-  const [deliveryTimeSlot, setDeliveryTimeSlot] = useState<string>("");
   const [campaignDiscount, setCampaignDiscount] = useState(0);
-
-  // Delivery time slots (Swiggy/Zomato pattern)
-  const timeSlots = [
-    { id: "10-12", label: "10:00 AM - 12:00 PM", available: true },
-    { id: "12-2", label: "12:00 PM - 2:00 PM", available: true },
-    { id: "2-4", label: "2:00 PM - 4:00 PM", available: true },
-    { id: "4-6", label: "4:00 PM - 6:00 PM", available: true },
-    { id: "6-8", label: "6:00 PM - 8:00 PM", available: true },
-  ];
+  
+  // New sheet states
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [timeSlotOpen, setTimeSlotOpen] = useState(false);
+  const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [deliveryTimeSlot, setDeliveryTimeSlot] = useState<string>("");
 
   useEffect(() => {
     if (!savedAddress && addressInputRef.current) {
@@ -208,6 +208,15 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
       toast({
         title: "Address required",
         description: "Please provide a delivery address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedDate) {
+      toast({
+        title: "Delivery date required",
+        description: "Please select a delivery date",
         variant: "destructive",
       });
       return;
@@ -378,43 +387,69 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
             />
                       </div>
 
-          {/* Delivery Time Slot */}
+          {/* Delivery Date & Time */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">
-              Delivery Time Slot <span className="text-destructive">*</span>
+              Schedule Delivery <span className="text-destructive">*</span>
             </Label>
-            <div className="grid grid-cols-1 gap-2">
-              {timeSlots.map((slot) => (
-                <button
-                  key={slot.id}
-                  type="button"
-                  onClick={() => setDeliveryTimeSlot(slot.id)}
-                  disabled={!slot.available}
-                  className={`
-                    relative p-3 rounded-lg border-2 text-left transition-all
-                    ${deliveryTimeSlot === slot.id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-background hover:border-primary/50'
-                    }
-                    ${!slot.available && 'opacity-50 cursor-not-allowed'}
-                  `}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{slot.label}</span>
-                    {deliveryTimeSlot === slot.id && (
-                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                        <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
+            
+            {/* Date Picker Button */}
+            <button
+              type="button"
+              onClick={() => setDatePickerOpen(true)}
+              className="w-full flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {selectedDate 
+                      ? selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Select delivery date'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Minimum 2 days lead time
+                  </p>
+                </div>
+              </div>
+              {selectedDate && (
+                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                  <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+            </button>
+
+            {/* Time Slot Button */}
+            {selectedDate && (
+              <button
+                type="button"
+                onClick={() => setTimeSlotOpen(true)}
+                className="w-full flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {deliveryTimeSlot 
+                        ? deliveryTimeSlot.charAt(0).toUpperCase() + deliveryTimeSlot.slice(1)
+                        : 'Select time slot'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Choose your preferred time
+                    </p>
                   </div>
-                  {!slot.available && (
-                    <span className="text-xs text-muted-foreground mt-1 block">Not available</span>
-                  )}
-                </button>
-              ))}
-            </div>
+                </div>
+                {deliveryTimeSlot && (
+                  <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                    <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Delivery Instructions */}
@@ -463,26 +498,30 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           {/* Payment Method */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">Payment Method</Label>
-            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-              <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                <RadioGroupItem value="upi" id="upi" />
-                <Label htmlFor="upi" className="flex-1 cursor-pointer text-sm">
-                  UPI (PhonePe, Google Pay, Paytm)
-                  </Label>
+            
+            <button
+              type="button"
+              onClick={() => setPaymentSheetOpen(true)}
+              className="w-full flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {paymentMethod === 'upi' && 'UPI'}
+                    {paymentMethod === 'cards' && 'Credit/Debit Cards'}
+                    {paymentMethod === 'wallets' && 'Digital Wallets'}
+                    {paymentMethod === 'cod' && 'Cash on Delivery'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Click to change payment method
+                  </p>
                 </div>
-              <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card" className="flex-1 cursor-pointer text-sm">
-                  Credit/Debit Card
-                </Label>
               </div>
-              <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                <RadioGroupItem value="netbanking" id="netbanking" />
-                <Label htmlFor="netbanking" className="flex-1 cursor-pointer text-sm">
-                  Net Banking
-                </Label>
-      </div>
-            </RadioGroup>
+              <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
 
           {/* Order Summary */}
@@ -529,6 +568,32 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
 
       <ComplianceFooter />
       <CustomerBottomNav />
+      
+      {/* Bottom Sheet Modals */}
+      <DatePickerSheet
+        isOpen={datePickerOpen}
+        onClose={() => setDatePickerOpen(false)}
+        onDateSelect={(date) => {
+          setSelectedDate(date);
+          setDeliveryTimeSlot(""); // Reset time slot when date changes
+        }}
+      />
+      
+      {selectedDate && (
+        <TimeSlotSheet
+          isOpen={timeSlotOpen}
+          onClose={() => setTimeSlotOpen(false)}
+          selectedDate={selectedDate}
+          onTimeSelect={(slot) => setDeliveryTimeSlot(slot)}
+        />
+      )}
+      
+      <PaymentMethodsSheet
+        isOpen={paymentSheetOpen}
+        onClose={() => setPaymentSheetOpen(false)}
+        totalAmount={total}
+        onPaymentMethodSelect={(method) => setPaymentMethod(method)}
+      />
     </div>
   );
 };

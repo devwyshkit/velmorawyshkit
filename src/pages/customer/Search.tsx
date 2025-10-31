@@ -8,8 +8,10 @@ import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobil
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
+import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { searchItems, searchPartners } from "@/lib/integrations/supabase-data";
 import { EmptyStates } from "@/components/ui/empty-state";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface SearchResult {
   id: string;
@@ -29,6 +31,7 @@ export const CustomerMobileSearch = () => {
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   // Get query params
   const occasionParam = searchParams.get('occasion');
@@ -125,7 +128,7 @@ export const CustomerMobileSearch = () => {
 
   const handleItemClick = (item: SearchResult) => {
     if (item.type === 'item') {
-      navigate(RouteMap.item(item.id));
+      setSelectedItemId(item.id);
     } else {
       navigate(RouteMap.vendor(item.id));
     }
@@ -231,6 +234,22 @@ export const CustomerMobileSearch = () => {
 
       <ComplianceFooter />
       <CustomerBottomNav />
+      
+      {/* Product Sheet for items */}
+      {selectedItemId && (
+        <Sheet open={!!selectedItemId} onOpenChange={(open) => !open && setSelectedItemId(null)}>
+          <SheetContent 
+            side="bottom" 
+            className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
+            hideCloseButton
+          >
+            <ProductSheet
+              itemId={selectedItemId}
+              onClose={() => setSelectedItemId(null)}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 };

@@ -971,12 +971,12 @@ export const CustomerHome = () => {
                 onClick={() => navigate(RouteMap.vendor(partner.id))}
               >
                 <CardContent className="p-2.5">
-                  {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
+                  {/* Image - 3:2 landscape (Swiggy pattern for partner cards) */}
+                  <div className="relative w-full aspect-[3/2] rounded-lg overflow-hidden bg-card mb-2.5">
                     <OptimizedImage
                       src={partner.image}
                       alt={partner.name}
-                      width={200}
+                      width={300}
                       height={200}
                       className="w-full h-full object-cover"
                       loading="lazy"
@@ -1083,9 +1083,9 @@ export const CustomerHome = () => {
                         loading="lazy"
                       />
                       {partner.sponsored && (
-                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
-                          <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
-                          <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+                        <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-900" />
+                          <span className="text-amber-900 font-medium">Sponsored</span>
                         </Badge>
                       )}
                       {partner.badge && !partner.sponsored && (
@@ -1167,9 +1167,9 @@ export const CustomerHome = () => {
                         loading="lazy"
                       />
                       {partner.sponsored && (
-                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
-                          <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
-                          <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+                        <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-900" />
+                          <span className="text-amber-900 font-medium">Sponsored</span>
                         </Badge>
                       )}
                       {partner.badge && !partner.sponsored && (
@@ -1335,9 +1335,9 @@ export const CustomerHome = () => {
                         loading="lazy"
                       />
                       {partner.sponsored && (
-                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
-                          <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
-                          <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+                        <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-900" />
+                          <span className="text-amber-900 font-medium">Sponsored</span>
                         </Badge>
                       )}
                       {partner.badge && !partner.sponsored && (

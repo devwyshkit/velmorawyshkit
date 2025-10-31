@@ -31,7 +31,7 @@ export const Profile = () => {
                                import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
     
     if (hasRealCredentials) {
-      await supabase.auth.signOut();
+    await supabase.auth.signOut();
     } else {
       // Clear mock auth
       localStorage.removeItem('mock_session');
@@ -85,19 +85,19 @@ export const Profile = () => {
             <Button variant="outline" className="w-full justify-start">
               <Heart className="mr-2" />
               Favorites
-            </Button>
+          </Button>
           </Link>
           <Link to={RouteMap.addresses()}>
             <Button variant="outline" className="w-full justify-start">
               <MapPin className="mr-2" />
               My Addresses
-            </Button>
+          </Button>
           </Link>
           <Link to={RouteMap.help()}>
             <Button variant="outline" className="w-full justify-start">
               <HelpCircle className="mr-2" />
               Help & Support
-            </Button>
+          </Button>
           </Link>
         </div>
 

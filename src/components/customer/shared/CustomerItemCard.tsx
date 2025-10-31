@@ -1,7 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Flame, Gift, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Flame, Gift, Sparkles, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface CustomerItemCardProps {
   id: string;
@@ -40,14 +42,21 @@ export const CustomerItemCard = ({
   onClick,
   className,
 }: CustomerItemCardProps) => {
-  // Grid variant (global e-commerce standard)
+  const [quantity, setQuantity] = useState(0);
+
+  // Grid variant (global e-commerce standard) - Swiggy 2025 pattern
   return (
     <Card
       className={cn(
-        "relative cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow",
+        "relative overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
         className
       )}
-      onClick={onClick}
+      onClick={(e) => {
+        // Only trigger if not clicking ADD button
+        if (onClick && !(e.target as HTMLElement).closest('button')) {
+          onClick();
+        }
+      }}
     >
       <CardContent className="p-2">
         {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
@@ -149,6 +158,49 @@ export const CustomerItemCard = ({
                 <span>★</span>
                 <span>{rating}</span>
                 {ratingCount && <span>({ratingCount})</span>}
+              </div>
+            )}
+          </div>
+
+          {/* ADD Button / Quantity Stepper - Swiggy 2025 pattern */}
+          <div className="mt-2 flex justify-end">
+            {quantity === 0 ? (
+              <Button
+                size="sm"
+                className="h-8 px-4 text-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQuantity(1);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                ADD
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 rounded-full border border-border bg-background px-2 py-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (quantity > 0) setQuantity(quantity - 1);
+                  }}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="text-sm font-medium min-w-[20px] text-center">{quantity}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setQuantity(quantity + 1);
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
               </div>
             )}
           </div>

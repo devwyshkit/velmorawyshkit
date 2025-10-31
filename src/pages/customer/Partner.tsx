@@ -1,24 +1,20 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Star, Clock } from "lucide-react";
-import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
+import { Star, Clock, Search } from "lucide-react";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
-import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { SmartFilters, type SortOption, type FilterOption } from "@/components/customer/shared/SmartFilters";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { fetchPartnerById, fetchItemsByPartner, type Item as ItemType, type Partner as PartnerType } from "@/lib/integrations/supabase-data";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { EmptyStates } from "@/components/ui/empty-state";
+import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
+import { ProductSheet } from "@/components/customer/shared/ProductSheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export const Partner = () => {
   const { id } = useParams();
@@ -26,12 +22,17 @@ export const Partner = () => {
   const { toast } = useToast();
   const [partner, setPartner] = useState<PartnerType | null>(null);
   const [items, setItems] = useState<ItemType[]>([]);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [isItemSheetOpen, setIsItemSheetOpen] = useState(false);
-  const [filteredItems, setFilteredItems] = useState<ItemType[]>([]);
-  const [sortedItems, setSortedItems] = useState<ItemType[]>([]);
-  const [sortBy, setSortBy] = useState<string>("popularity");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>('relevance');
+  const [filters, setFilters] = useState<FilterOption[]>([]);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [categories, setCategories] = useState<Array<{
+    id: string;
+    name: string;
+    items: ItemType[];
+  }>>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPartnerData = async () => {
@@ -70,7 +71,6 @@ export const Partner = () => {
         // Load partner items
         const itemsData = await fetchItemsByPartner(id);
         setItems(itemsData);
-        setFilteredItems(itemsData);
       } catch (error) {
         // Handle error silently in production
         toast({
@@ -86,70 +86,132 @@ export const Partner = () => {
     loadPartnerData();
   }, [id, toast]);
 
-  const handleItemClick = (itemId: string) => {
-    setSelectedItemId(itemId);
-    setIsItemSheetOpen(true);
-  };
 
-  const handleCloseItemSheet = () => {
-    setIsItemSheetOpen(false);
-    setSelectedItemId(null);
-  };
 
-  // Track browsing history for better OpenAI recommendations
-  useEffect(() => {
-    if (selectedItemId && isItemSheetOpen) {
-      try {
-        const history = JSON.parse(localStorage.getItem('wyshkit_browsing_history') || '[]');
-        const updated = [selectedItemId, ...history.filter((id: string) => id !== selectedItemId).slice(0, 19)]; // Keep last 20, avoid duplicates
-        localStorage.setItem('wyshkit_browsing_history', JSON.stringify(updated));
-      } catch (error) {
-        // Handle error silently in production
-      }
+  // Scroll to category
+  const scrollToCategory = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    const element = document.getElementById(categoryId);
+    if (element) {
+      const top = element.offsetTop - 160;
+      window.scrollTo({ top, behavior: 'smooth' });
     }
-  }, [selectedItemId, isItemSheetOpen]);
+  };
 
-  const handleFilterChange = (activeFilters: Filter[]) => {
-    if (activeFilters.length === 0) {
-      setFilteredItems(items);
+  // Group items by category
+  useEffect(() => {
+    if (items.length === 0) {
+      setCategories([]);
       return;
     }
-
-    // Filter items based on active filters
-    let filtered = [...items];
-
-    activeFilters.forEach(filter => {
-      if (filter.category === 'price') {
-        const [min, max] = filter.value.split('-').map(Number);
-        filtered = filtered.filter(item => item.price >= min && item.price <= max);
-      }
-      // Add occasion and category filtering when backend supports it
-    });
-
-    setFilteredItems(filtered);
-  };
-
-  // Sort items based on selected sort option
-  useEffect(() => {
-    let sorted = [...filteredItems];
     
-    switch (sortBy) {
-      case 'price-low':
-        sorted.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        sorted.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        break;
-      case 'popularity':
-      default:
-        sorted.sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0));
+    // Group by item properties
+    const bestsellers = items.filter(item => item.badge === 'bestseller');
+    const customizable = items.filter(item => item.isCustomizable);
+    const readyToShip = items.filter(item => !item.isCustomizable);
+    
+    const grouped = [
+      { id: "bestsellers", name: "Bestsellers", items: bestsellers },
+      { id: "customizable", name: "Customizable Gifts", items: customizable },
+      { id: "ready", name: "Ready to Ship", items: readyToShip },
+    ].filter(cat => cat.items.length > 0);
+    
+    if (grouped.length === 0 && items.length > 0) {
+      grouped.push({ id: "all", name: "All Items", items });
     }
     
-    setSortedItems(sorted);
-  }, [sortBy, filteredItems]);
+    setCategories(grouped);
+    setActiveCategory(grouped[0]?.id || "all");
+  }, [items]);
+
+  // Track active category on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = 180;
+      for (const cat of categories) {
+        const element = document.getElementById(cat.id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= offset && rect.bottom > offset) {
+            setActiveCategory(cat.id);
+            break;
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [categories]);
+
+  // Apply search, filters, and sort
+  useEffect(() => {
+    let filtered = [...items];
+    
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.shortDesc?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // SmartFilters
+    if (filters.includes('offers')) {
+      filtered = filtered.filter(item => item.campaignDiscount);
+    }
+    if (filters.includes('fast-delivery')) {
+      filtered = filtered.filter(item => 
+        item.estimatedDeliveryDays?.includes('1') || 
+        item.estimatedDeliveryDays?.includes('Same')
+      );
+    }
+    if (filters.includes('new')) {
+      filtered = filtered.filter(item => (item.ratingCount || 0) < 50);
+    }
+    
+    // Sort
+    switch (sortBy) {
+      case 'rating':
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'delivery':
+        filtered.sort((a, b) => {
+          const aTime = parseInt(a.estimatedDeliveryDays || '999');
+          const bTime = parseInt(b.estimatedDeliveryDays || '999');
+          return aTime - bTime;
+        });
+        break;
+      case 'cost-low':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'cost-high':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'relevance':
+      default:
+        filtered.sort((a, b) => 
+          (b.rating * (b.ratingCount || 1)) - (a.rating * (a.ratingCount || 1))
+        );
+    }
+    
+    // Re-group
+    const bestsellers = filtered.filter(item => item.badge === 'bestseller');
+    const customizable = filtered.filter(item => item.isCustomizable);
+    const readyToShip = filtered.filter(item => !item.isCustomizable);
+    
+    const grouped = [
+      { id: "bestsellers", name: "Bestsellers", items: bestsellers },
+      { id: "customizable", name: "Customizable Gifts", items: customizable },
+      { id: "ready", name: "Ready to Ship", items: readyToShip },
+    ].filter(cat => cat.items.length > 0);
+    
+    if (grouped.length === 0 && filtered.length > 0) {
+      grouped.push({ id: "all", name: "All Items", items: filtered });
+    }
+    
+    setCategories(grouped);
+  }, [items, searchQuery, filters, sortBy]);
 
   if (loading || !partner) {
     return (
@@ -205,105 +267,161 @@ export const Partner = () => {
       <div className="min-h-screen bg-background pb-20">
         <CustomerMobileHeader showBackButton title={partner?.name || 'Partner'} />
 
-        {/* Partner Info */}
-        <section className="px-4 py-4 bg-card border-b border-border">
+        {/* Partner Header - Scrolls away */}
+        <section className="px-4 py-4 bg-card">
           <div className="flex gap-3">
             <img
               src={partner.image}
               alt={partner.name}
-              className="w-16 h-16 rounded-lg object-cover"
+              className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
             />
-            <div className="flex-1">
-              <h2 className="text-base font-semibold mb-1">{partner.name}</h2>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold mb-1 truncate">{partner.name}</h1>
+              {partner.tagline && (
+                <p className="text-sm text-muted-foreground mb-2 line-clamp-1">{partner.tagline}</p>
+              )}
+              <div className="flex items-center gap-3 text-sm">
                 <span className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  {partner.rating}
+                  <span className="font-medium">{partner.rating}</span>
+                  {partner.ratingCount && (
+                    <span className="text-muted-foreground">({partner.ratingCount})</span>
+                  )}
                 </span>
+                <span className="text-muted-foreground">•</span>
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  {partner.delivery}
+                  <span>{partner.delivery}</span>
                 </span>
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Filter Chips - Sticky on scroll for better UX */}
-        <section className="sticky top-14 z-10 bg-background/95 backdrop-blur-sm px-4 py-3 border-b border-border transition-shadow mb-4">
-          <FilterChips onFilterChange={handleFilterChange} />
-        </section>
-
-        {/* Items Grid - Global E-commerce Standard: Grid layout for product browsing */}
-        <main className="mt-4">
-          <div className="flex items-center justify-between px-4 mb-4">
-            <h2 className="text-lg font-semibold">
-              Browse Items 
-              {filteredItems.length !== items.length && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  ({filteredItems.length} results)
-                </span>
-              )}
-            </h2>
-            
-            {/* Sort Dropdown - Swiggy/Zomato Pattern */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[140px] h-9 text-sm">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="popularity">Popularity</SelectItem>
-                <SelectItem value="price-low">Price: Low-High</SelectItem>
-                <SelectItem value="price-high">Price: High-Low</SelectItem>
-                <SelectItem value="rating">Rating</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           
-          <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
-            {sortedItems.map((item) => (
-              <CustomerItemCard
-                key={item.id}
-                id={item.id}
-                name={item.name}
-                image={item.image}
-                price={item.price}
-                rating={item.rating}
-                ratingCount={item.ratingCount}
-                badge={item.badge}
-                shortDesc={item.shortDesc}
-                sponsored={item.sponsored}
-                moq={item.moq}
-                eta={item.eta || "1-2 days"}
-                onClick={() => handleItemClick(item.id)}
-              />
-            ))}
-          </div>
-        </main>
+          {/* Category tags */}
+          {partner.category && (
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 mt-3">
+              {partner.category.split('•').map((cat, i) => (
+                <Badge key={i} variant="secondary" className="text-xs whitespace-nowrap">
+                  {cat.trim()}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </section>
 
-        <ComplianceFooter />
+        {/* Search Bar - Sticky top-0 (Swiggy pattern) */}
+        <div className="sticky top-0 z-30 bg-background border-b">
+          <div className="px-4 py-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={`Search in ${partner.name}`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 bg-muted/50"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Smart Filters - Reuse from Home (sticky top-14) */}
+        <SmartFilters
+          sortBy={sortBy}
+          filters={filters}
+          onSortChange={setSortBy}
+          onFilterChange={setFilters}
+          sticky={true}
+        />
+
+        {/* Category Pills - Sticky top-28 (Swiggy pattern) */}
+        {categories.length > 1 && (
+          <div className="sticky top-28 z-20 bg-background border-b">
+            <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => scrollToCategory(cat.id)}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
+                    activeCategory === cat.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted hover:bg-muted/80"
+                  )}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Menu Items - Vertical Grid (Swiggy 2025 pattern) */}
+        <main className="pb-20">
+          {categories.length === 0 ? (
+            <EmptyStates.Products />
+          ) : (
+            categories.map((category) => (
+              <section key={category.id} id={category.id} className="mb-6">
+                {/* Category Header - Sticky */}
+                <div className="sticky top-40 z-10 bg-background px-4 py-3 border-b">
+                  <h2 className="text-lg font-semibold">{category.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {category.items.length} items
+                  </p>
+                </div>
+                
+                {/* Items Grid - Vertical Cards */}
+                <div className="grid grid-cols-2 gap-4 px-4 mt-3 md:grid-cols-3 lg:grid-cols-4">
+                  {category.items.map((item) => (
+                    <CustomerItemCard
+                      key={item.id}
+                      id={item.id}
+                      name={item.name}
+                      image={item.image}
+                      price={item.price}
+                      rating={item.rating}
+                      ratingCount={item.ratingCount}
+                      badge={item.badge}
+                      shortDesc={item.shortDesc}
+                      sponsored={item.sponsored}
+                      isCustomizable={item.isCustomizable}
+                      moq={item.moq}
+                      eta={item.eta || "1-2 days"}
+                      onClick={() => setSelectedItemId(item.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))
+          )}
+        </main>
         <FloatingCartButton />
         <CustomerBottomNav />
       </div>
 
-      {/* Item Bottom Sheet - Material Design 3 */}
-      <Sheet open={isItemSheetOpen} onOpenChange={setIsItemSheetOpen}>
-        <SheetContent
-          side="bottom"
-          className="h-[90vh] rounded-t-xl p-0 overflow-y-auto sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
-        >
-          {/* Drag Handle - Material Design 3 */}
-          <div className="flex justify-center py-2">
-            <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
-          </div>
-          {selectedItemId && (
+      {/* Product Sheet for items */}
+      {selectedItemId && (
+        <Sheet open={!!selectedItemId} onOpenChange={(open) => !open && setSelectedItemId(null)}>
+          <SheetContent 
+            side="bottom" 
+            className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
+            hideCloseButton
+          >
             <ProductSheet
               itemId={selectedItemId}
-              onClose={handleCloseItemSheet}
+              onClose={() => setSelectedItemId(null)}
             />
-          )}
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
+      )}
     </>
   );
 };
