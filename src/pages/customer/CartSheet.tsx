@@ -256,6 +256,51 @@ HSN Code: 9985
 
           <Separator className="my-4" />
 
+          {/* MAKE IT SPECIAL Section */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm">🎁 Make It Special</h3>
+            <div className="space-y-2">
+              <label className="flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm">🎁 Gift Box</span>
+                </div>
+                <span className="text-sm font-medium">+₹80</span>
+              </label>
+              <label className="flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm">💌 Greeting Card</span>
+                </div>
+                <span className="text-sm font-medium">+₹50</span>
+              </label>
+              <label className="flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded" />
+                  <span className="text-sm">🎀 Gift Wrap</span>
+                </div>
+                <span className="text-sm font-medium">+₹30</span>
+              </label>
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Promo Code Section */}
+          <div className="space-y-2">
+            <Label htmlFor="promo" className="text-sm">🏷️ Promo Code</Label>
+            <div className="flex gap-2">
+              <Input
+                id="promo"
+                placeholder="Enter code"
+                className="text-sm"
+              />
+              <Button variant="outline">Apply</Button>
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+
           {/* GSTIN Input */}
           <div className="space-y-2">
             <Label htmlFor="gstin" className="text-sm">

@@ -30,8 +30,26 @@ import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 export const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { refreshCartCount } = useCart();
+  const { refreshCartCount, clearCart } = useCart();
   const addressInputRef = useRef<HTMLInputElement>(null);
+  
+  // Mock cart items for now (to be replaced with actual cart data)
+  const cartItems = [
+    {
+      id: '1',
+      name: 'Birthday Hamper XL',
+      price: 800,
+      quantity: 1,
+      customisable: false,
+    },
+    {
+      id: '2',
+      name: 'Custom T-Shirt',
+      price: 500,
+      quantity: 1,
+      customisable: true,
+    },
+  ];
   
   const [savedAddress, setSavedAddress] = useState(true);
   const [address, setAddress] = useState("123 MG Road, Bangalore, Karnataka - 560001");
@@ -41,7 +59,7 @@ export const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [contactlessDelivery, setContactlessDelivery] = useState(false);
   const [deliveryTimeSlot, setDeliveryTimeSlot] = useState<string>("");
-  const [campaignDiscount, setCampaignDiscount] = useState(0); // NEW: Campaign discount amount
+  const [campaignDiscount, setCampaignDiscount] = useState(0);
 
   // Delivery time slots (Swiggy/Zomato pattern)
   const timeSlots = [
@@ -147,7 +165,8 @@ export const Checkout = () => {
         description: "Add items to proceed with checkout",
         variant: "destructive",
       });
-      navigate(RouteMap.cart());
+      // Navigate back or close
+      navigate(-1);
     }
   }, [cartItems.length, navigate, toast]);
 
@@ -268,7 +287,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
             .eq('id', orderId);
 
           // Clear cart after successful payment
-          clearGuestCart();
+          clearCart();
           refreshCartCount();
 
           toast({
@@ -277,7 +296,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           });
 
           // Navigate to confirmation
-          navigate(`${RouteMap.confirmation()}?orderId=${orderNumber}`);
+          navigate(RouteMap.confirmation(orderNumber));
         },
         prefill: {
           name: 'User Name',
