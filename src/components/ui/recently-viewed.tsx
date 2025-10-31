@@ -1,6 +1,6 @@
 import { HorizontalScroll } from "@/components/ui/horizontal-scroll";
 import { Button } from "@/components/ui/button";
-import { ProductCard } from "./product-card";
+import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { Eye, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -123,16 +123,14 @@ export const RecentlyViewed = ({
       >
         {recentProducts.map((product) => (
           <div key={product.id} className="relative group">
-            <ProductCard
-              product={{
-                ...product,
-                deliveryFee: product.deliveryFee || 0,
-                inStock: product.inStock ?? true,
-                trustBadges: []
-              }}
-              onProductClick={onProductClick}
-              variant="grid"
-              showComparison={false}
+            <CustomerItemCard
+              id={product.id}
+              name={product.name}
+              image={product.image}
+              price={product.price}
+              rating={product.rating}
+              ratingCount={product.reviewCount}
+              onClick={() => onProductClick(product)}
             />
             
             {/* Remove Button - Top right of card */}
