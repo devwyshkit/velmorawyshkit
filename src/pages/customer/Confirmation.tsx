@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { RouteMap } from "@/routes";
 import { CheckCircle2, Package, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 
 export const Confirmation = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { id } = useParams();
   const { toast } = useToast();
-  const orderId = searchParams.get('orderId') || 'ORD-' + Date.now();
+  const orderId = id || 'ORD-' + Date.now();
 
   useEffect(() => {
     toast({
@@ -112,7 +112,7 @@ export const Confirmation = () => {
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button
-            onClick={() => navigate(`${RouteMap.track()}?orderId=${order.id}`)}
+            onClick={() => navigate(RouteMap.track(order.id))}
             className="w-full h-12"
             size="lg"
           >

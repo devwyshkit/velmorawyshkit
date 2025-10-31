@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
 import { CheckCircle, Circle, Package, Truck, Home as HomeIcon, Phone, HelpCircle, RotateCcw, FileText, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,10 @@ interface TimelineStep {
 }
 
 export const Track = () => {
-  const [searchParams] = useSearchParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const orderId = searchParams.get('orderId') || 'ORD-' + Date.now();
+  const orderId = id || 'ORD-' + Date.now();
   const [eta, setEta] = useState<string>('');
   const [isProofSheetOpen, setIsProofSheetOpen] = useState(false);
   const [isRatingSheetOpen, setIsRatingSheetOpen] = useState(false);
