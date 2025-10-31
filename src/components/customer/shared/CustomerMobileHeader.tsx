@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { useCart } from "@/contexts/CartContext";
 import { useDelivery } from "@/contexts/DeliveryContext";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
+import { CartSheet } from "@/pages/customer/CartSheet";
 import { loadGooglePlaces, initAutocomplete, formatAddress, reverseGeocode, extractAreaAndCity } from "@/lib/integrations/google-places";
 
 interface CustomerMobileHeaderProps {
@@ -26,6 +27,7 @@ export const CustomerMobileHeader = ({
   const { cartCount } = useCart();
   const { location, setLocation } = useDelivery();
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [locationInput, setLocationInput] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
 
@@ -150,7 +152,7 @@ export const CustomerMobileHeader = ({
             variant="ghost"
             size="icon"
             className="relative h-11 w-11"
-              onClick={() => navigate(RouteMap.cart())}
+              onClick={() => setIsCartOpen(true)}
             aria-label={`Shopping cart with ${cartCount} items`}
           >
             <ShoppingBag className="h-6 w-6" />
@@ -167,8 +169,8 @@ export const CustomerMobileHeader = ({
             variant="ghost"
             size="icon"
             className="h-11 w-11"
-              onClick={() => navigate(RouteMap.wishlist())}
-            aria-label="Wishlist"
+              onClick={() => navigate(RouteMap.favorites())}
+            aria-label="Favorites"
           >
             <Heart className="h-6 w-6" />
           </Button>
@@ -307,6 +309,9 @@ export const CustomerMobileHeader = ({
           </div>
         </SheetContent>
       </Sheet>
+      
+      {/* Cart Sheet Modal for Desktop */}
+      <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
   );
 };

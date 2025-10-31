@@ -39,14 +39,8 @@ const App = () => (
                     <Route path="/signup" element={<LazyPages.Signup />} />
                     <Route path="/search" element={<LazyPages.Search />} />
                     <Route path="/partners/:id" element={<LazyPages.Partner />} />
-                    <Route path="/items/:id" element={<LazyPages.ItemDetails />} />
                     {/* Protected Consumer Routes */}
-                    <Route path="/cart" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Cart />
-                        </ProtectedRoute>
-                      } />
-                    <Route path="/wishlist" element={
+                    <Route path="/favorites" element={
                         <ProtectedRoute requiredRole="customer">
                           <LazyPages.Wishlist />
                         </ProtectedRoute>
@@ -56,16 +50,32 @@ const App = () => (
                           <LazyPages.Checkout />
                         </ProtectedRoute>
                       } />
-                    <Route path="/confirmation" element={
+                    <Route path="/order/:id/confirmed" element={
                         <ProtectedRoute requiredRole="customer">
                           <LazyPages.Confirmation />
                         </ProtectedRoute>
                       } />
-                    <Route path="/track/:orderId?" element={
+                    <Route path="/order/:id/track" element={
                         <ProtectedRoute requiredRole="customer">
                           <LazyPages.Track />
                         </ProtectedRoute>
                       } />
+                    <Route path="/orders" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Orders />
+                        </ProtectedRoute>
+                      } />
+                    <Route path="/account/addresses" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.AddressBook />
+                        </ProtectedRoute>
+                      } />
+                    <Route path="/account/addresses/add" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.AddAddress />
+                        </ProtectedRoute>
+                      } />
+                    <Route path="/help" element={<LazyPages.HelpCenter />} />
                     <Route path="/profile" element={
                         <ProtectedRoute requiredRole="customer">
                           <LazyPages.Profile />
@@ -76,15 +86,12 @@ const App = () => (
                     <Route path="/customer/home" element={<Navigate to="/" replace />} />
                     <Route path="/customer/search" element={<Navigate to="/search" replace />} />
                     <Route path="/customer/partners/:id" element={<Navigate to="/partners/:id" replace />} />
-                    <Route path="/customer/items/:id" element={<Navigate to="/items/:id" replace />} />
                     <Route path="/customer/login" element={<Navigate to="/login" replace />} />
                     <Route path="/customer/signup" element={<Navigate to="/signup" replace />} />
-                    <Route path="/customer/cart" element={<Navigate to="/cart" replace />} />
-                    <Route path="/customer/wishlist" element={<Navigate to="/wishlist" replace />} />
+                    <Route path="/customer/favorites" element={<Navigate to="/favorites" replace />} />
                     <Route path="/customer/checkout" element={<Navigate to="/checkout" replace />} />
-                    <Route path="/customer/confirmation" element={<Navigate to="/confirmation" replace />} />
-                    <Route path="/customer/track/:orderId?" element={<Navigate to="/track/:orderId" replace />} />
                     <Route path="/customer/profile" element={<Navigate to="/profile" replace />} />
+                    <Route path="/customer/wishlist" element={<Navigate to="/favorites" replace />} />
 
                     {/* Partner Routes - Business Dashboard */}
                     <Route path="/partner">
