@@ -1,12 +1,5 @@
 import { AlertCircle } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
 interface CartReplacementModalProps {
@@ -25,37 +18,45 @@ export const CartReplacementModal = ({
   onCancel,
 }: CartReplacementModalProps) => {
   return (
-    <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
+    <Sheet open={isOpen} onOpenChange={onCancel}>
+      <SheetContent side="bottom" className="h-auto rounded-t-xl sm:max-w-[480px] sm:left-1/2 sm:-translate-x-1/2">
+        {/* Grabber */}
+        <div className="flex justify-center pt-2 pb-4">
+          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
+        
+        {/* Header */}
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
               <AlertCircle className="h-5 w-5 text-warning" />
             </div>
-            <DialogTitle className="text-lg">Items already in cart</DialogTitle>
+            <h2 className="text-lg font-semibold">Items already in cart</h2>
           </div>
-          <DialogDescription className="text-base pt-2">
+          <p className="text-base text-muted-foreground">
             Your cart contains items from <span className="font-semibold text-foreground">{currentPartner}</span>. 
             Do you want to discard the selection and add items from <span className="font-semibold text-foreground">{newPartner}</span>?
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="px-4 pb-6 flex flex-col gap-2">
           <Button
             variant="outline"
             onClick={onCancel}
-            className="w-full sm:w-auto"
+            className="w-full"
           >
             Cancel
           </Button>
           <Button
             onClick={onConfirm}
-            className="w-full sm:w-auto"
+            className="w-full"
           >
             Start Fresh
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

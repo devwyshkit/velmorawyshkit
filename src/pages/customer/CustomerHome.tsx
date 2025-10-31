@@ -315,13 +315,27 @@ export const CustomerHome = () => {
         if (bannersData && bannersData.length > 0) {
           setBanners(bannersData);
         } else {
-          // Fallback data for development
+          // Fallback data for development - Multiple banners to test navigation
           setBanners([
             {
               id: '1',
               title: 'Welcome to Wyshkit',
               image_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=128&fit=crop',
               cta_link: '/search',
+              is_active: true
+            },
+            {
+              id: '2',
+              title: 'Festive Season Special',
+              image_url: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400&h=128&fit=crop',
+              cta_link: '/search?occasion=festival',
+              is_active: true
+            },
+            {
+              id: '3',
+              title: 'New Arrivals',
+              image_url: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400&h=128&fit=crop',
+              cta_link: '/search?filter=new',
               is_active: true
             }
           ]);
@@ -360,37 +374,37 @@ export const CustomerHome = () => {
             sortedPartners = [...partnersData].sort((a, b) => (b.rating || 0) - (a.rating || 0));
             setPartners(sortedPartners);
           } else {
-            // Fallback data for development
-            const fallbackPartners = [
-              {
-                id: '1',
-                name: 'GiftCraft Studio',
-                image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
-                rating: 4.8,
-                delivery: '1-2 days',
-                badge: 'bestseller' as const,
-                location: 'Bangalore',
-                category: 'Custom Gifts',
-                tagline: 'Handcrafted personalized gifts',
-                ratingCount: 156,
-                sponsored: false,
-                status: 'approved' as const,
-                is_active: true
-              },
-              {
-                id: '2',
-                name: 'Luxury Hampers Co',
-                image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop',
-                rating: 4.6,
-                delivery: '2-3 days',
-                badge: 'trending' as const,
-                location: 'Mumbai',
-                category: 'Hampers',
-                tagline: 'Premium gift hampers',
-                ratingCount: 89,
-                sponsored: false,
-                status: 'approved' as const,
-                is_active: true
+          // Fallback data for development
+          const fallbackPartners = [
+            {
+              id: '1',
+              name: 'GiftCraft Studio',
+              image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
+              rating: 4.8,
+              delivery: '1-2 days',
+              badge: 'bestseller' as const,
+              location: 'Bangalore',
+              category: 'Custom Gifts',
+              tagline: 'Handcrafted personalized gifts',
+              ratingCount: 156,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            },
+            {
+              id: '2',
+              name: 'Luxury Hampers Co',
+              image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop',
+              rating: 4.6,
+              delivery: '2-3 days',
+              badge: 'trending' as const,
+              location: 'Mumbai',
+              category: 'Hampers',
+              tagline: 'Premium gift hampers',
+              ratingCount: 89,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
               },
               {
                 id: '3',
@@ -476,7 +490,7 @@ export const CustomerHome = () => {
                 sponsored: false,
                 status: 'approved' as const,
                 is_active: true
-              }
+            }
             ];
             // Sort by rating descending
             sortedPartners = [...fallbackPartners].sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -722,7 +736,7 @@ export const CustomerHome = () => {
           <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
             {[1, 2, 3, 4, 5, 6].map(i => (
               <div key={i} className="space-y-1.5 p-2.5 bg-card rounded-xl">
-                <Skeleton className="aspect-square rounded-lg mb-2.5 bg-muted" />
+                <Skeleton className="aspect-square rounded-lg mb-2.5 bg-card" />
                 <Skeleton className="h-4 w-3/4" />  {/* Name: text-base */}
                 <Skeleton className="h-3 w-1/2" />  {/* Category: text-xs */}
                 <Skeleton className="h-3 w-2/3" />  {/* Rating + Delivery */}
@@ -741,13 +755,13 @@ export const CustomerHome = () => {
       <CustomerMobileHeader />
 
       {/* Main Content */}
-      <main className="max-w-screen-xl mx-auto space-y-4 pt-4">
+      <main className="max-w-screen-xl mx-auto space-y-6 pt-4">
         {/* Hero Banners - Always show section to prevent layout shift */}
         <section className="px-4">
           {banners.length === 0 ? (
             <Skeleton className="h-40 w-full rounded-xl" />
           ) : (
-            <div>
+            <div className="relative">
               <Carousel
                 setApi={setCarouselApi}
                 opts={{
@@ -807,47 +821,24 @@ export const CustomerHome = () => {
                 </CarouselContent>
               </Carousel>
               
-              {/* Indicators (left) & Small Navigation Arrows (right) - Below carousel */}
-              <div className="flex items-center justify-between mt-3 px-4">
-                {/* Left: Dot Indicators */}
-                <div className="flex gap-1">
-                  {banners.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => carouselApi?.scrollTo(idx)}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all duration-300",
-                        idx === currentSlide ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
-                      )}
-                      aria-label={`Go to slide ${idx + 1}`}
-                    />
-                  ))}
+              {/* Dot Indicators - Below carousel, left-aligned (Modern Ecommerce Pattern) */}
+              {banners.length > 1 && (
+                <div className="flex justify-start mt-3 px-4">
+                  <div className="flex gap-1">
+                    {banners.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => carouselApi?.scrollTo(idx)}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all duration-300",
+                          idx === currentSlide ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                        )}
+                        aria-label={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
                 </div>
-                
-                {/* Right: Small Navigation Arrows Grouped Together */}
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 rounded-full"
-                    onClick={() => carouselApi?.scrollPrev()}
-                    disabled={!carouselApi?.canScrollPrev()}
-                    aria-label="Previous banner"
-                  >
-                    <span className="text-sm">←</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 rounded-full"
-                    onClick={() => carouselApi?.scrollNext()}
-                    disabled={!carouselApi?.canScrollNext()}
-                    aria-label="Next banner"
-                  >
-                    <span className="text-sm">→</span>
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </section>
@@ -981,7 +972,7 @@ export const CustomerHome = () => {
               >
                 <CardContent className="p-2.5">
                   {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
+                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
                     <OptimizedImage
                       src={partner.image}
                       alt={partner.name}
@@ -1078,16 +1069,16 @@ export const CustomerHome = () => {
               {trendingPartners.map((partner) => (
                 <Card
                   key={partner.id}
-                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[160px] md:w-[180px]"
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
                   onClick={() => navigate(RouteMap.vendor(partner.id))}
                 >
                   <CardContent className="p-2.5">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
                       <OptimizedImage
                         src={partner.image}
                         alt={partner.name}
-                        width={160}
-                        height={160}
+                        width={150}
+                        height={150}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
@@ -1127,7 +1118,7 @@ export const CustomerHome = () => {
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                           {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
                         </span>
                         <span>•</span>
@@ -1162,16 +1153,16 @@ export const CustomerHome = () => {
               {newLaunches.map((partner) => (
                 <Card
                   key={partner.id}
-                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[160px] md:w-[180px]"
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
                   onClick={() => navigate(RouteMap.vendor(partner.id))}
                 >
                   <CardContent className="p-2.5">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
                       <OptimizedImage
                         src={partner.image}
                         alt={partner.name}
-                        width={160}
-                        height={160}
+                        width={150}
+                        height={150}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
@@ -1244,50 +1235,50 @@ export const CustomerHome = () => {
             {/* Horizontal scroll */}
             <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
               {recommendedPartners.map((partner) => (
-                <Card
-                  key={partner.id}
-                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[160px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.vendor(partner.id))}
-                >
+              <Card
+                key={partner.id}
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
+                onClick={() => navigate(RouteMap.vendor(partner.id))}
+              >
                   <CardContent className="p-2.5">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
-                      <OptimizedImage
-                        src={partner.image}
-                        alt={partner.name}
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
+                    <OptimizedImage
+                      src={partner.image}
+                      alt={partner.name}
                         width={160}
                         height={160}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      {partner.sponsored && (
-                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
-                          <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
-                          <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
-                        </Badge>
-                      )}
-                      {partner.badge && !partner.sponsored && (
-                        <Badge
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    {partner.sponsored && (
+                      <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
+                        <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
+                        <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+                      </Badge>
+                    )}
+                    {partner.badge && !partner.sponsored && (
+                      <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
                             partner.badge === 'bestseller'
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
                               : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
                           )}
-                        >
-                          {partner.badge === 'bestseller' ? (
-                            <>
+                      >
+                        {partner.badge === 'bestseller' ? (
+                          <>
                               <Trophy className="h-2.5 w-2.5" />
-                              <span className="font-medium">Bestseller</span>
-                            </>
-                          ) : (
-                            <>
+                            <span className="font-medium">Bestseller</span>
+                          </>
+                        ) : (
+                          <>
                               <Flame className="h-2.5 w-2.5" />
-                              <span className="font-medium">Trending</span>
-                            </>
-                          )}
-                        </Badge>
-                      )}
-                    </div>
+                            <span className="font-medium">Trending</span>
+                          </>
+                        )}
+                      </Badge>
+                    )}
+                  </div>
                     <div className="space-y-1.5">
                       <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
                       {partner.category && (
@@ -1330,16 +1321,16 @@ export const CustomerHome = () => {
               {visitedVendors.map((partner) => (
                 <Card
                   key={partner.id}
-                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[160px] md:w-[180px]"
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
                   onClick={() => navigate(RouteMap.vendor(partner.id))}
                 >
                   <CardContent className="p-2.5">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
                       <OptimizedImage
                         src={partner.image}
                         alt={partner.name}
-                        width={160}
-                        height={160}
+                        width={150}
+                        height={150}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
@@ -1372,33 +1363,33 @@ export const CustomerHome = () => {
                         </Badge>
                       )}
                     </div>
-                    <div className="space-y-1">
-                      {/* Name - clamp to 2 lines for stability */}
+                  <div className="space-y-1">
+                    {/* Name - clamp to 2 lines for stability */}
                       <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
-                      {/* Category - 12px gray per spec */}
-                      {partner.category && (
-                        <p className="text-xs text-muted-foreground">{partner.category}</p>
-                      )}
-                      {/* Meta row: rating (+count) • ETA • distance (if available) */}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
-                        <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
-                        </span>
-                        <span>•</span>
-                        <span>{partner.delivery}</span>
+                    {/* Category - 12px gray per spec */}
+                    {partner.category && (
+                      <p className="text-xs text-muted-foreground">{partner.category}</p>
+                    )}
+                    {/* Meta row: rating (+count) • ETA • distance (if available) */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
+                      </span>
+                      <span>•</span>
+                      <span>{partner.delivery}</span>
                         {/* Distance can be added to Partner type later if needed */}
-                      </div>
-                      {/* Tagline - 12px gray, 1 line per spec */}
-                      {partner.tagline && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
-                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
+                    {/* Tagline - 12px gray, 1 line per spec */}
+                    {partner.tagline && (
+                      <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
         )}
       </main>
 

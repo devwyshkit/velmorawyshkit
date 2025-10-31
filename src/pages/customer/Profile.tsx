@@ -1,31 +1,20 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { User, Moon, Sun, Package, Heart, MapPin, LogOut, Settings, HelpCircle } from "lucide-react";
+import { Package, Heart, MapPin, LogOut, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
-import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/contexts/AuthContext";
-
-interface Order {
-  id: string;
-  date: string;
-  items: number;
-  total: number;
-  status: string;
-}
+import { useNavigate } from "react-router-dom";
 
 export const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
   const { user } = useAuth();
 
   // Mock user data
@@ -33,36 +22,25 @@ export const Profile = () => {
     name: user?.name || 'John Doe',
     email: user?.email || 'john.doe@example.com',
     avatar: user?.avatar || '',
-    phone: '+91 98765 43210',
   };
 
-  // Mock orders
-  const recentOrders: Order[] = [
-    {
-      id: 'ORD-001',
-      date: 'Today, 2:30 PM',
-      items: 3,
-      total: 7796,
-      status: 'Out for Delivery',
-    },
-    {
-      id: 'ORD-002',
-      date: 'Yesterday',
-      items: 2,
-      total: 4998,
-      status: 'Delivered',
-    },
-    {
-      id: 'ORD-003',
-      date: '2 days ago',
-      items: 1,
-      total: 2499,
-      status: 'Delivered',
-    },
-  ];
-
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    // Check if using mock auth
+    const hasRealCredentials = import.meta.env.VITE_SUPABASE_URL && 
+                               import.meta.env.VITE_SUPABASE_ANON_KEY &&
+                               import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
+    
+    if (hasRealCredentials) {
+      await supabase.auth.signOut();
+    } else {
+      // Clear mock auth
+      localStorage.removeItem('mock_session');
+      localStorage.removeItem('mock_user');
+      localStorage.removeItem('mock_auth_phone');
+      localStorage.removeItem('mock_otp');
+      window.dispatchEvent(new Event('mockAuthChange'));
+    }
+    
     toast({
       title: "Logged out",
       description: "You've been successfully logged out",
@@ -70,9 +48,6 @@ export const Profile = () => {
     navigate(RouteMap.login());
   };
 
-  const handleToggleDarkMode = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -84,7 +59,7 @@ export const Profile = () => {
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2 border-primary/20">
               <AvatarImage src={userData.avatar} />
-              <AvatarFallback className="bg-background dark:bg-card text-primary text-xl">
+              <AvatarFallback className="bg-background text-primary text-xl">
                 {userData.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
@@ -99,119 +74,39 @@ export const Profile = () => {
       {/* Main Content */}
       <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-3">
-          <Button
-            variant="outline"
-            className="h-20 flex flex-col gap-2"
-            onClick={() => toast({ title: "Coming Soon", description: "Order management feature will be available soon" })}
-          >
-            <Package className="h-5 w-5" />
-            <span className="text-xs">Orders</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-20 flex flex-col gap-2"
-            onClick={() => navigate(RouteMap.wishlist())}
-          >
-            <Heart className="h-5 w-5" />
-            <span className="text-xs">Wishlist</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-20 flex flex-col gap-2"
-            onClick={() => toast({ title: "Coming Soon", description: "Address management feature will be available soon" })}
-          >
-            <MapPin className="h-5 w-5" />
-            <span className="text-xs">Addresses</span>
-          </Button>
+        <div className="space-y-2">
+          <Link to={RouteMap.orders()}>
+            <Button variant="outline" className="w-full justify-start">
+              <Package className="mr-2" />
+              Orders
+            </Button>
+          </Link>
+          <Link to={RouteMap.favorites()}>
+            <Button variant="outline" className="w-full justify-start">
+              <Heart className="mr-2" />
+              Favorites
+            </Button>
+          </Link>
+          <Link to={RouteMap.addresses()}>
+            <Button variant="outline" className="w-full justify-start">
+              <MapPin className="mr-2" />
+              My Addresses
+            </Button>
+          </Link>
+          <Link to={RouteMap.help()}>
+            <Button variant="outline" className="w-full justify-start">
+              <HelpCircle className="mr-2" />
+              Help & Support
+            </Button>
+          </Link>
         </div>
 
-        {/* Settings */}
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Preferences</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {theme === 'dark' ? (
-                    <Moon className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Sun className="h-5 w-5 text-primary" />
-                  )}
-                  <span className="text-sm">Dark Mode</span>
-                </div>
-                <Switch
-                  checked={theme === 'dark'}
-                  onCheckedChange={handleToggleDarkMode}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Orders */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Recent Orders</h3>
-              <Button
-                variant="link"
-                className="text-primary p-0 h-auto text-sm"
-                onClick={() => toast({ title: "Coming Soon", description: "Full order history will be available soon" })}
-              >
-                See all
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {recentOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
-                  onClick={() => navigate(`${RouteMap.track(order.id)}`)}
-                >
-                  <div className="flex-1">
-                    <p className="text-sm font-medium mb-1">{order.id}</p>
-                    <p className="text-xs text-muted-foreground">{order.date}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {order.items} items • ₹{order.total.toLocaleString('en-IN')}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      order.status === 'Delivered' 
-                        ? 'bg-success/20 text-success' 
-                        : 'bg-primary/20 text-primary'
-                    }`}>
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Account Options */}
         <Card>
           <CardContent className="p-4">
             <h3 className="font-semibold mb-4">Account</h3>
             <div className="space-y-1">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => toast({ title: "Coming Soon", description: "Account settings will be available soon" })}
-              >
-                <Settings className="h-5 w-5 mr-3" />
-                Settings
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => toast({ title: "Coming Soon", description: "Help & support center will be available soon" })}
-              >
-                <HelpCircle className="h-5 w-5 mr-3" />
-                Help & Support
-              </Button>
               <Button
                 variant="ghost"
                 className="w-full justify-start text-destructive hover:text-destructive"

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/contexts/CartContext";
 import { useDelivery } from "@/contexts/DeliveryContext";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
@@ -24,15 +23,11 @@ export const CustomerMobileHeader = ({
   onBackClick,
 }: CustomerMobileHeaderProps) => {
   const navigate = useNavigate();
-  const { theme } = useTheme();
   const { cartCount } = useCart();
   const { location, setLocation } = useDelivery();
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [locationInput, setLocationInput] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
-  
-  // Determine if dark mode is active (for logo switching)
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   useEffect(() => {
     if (isLocationSheetOpen && addressInputRef.current) {
@@ -104,89 +99,89 @@ export const CustomerMobileHeader = ({
   }, []);
 
   return (
-    <header className={"sticky top-0 z-40 bg-white dark:bg-card border-b border-border transition-transform duration-200 " + (hidden ? "-translate-y-full" : "translate-y-0") }>
+    <header className={"sticky top-0 z-40 bg-white border-b border-border transition-transform duration-200 " + (hidden ? "-translate-y-full" : "translate-y-0") }>
       {/* Mobile: Two-row layout | Desktop: Single row */}
       <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-0 h-auto md:h-14">
         {/* Row 1: Logo + Location (Mobile) | Logo + Location | SearchBar | Icons (Desktop) */}
-        {showBackButton ? (
+          {showBackButton ? (
           // Back button mode: Single row on all screens
-          <>
+            <>
             <div className="flex items-center gap-2.5 flex-shrink-0 w-full md:w-auto">
               <Button variant="ghost" size="icon" onClick={handleBackClick} className="flex-shrink-0">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               {title && <h1 className="text-lg font-semibold line-clamp-1 truncate">{title}</h1>}
             </div>
-          </>
-        ) : (
-          <>
+            </>
+          ) : (
+            <>
             {/* Mobile Row 1: Logo (left) + Location (right) */}
             {/* Desktop: Logo + Location (left) */}
             <div className="flex items-center justify-between w-full md:w-auto md:flex-shrink-0 md:justify-start gap-2 md:gap-2.5">
               {/* Logo - Responsive sizing (Swiggy 2025 pattern) */}
               <Link to={RouteMap.home()} className="flex-shrink-0" aria-label="Go to home">
                 <img 
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"} 
+                  src="/wyshkit-customer-logo.png"
                   alt="Wyshkit" 
                   className="h-6 md:h-7 lg:h-8 hover:opacity-80 transition-opacity" 
                 />
               </Link>
               {/* Location - Compact (Swiggy 2025 pattern: "Area, City") */}
-              <button 
-                onClick={handleLocationClick}
+                <button 
+                  onClick={handleLocationClick}
                 className="flex items-center gap-1.5 px-2 py-1.5 md:py-1 rounded-md hover:bg-muted/50 transition-colors flex-shrink-0"
-                aria-label="Change location"
-              >
+                  aria-label="Change location"
+                >
                 <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
                 <span className="text-sm font-medium max-w-[90px] sm:max-w-[110px] md:max-w-[140px] truncate" title={location}>
                   {location}
                 </span>
-              </button>
+                </button>
             </div>
             
             {/* Mobile Row 2: Search Bar (full-width) | Desktop: Search Bar (center) */}
             <div className="w-full md:flex-1 md:min-w-0 md:mx-2 lg:mx-4">
               <SearchBar variant="navigation" placeholder="Search for gifts, occasions..." showSuggestions={true} />
-            </div>
-            
+        </div>
+        
             {/* Desktop Only: Cart, Wishlist, Account icons (mobile uses bottom nav) */}
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-11 w-11"
-                onClick={() => navigate(RouteMap.cart())}
-                aria-label={`Shopping cart with ${cartCount} items`}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-11 w-11"
+              onClick={() => navigate(RouteMap.cart())}
+            aria-label={`Shopping cart with ${cartCount} items`}
+          >
+            <ShoppingBag className="h-6 w-6" />
+            {cartCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs pointer-events-none"
               >
-                <ShoppingBag className="h-6 w-6" />
-                {cartCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs pointer-events-none"
-                  >
-                    {cartCount > 9 ? '9+' : cartCount}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11"
-                onClick={() => navigate(RouteMap.wishlist())}
-                aria-label="Wishlist"
-              >
-                <Heart className="h-6 w-6" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11"
-                onClick={() => navigate(RouteMap.profile())}
-                aria-label="Account"
-              >
-                <User className="h-6 w-6" />
-              </Button>
-            </div>
+                {cartCount > 9 ? '9+' : cartCount}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11"
+              onClick={() => navigate(RouteMap.wishlist())}
+            aria-label="Wishlist"
+          >
+            <Heart className="h-6 w-6" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11"
+              onClick={() => navigate(RouteMap.profile())}
+            aria-label="Account"
+          >
+            <User className="h-6 w-6" />
+          </Button>
+        </div>
           </>
         )}
       </div>
@@ -209,7 +204,7 @@ export const CustomerMobileHeader = ({
           </div>
 
           {/* Header */}
-          <div className="sticky top-0 z-10 bg-background dark:bg-card border-b border-border px-4 py-3">
+          <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
             <h2 className="text-lg font-semibold">Select Location</h2>
           </div>
 
@@ -223,13 +218,17 @@ export const CustomerMobileHeader = ({
                   navigator.geolocation.getCurrentPosition(
                     async (position) => {
                       try {
-                        // Reverse geocode coordinates to get actual city name
-                        const cityName = await reverseGeocode(
+                        // Reverse geocode coordinates to get location with area and city
+                        const place = await reverseGeocode(
                           position.coords.latitude,
                           position.coords.longitude
                         );
-                        setLocationInput(cityName);
-                        setLocation(cityName);
+                        // Extract area and city from reverse geocoded address (Swiggy 2025 pattern)
+                        const { area, city, full } = extractAreaAndCity(place);
+                        // Display format: "Area, City" or just area if city is same
+                        const displayLocation = area && city && area !== city ? `${area}, ${city}` : (area || city || full);
+                        setLocationInput(displayLocation);
+                        setLocation(displayLocation);
                         setIsLocationSheetOpen(false);
                       } catch (error) {
                         // Handle error silently in production
