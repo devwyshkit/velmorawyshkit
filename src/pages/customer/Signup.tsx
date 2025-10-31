@@ -35,7 +35,7 @@ export const CustomerMobileSignup = () => {
           data: {
             full_name: name,
           },
-          emailRedirectTo: window.location.origin + '/customer/home',
+          emailRedirectTo: window.location.origin + RouteMap.home(),
         },
       });
 
