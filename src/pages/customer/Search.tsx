@@ -134,7 +134,7 @@ export const CustomerMobileSearch = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Search Header with Back Button */}
-      <header className="sticky top-0 z-40 bg-white dark:bg-card border-b border-border">
+      <header className="sticky top-0 z-40 bg-white border-b border-border">
         <div className="flex items-center gap-3 h-14 px-4">
           <Button
             variant="ghost"

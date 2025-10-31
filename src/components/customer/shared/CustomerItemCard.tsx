@@ -68,9 +68,9 @@ export const CustomerItemCard = ({
           </div>
           {/* Sponsored Badge - Top Left (Small icon + text, Zomato pattern) */}
           {sponsored && (
-            <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
-              <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
-              <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+            <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
+              <Sparkles className="h-2.5 w-2.5 text-amber-900" />
+              <span className="text-amber-900 font-medium">Sponsored</span>
             </Badge>
           )}
           {/* Bestseller/Trending Badge - Top Right (Small icon + text, Swiggy pattern) */}
@@ -106,7 +106,7 @@ export const CustomerItemCard = ({
           )}
           {/* Customizable Badge - Bottom Right (Icon only, secondary info) */}
           {isCustomizable && (
-            <Badge className="absolute bottom-2 right-2 p-1 bg-background/90 dark:bg-card/90 backdrop-blur-sm border border-border" aria-label="Customizable">
+            <Badge className="absolute bottom-2 right-2 p-1 bg-background/90 backdrop-blur-sm border border-border" aria-label="Customizable">
               <Gift className="h-3 w-3 text-primary" />
             </Badge>
           )}
