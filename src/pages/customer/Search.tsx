@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { Search as SearchIcon, ArrowLeft, X, TrendingUp, ArrowUpRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ArrowLeft, TrendingUp, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
+import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { searchItems, searchPartners } from "@/lib/integrations/supabase-data";
 import { EmptyStates } from "@/components/ui/empty-state";
-import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 
 interface SearchResult {
   id: string;
@@ -25,19 +24,16 @@ interface SearchResult {
   sponsored?: boolean;
 }
 
-const RECENT_SEARCHES_KEY = 'wyshkit_recent_searches';
-const MAX_RECENT_SEARCHES = 5;
-
 export const CustomerMobileSearch = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   // Get query params
   const occasionParam = searchParams.get('occasion');
   const viewParam = searchParams.get('view');
+  const queryParam = searchParams.get('q');
 
   // Mock trending searches
   const trendingSearches = [
@@ -48,16 +44,18 @@ export const CustomerMobileSearch = () => {
     'Wedding Favors',
   ];
 
-  // Handle query parameters (occasion or view=partners)
+  // Handle query parameters (occasion or view=partners or q=)
   useEffect(() => {
-    if (occasionParam) {
+    if (queryParam) {
+      setSearchQuery(queryParam);
+    } else if (occasionParam) {
       // Auto-search for occasion
       setSearchQuery(occasionParam);
     } else if (viewParam === 'partners') {
       // Show all partners
       setSearchQuery(''); // Will show trending instead
     }
-  }, [occasionParam, viewParam]);
+  }, [occasionParam, viewParam, queryParam]);
 
   // Backend search with debouncing
   useEffect(() => {
@@ -114,46 +112,15 @@ export const CustomerMobileSearch = () => {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  // Load recent searches on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (stored) {
-      try {
-        setRecentSearches(JSON.parse(stored));
-      } catch (e) {
-        // Handle error silently in production
-      }
-    }
-  }, []);
-
-  const saveRecentSearch = (query: string) => {
-    if (!query.trim()) return;
-    
-    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, MAX_RECENT_SEARCHES);
-    setRecentSearches(updated);
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-  };
-
+  // Handle search from SearchBar component
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    // Update URL with query param
     if (query.trim()) {
-      saveRecentSearch(query);
+      navigate(`/search?q=${encodeURIComponent(query)}`, { replace: true });
+    } else {
+      navigate(RouteMap.search(), { replace: true });
     }
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery("");
-    setResults([]);
-  };
-
-  const handleRecentSearchClick = (query: string) => {
-    setSearchQuery(query);
-    handleSearch(query);
-  };
-
-  const clearRecentSearches = () => {
-    setRecentSearches([]);
-    localStorage.removeItem(RECENT_SEARCHES_KEY);
   };
 
   const handleItemClick = (item: SearchResult) => {
@@ -166,7 +133,7 @@ export const CustomerMobileSearch = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Custom Search Header */}
+      {/* Search Header with Back Button */}
       <header className="sticky top-0 z-40 bg-white dark:bg-card border-b border-border">
         <div className="flex items-center gap-3 h-14 px-4">
           <Button
@@ -176,26 +143,15 @@ export const CustomerMobileSearch = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex-1 relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
+          <div className="flex-1">
+            <SearchBar
+              variant="fullpage"
               placeholder="Search for gifts, partners..."
-              className="pl-9 pr-9"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              autoFocus
+              onSearch={handleSearch}
+              showSuggestions={true}
+              showVoiceSearch={true}
+              defaultValue={searchQuery}
             />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8"
-                onClick={handleClearSearch}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </div>
       </header>
@@ -235,40 +191,8 @@ export const CustomerMobileSearch = () => {
             }}
           />
         ) : (
-          /* Recent & Trending Searches */
+          /* Trending Searches (Recent searches are now handled by SearchBar dropdown) */
           <div className="space-y-4 md:space-y-6">
-            {/* Recent Searches (Swiggy/Zomato pattern) */}
-            {recentSearches.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <SearchIcon className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-semibold">Recent Searches</h2>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground h-auto p-0 text-sm"
-                    onClick={clearRecentSearches}
-                  >
-                    Clear all
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {recentSearches.map((term, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleRecentSearchClick(term)}
-                      className="flex items-center justify-between w-full p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
-                    >
-                      <span className="text-sm">{term}</span>
-                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Trending Searches */}
             <div>
               <div className="flex items-center gap-2 mb-4">
@@ -283,7 +207,7 @@ export const CustomerMobileSearch = () => {
                   className="flex items-center justify-between w-full p-3 bg-muted/50 hover:bg-muted rounded-lg transition-colors text-left"
                 >
                   <span className="text-sm">{term}</span>
-                  <SearchIcon className="h-4 w-4 text-muted-foreground" />
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                 </button>
               ))}
               </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
 import { Gift, Trophy, Flame, Sparkles, Star } from "lucide-react";
@@ -14,19 +14,19 @@ import {
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
-import { FilterChips, type Filter } from "@/components/customer/shared/FilterChips";
-import { EnhancedFooter } from "@/components/customer/shared/EnhancedFooter";
-import { EmailVerificationBanner } from "@/components/customer/shared/EmailVerificationBanner";
-import { CampaignCard } from "@/components/customer/campaigns/CampaignCard";
 import { OptimizedImage } from "@/components/ui/skeleton-screen";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchPartners, groupPartnersByDelivery, type Partner } from "@/lib/integrations/supabase-data";
+import { InfiniteScroll } from "@/components/ui/infinite-scroll";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { fetchPartners, type Partner } from "@/lib/integrations/supabase-data";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useDelivery } from "@/contexts/DeliveryContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import Autoplay from "embla-carousel-autoplay";
+import { EmptyStates } from "@/components/ui/empty-state";
+import { SmartFilters, type SortOption, type FilterOption } from "@/components/customer/shared/SmartFilters";
+import { OfferCard, type Offer } from "@/components/customer/shared/OfferCard";
 import { cn } from "@/lib/utils";
 
 interface Occasion {
@@ -42,27 +42,73 @@ export const CustomerHome = () => {
   const { toast } = useToast();
   const { location, deliveryDate } = useDelivery();
   const { user } = useAuth();
-  const [banners, setBanners] = useState<any[]>([]);
+  const [banners, setBanners] = useState<Array<{ 
+    id: string; 
+    title?: string; 
+    image_url?: string; 
+    cta_link?: string; 
+    link?: string;
+    partner_id?: string;
+    subtitle?: string;
+    description?: string;
+    cta_text?: string;
+    is_active?: boolean;
+  }>>([]);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [featuredCampaigns, setFeaturedCampaigns] = useState<any[]>([]);
+  const [displayedPartners, setDisplayedPartners] = useState<Partner[]>([]);
+  const [hasMorePartners, setHasMorePartners] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [visitedVendors, setVisitedVendors] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
-  const [groupedPartners, setGroupedPartners] = useState<{
-    tomorrow: Partner[];
-    regional: Partner[];
-    panIndia: Partner[];
-  }>({ tomorrow: [], regional: [], panIndia: [] });
+  const [sortBy, setSortBy] = useState<SortOption>('relevance');
+  const [filters, setFilters] = useState<FilterOption[]>([]);
+  const [filteredAndSortedPartners, setFilteredAndSortedPartners] = useState<Partner[]>([]);
+  const [trendingPartners, setTrendingPartners] = useState<Partner[]>([]);
+  const [newLaunches, setNewLaunches] = useState<Partner[]>([]);
+  const [recommendedPartners, setRecommendedPartners] = useState<Partner[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
 
-  // Group partners by delivery time using helper function
-  const groupPartners = (partners: Partner[]) => {
-    return groupPartnersByDelivery(partners, deliveryDate);
-  };
+  const PARTNERS_PER_PAGE = 8;
 
+  // Load visited vendors from localStorage (shown if ≥2 views)
   useEffect(() => {
-    const loadData = async () => {
+    const visitedKey = 'wyshkit_visited_vendors';
+    const visited = JSON.parse(localStorage.getItem(visitedKey) || '[]');
+    // Filter vendors with 2+ views
+    const filtered = visited.filter((v: { viewCount?: number }) => (v.viewCount || 0) >= 2).slice(0, 6);
+    if (filtered.length >= 2) {
+      setVisitedVendors(filtered.map((v: { id: string; name: string; image: string; rating: number; ratingCount?: number; delivery: string; category?: string; tagline?: string; badge?: 'bestseller' | 'trending'; sponsored?: boolean }) => ({
+        id: v.id,
+        name: v.name,
+        image: v.image,
+        rating: v.rating,
+        ratingCount: v.ratingCount,
+        delivery: v.delivery,
+        category: v.category,
+        tagline: v.tagline,
+        badge: v.badge,
+        sponsored: v.sponsored,
+        status: 'approved' as const,
+        is_active: true
+      })));
+    }
+    
+    // Load personalized recommendations (only if user logged in AND visited ≥3 vendors)
+    if (user && visited.length >= 3) {
+      // Use visited vendors + some from partners array for recommendations
+      const visitedIds = new Set(visited.map((v: { id: string }) => v.id));
+      const recommended = partners
+        .filter(p => !visitedIds.has(p.id))
+        .slice(0, 6);
+      setRecommendedPartners(recommended);
+    }
+  }, [user, partners]);
+
+  // Load data function - can be called from useEffect or pull-to-refresh
+  const loadData = useCallback(async () => {
       setLoading(true);
       try {
         const hasSupabaseEnv = Boolean(
@@ -117,11 +163,145 @@ export const CustomerHome = () => {
               sponsored: false,
               status: 'approved' as const,
               is_active: true
+            },
+            {
+              id: '3',
+              name: 'Sweet Delights Bakery',
+              image: 'https://images.unsplash.com/photo-1486427944299-d1955d23da34?w=200&h=200&fit=crop',
+              rating: 4.5,
+              delivery: '1-2 days',
+              location: 'Delhi',
+              category: 'Chocolates & Sweets',
+              tagline: 'Artisan chocolates and gourmet sweets',
+              ratingCount: 32,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            },
+            {
+              id: '4',
+              name: 'Flower Boutique',
+              image: 'https://images.unsplash.com/photo-1563241522-316a37a47b7d?w=200&h=200&fit=crop',
+              rating: 4.7,
+              delivery: 'Same day',
+              location: 'Pune',
+              category: 'Flowers',
+              tagline: 'Fresh flowers for every occasion',
+              ratingCount: 28,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            },
+            {
+              id: '5',
+              name: 'Tech Gift Hub',
+              image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop',
+              rating: 4.4,
+              delivery: '3-5 days',
+              location: 'Hyderabad',
+              category: 'Tech Gifts',
+              tagline: 'Latest gadgets and tech accessories',
+              ratingCount: 45,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            },
+            {
+              id: '6',
+              name: 'Artisan Crafts Co',
+              image: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=200&h=200&fit=crop',
+              rating: 4.9,
+              delivery: '5-7 days',
+              badge: 'trending' as const,
+              location: 'Chennai',
+              category: 'Handmade',
+              tagline: 'Unique handmade gifts',
+              ratingCount: 112,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            },
+            {
+              id: '7',
+              name: 'Gourmet Treats Box',
+              image: 'https://images.unsplash.com/photo-1556910096-6f5e72db6803?w=200&h=200&fit=crop',
+              rating: 4.3,
+              delivery: '2-3 days',
+              location: 'Kolkata',
+              category: 'Food & Beverage',
+              tagline: 'Curated gourmet selections',
+              ratingCount: 18,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
+            },
+            {
+              id: '8',
+              name: 'Books & Beyond',
+              image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=200&fit=crop',
+              rating: 4.6,
+              delivery: '3-4 days',
+              location: 'Delhi',
+              category: 'Books',
+              tagline: 'Curated book collections',
+              ratingCount: 25,
+              sponsored: false,
+              status: 'approved' as const,
+              is_active: true
             }
           ];
-          setPartners(fallbackPartners);
-          setFilteredPartners(fallbackPartners);
-          setGroupedPartners(groupPartners(fallbackPartners));
+            // Sort by rating descending
+            const sorted = [...fallbackPartners].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            setPartners(sorted);
+            
+            // Filter trending and new for fallback data
+            const trending = sorted
+              .filter(p => p.badge === 'trending' || (p.ratingCount || 0) > 100)
+              .slice(0, 8);
+            setTrendingPartners(trending);
+            
+            const newOnes = sorted
+              .filter(p => (p.ratingCount || 0) < 50)
+              .slice(0, 8);
+            // Ensure we always have new launches if partners exist (defensive check)
+            if (newOnes.length === 0 && sorted.length > 0) {
+              // If no partners match, use first few partners as fallback (they're already sorted by rating)
+              // This ensures the section always shows during development
+              const fallbackNew = sorted.slice(0, Math.min(5, sorted.length));
+              setNewLaunches(fallbackNew);
+            } else {
+              setNewLaunches(newOnes);
+            }
+            
+            // Mock offers for fallback
+            const mockOffers: Offer[] = [
+              {
+                id: '1',
+                title: 'Bank Offers',
+                discount: '10% OFF',
+                validUntil: 'Valid till 31 Dec',
+                ctaLink: '/search?filter=offers',
+                bankName: 'HDFC Bank',
+                description: 'On orders above ₹1000'
+              },
+              {
+                id: '2',
+                title: 'First Order Bonus',
+                discount: '₹200 OFF',
+                validUntil: 'Limited time',
+                ctaLink: '/search',
+                description: 'For new customers'
+              },
+              {
+                id: '3',
+                title: 'Festive Special',
+                discount: '15% OFF',
+                validUntil: 'Valid till 31 Dec',
+                ctaLink: '/search',
+                description: 'On all occasions'
+              }
+            ];
+            setOffers(mockOffers);
           return;
         }
 
@@ -172,70 +352,222 @@ export const CustomerHome = () => {
           ]);
         }
 
-          // Load partners from Supabase
+          // Load partners from Supabase (sorted by rating descending)
           const partnersData = await fetchPartners(location);
+          let sortedPartners: Partner[] = [];
           if (partnersData && partnersData.length > 0) {
-            setPartners(partnersData);
-            setFilteredPartners(partnersData);
-            // Group partners by delivery time
-            const grouped = groupPartners(partnersData);
-            setGroupedPartners(grouped);
+            // Sort by rating descending (Swiggy pattern: Top Rated)
+            sortedPartners = [...partnersData].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            setPartners(sortedPartners);
           } else {
-          // Fallback data for development
-          const fallbackPartners = [
+            // Fallback data for development
+            const fallbackPartners = [
+              {
+                id: '1',
+                name: 'GiftCraft Studio',
+                image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
+                rating: 4.8,
+                delivery: '1-2 days',
+                badge: 'bestseller' as const,
+                location: 'Bangalore',
+                category: 'Custom Gifts',
+                tagline: 'Handcrafted personalized gifts',
+                ratingCount: 156,
+                sponsored: false,
+                status: 'approved' as const,
+                is_active: true
+              },
+              {
+                id: '2',
+                name: 'Luxury Hampers Co',
+                image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop',
+                rating: 4.6,
+                delivery: '2-3 days',
+                badge: 'trending' as const,
+                location: 'Mumbai',
+                category: 'Hampers',
+                tagline: 'Premium gift hampers',
+                ratingCount: 89,
+                sponsored: false,
+                status: 'approved' as const,
+                is_active: true
+              },
+              {
+                id: '3',
+                name: 'Sweet Delights Bakery',
+                image: 'https://images.unsplash.com/photo-1486427944299-d1955d23da34?w=200&h=200&fit=crop',
+                rating: 4.5,
+                delivery: '1-2 days',
+                location: 'Delhi',
+                category: 'Chocolates & Sweets',
+                tagline: 'Artisan chocolates and gourmet sweets',
+                ratingCount: 32,
+                sponsored: false,
+                status: 'approved' as const,
+                is_active: true
+              },
+              {
+                id: '4',
+                name: 'Flower Boutique',
+                image: 'https://images.unsplash.com/photo-1563241522-316a37a47b7d?w=200&h=200&fit=crop',
+                rating: 4.7,
+                delivery: 'Same day',
+                location: 'Pune',
+                category: 'Flowers',
+                tagline: 'Fresh flowers for every occasion',
+                ratingCount: 28,
+                sponsored: false,
+                status: 'approved' as const,
+                is_active: true
+              },
+              {
+                id: '5',
+                name: 'Tech Gift Hub',
+                image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop',
+                rating: 4.4,
+                delivery: '3-5 days',
+                location: 'Hyderabad',
+                category: 'Tech Gifts',
+                tagline: 'Latest gadgets and tech accessories',
+                ratingCount: 45,
+                sponsored: false,
+                status: 'approved' as const,
+                is_active: true
+              },
+              {
+                id: '6',
+                name: 'Artisan Crafts Co',
+                image: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=200&h=200&fit=crop',
+                rating: 4.9,
+                delivery: '5-7 days',
+                badge: 'trending' as const,
+                location: 'Chennai',
+                category: 'Handmade',
+                tagline: 'Unique handmade gifts',
+                ratingCount: 112,
+                sponsored: false,
+                status: 'approved' as const,
+                is_active: true
+              },
+              {
+                id: '7',
+                name: 'Gourmet Treats Box',
+                image: 'https://images.unsplash.com/photo-1556910096-6f5e72db6803?w=200&h=200&fit=crop',
+                rating: 4.3,
+                delivery: '2-3 days',
+                location: 'Kolkata',
+                category: 'Food & Beverage',
+                tagline: 'Curated gourmet selections',
+                ratingCount: 18,
+                sponsored: false,
+                status: 'approved' as const,
+                is_active: true
+              },
+              {
+                id: '8',
+                name: 'Books & Beyond',
+                image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=200&fit=crop',
+                rating: 4.6,
+                delivery: '3-4 days',
+                location: 'Delhi',
+                category: 'Books',
+                tagline: 'Curated book collections',
+                ratingCount: 25,
+                sponsored: false,
+                status: 'approved' as const,
+                is_active: true
+              }
+            ];
+            // Sort by rating descending
+            sortedPartners = [...fallbackPartners].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            setPartners(sortedPartners);
+          }
+          // Initialize displayed partners for infinite scroll
+          // Filtering and sorting will be applied in useEffect
+          setDisplayedPartners(sortedPartners.slice(0, PARTNERS_PER_PAGE));
+          setHasMorePartners(sortedPartners.length > PARTNERS_PER_PAGE);
+          setFilteredAndSortedPartners(sortedPartners);
+          
+          // Filter trending partners (badge === 'trending' OR high engagement)
+          const trending = sortedPartners
+            .filter(p => p.badge === 'trending' || (p.ratingCount || 0) > 100)
+            .slice(0, 8);
+          setTrendingPartners(trending);
+          
+          // Filter new launches (ratingCount < 50 - indicates newer partners)
+          const newOnes = sortedPartners
+            .filter(p => (p.ratingCount || 0) < 50)
+            .slice(0, 8);
+          // Ensure we always have new launches if partners exist (defensive check)
+          if (newOnes.length === 0 && sortedPartners.length > 0) {
+            // If no partners match, use first few partners as fallback (they're already sorted by rating)
+            // This ensures the section always shows during development
+            const fallbackNew = sortedPartners.slice(0, Math.min(5, sortedPartners.length));
+            setNewLaunches(fallbackNew);
+          } else {
+            setNewLaunches(newOnes);
+          }
+          
+          // Load offers (mock data - can be migrated to Supabase later)
+          const mockOffers: Offer[] = [
             {
               id: '1',
-              name: 'GiftCraft Studio',
-              image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
-              rating: 4.8,
-              delivery: '1-2 days',
-              badge: 'bestseller' as const,
-              location: 'Bangalore',
-              category: 'Custom Gifts',
-              tagline: 'Handcrafted personalized gifts',
-              ratingCount: 156,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
+              title: 'Bank Offers',
+              discount: '10% OFF',
+              validUntil: 'Valid till 31 Dec',
+              ctaLink: '/search?filter=offers',
+              bankName: 'HDFC Bank',
+              description: 'On orders above ₹1000'
             },
             {
               id: '2',
-              name: 'Luxury Hampers Co',
-              image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop',
-              rating: 4.6,
-              delivery: '2-3 days',
-              badge: 'trending' as const,
-              location: 'Mumbai',
-              category: 'Hampers',
-              tagline: 'Premium gift hampers',
-              ratingCount: 89,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
+              title: 'First Order Bonus',
+              discount: '₹200 OFF',
+              validUntil: 'Limited time',
+              ctaLink: '/search',
+              description: 'For new customers'
+            },
+            {
+              id: '3',
+              title: 'Festive Special',
+              discount: '15% OFF',
+              validUntil: 'Valid till 31 Dec',
+              ctaLink: '/search',
+              description: 'On all occasions'
             }
-            ];
-            setPartners(fallbackPartners);
-            setFilteredPartners(fallbackPartners);
-            // Group fallback partners by delivery time
-            const grouped = groupPartners(fallbackPartners);
-            setGroupedPartners(grouped);
-          }
-
-        // Load featured campaigns
-        const { data: campaigns } = await supabase
-          .from('campaigns')
-          .select('*')
-          .eq('featured', true)
-          .eq('status', 'active')
-          .lte('start_date', new Date().toISOString())
-          .gte('end_date', new Date().toISOString())
-          .limit(5);
-        
-        if (campaigns) {
-          setFeaturedCampaigns(campaigns);
-        }
+          ];
+          setOffers(mockOffers);
       } catch (error) {
         console.error('Error loading data:', error);
+        // Ensure offers are still set even on error (fallback)
+        const mockOffers: Offer[] = [
+          {
+            id: '1',
+            title: 'Bank Offers',
+            discount: '10% OFF',
+            validUntil: 'Valid till 31 Dec',
+            ctaLink: '/search?filter=offers',
+            bankName: 'HDFC Bank',
+            description: 'On orders above ₹1000'
+          },
+          {
+            id: '2',
+            title: 'First Order Bonus',
+            discount: '₹200 OFF',
+            validUntil: 'Limited time',
+            ctaLink: '/search',
+            description: 'For new customers'
+          },
+          {
+            id: '3',
+            title: 'Festive Special',
+            discount: '15% OFF',
+            validUntil: 'Valid till 31 Dec',
+            ctaLink: '/search',
+            description: 'On all occasions'
+          }
+        ];
+        setOffers(mockOffers);
         toast({
           title: "Loading error",
           description: "Some content may not be available",
@@ -244,10 +576,11 @@ export const CustomerHome = () => {
       } finally {
         setLoading(false);
       }
-    };
+  }, [location, toast]);
 
+  useEffect(() => {
     loadData();
-  }, [location, deliveryDate]);
+  }, [loadData]);
 
   useEffect(() => {
     if (!carouselApi) {
@@ -261,47 +594,119 @@ export const CustomerHome = () => {
     });
   }, [carouselApi]);
 
-  const handleFilterChange = (activeFilters: Filter[]) => {
-    if (activeFilters.length === 0) {
-      setFilteredPartners(partners);
-      return;
-    }
-
-    // Filter partners based on active filters
+  // Apply filters and sorting to partners
+  useEffect(() => {
     let filtered = [...partners];
 
-    activeFilters.forEach(filter => {
-      if (filter.category === 'price') {
-        // Filter partners by their category's typical price range
-        const priceRanges: Record<string, (partner: Partner) => boolean> = {
-          'Under ₹500': (p) => ['Chocolates', 'Food & Beverage'].includes(p.category || ''),
-          '₹500-₹1000': (p) => ['Personalized', 'Chocolates'].includes(p.category || ''),
-          '₹1000-₹2500': (p) => ['Tech Gifts', 'Gourmet'].includes(p.category || ''),
-          'Above ₹2500': (p) => ['Premium', 'Tech Gifts'].includes(p.category || ''),
-        };
-        const filterFn = priceRanges[filter.label];
-        if (filterFn) {
-          filtered = filtered.filter(filterFn);
+    // Apply filters
+    if (filters.length > 0) {
+      filters.forEach(filter => {
+        switch (filter) {
+          case 'offers':
+            // Partners with offers/badges (mock: check for badge or sponsored)
+            filtered = filtered.filter(p => p.badge || p.sponsored);
+            break;
+          case 'fast-delivery':
+            // Partners with fast delivery (mock: delivery time < 1 day)
+            filtered = filtered.filter(p => {
+              const deliveryMatch = p.delivery?.match(/\d+/);
+              if (deliveryMatch) {
+                const hours = parseInt(deliveryMatch[0]);
+                return hours < 24; // Less than 24 hours
+              }
+              return false;
+            });
+            break;
+          case 'new':
+            // New partners (mock: no badge and ratingCount < 50)
+            filtered = filtered.filter(p => !p.badge && (p.ratingCount || 0) < 50);
+            break;
         }
-      } else if (filter.category === 'occasion') {
-        // Filter by category match (Birthday, Anniversary, etc. → show all for now)
-        // In production, would check partner.occasionTags array
-      } else if (filter.category === 'category') {
-        // Filter by exact category match
-        filtered = filtered.filter(p => p.category === filter.label);
-      }
-    });
+      });
+    }
 
-    setFilteredPartners(filtered);
+    // Apply sorting
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case 'rating':
+        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'delivery':
+        // Sort by delivery time (extract numbers, lower is faster)
+        sorted.sort((a, b) => {
+          const aMatch = a.delivery?.match(/\d+/);
+          const bMatch = b.delivery?.match(/\d+/);
+          const aTime = aMatch ? parseInt(aMatch[0]) : 999;
+          const bTime = bMatch ? parseInt(bMatch[0]) : 999;
+          return aTime - bTime;
+        });
+        break;
+      case 'cost-low':
+        // Mock: sort by ratingCount (lower = cheaper, for demo)
+        sorted.sort((a, b) => (a.ratingCount || 0) - (b.ratingCount || 0));
+        break;
+      case 'cost-high':
+        // Mock: sort by ratingCount (higher = expensive, for demo)
+        sorted.sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0));
+        break;
+      case 'relevance':
+      default:
+        // Relevance = rating + review count (Swiggy pattern)
+        sorted.sort((a, b) => {
+          const aScore = (a.rating || 0) * 10 + (a.ratingCount || 0);
+          const bScore = (b.rating || 0) * 10 + (b.ratingCount || 0);
+          return bScore - aScore;
+        });
+        break;
+    }
+
+    setFilteredAndSortedPartners(sorted);
+    // Reset displayed partners when filters/sort change
+    setDisplayedPartners(sorted.slice(0, PARTNERS_PER_PAGE));
+    setHasMorePartners(sorted.length > PARTNERS_PER_PAGE);
+  }, [partners, filters, sortBy, PARTNERS_PER_PAGE]);
+
+  // Load more partners for infinite scroll
+  const loadMorePartners = async () => {
+    if (isLoadingMore || !hasMorePartners) return;
+    
+    setIsLoadingMore(true);
+    try {
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const currentCount = displayedPartners.length;
+      const nextBatch = filteredAndSortedPartners.slice(currentCount, currentCount + PARTNERS_PER_PAGE);
+      setDisplayedPartners([...displayedPartners, ...nextBatch]);
+      setHasMorePartners(currentCount + PARTNERS_PER_PAGE < filteredAndSortedPartners.length);
+    } catch (error) {
+      console.error('Error loading more partners:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
+
+  // Pull to refresh handler - reloads all data
+  const handleRefresh = useCallback(async () => {
+    await loadData();
+  }, [loadData]);
+
+  // Wire up pull-to-refresh hook
+  const { isRefreshing, pullDistance, handleTouchStart } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 100
+  });
+
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
         <CustomerMobileHeader />
-        <main className="max-w-screen-xl mx-auto space-y-4 pt-4 px-4">
-          {/* Hero Skeleton - Matches actual h-32 banner height */}
-          <Skeleton className="h-32 w-full rounded-xl" />
+        <main className="max-w-screen-xl mx-auto space-y-4 pt-4">
+          {/* Hero Skeleton - Matches actual h-40 banner height */}
+          <section className="px-4">
+            <Skeleton className="h-40 w-full rounded-xl" />
+          </section>
           
           {/* Occasions Skeleton */}
           <div className="flex gap-4 overflow-hidden">
@@ -314,10 +719,10 @@ export const CustomerHome = () => {
           </div>
 
           {/* Partners Skeleton - Matches actual partner card structure */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="space-y-1 p-2">
-                <Skeleton className="aspect-square rounded-lg mb-2" />
+              <div key={i} className="space-y-1.5 p-2.5 bg-card rounded-xl">
+                <Skeleton className="aspect-square rounded-lg mb-2.5 bg-muted" />
                 <Skeleton className="h-4 w-3/4" />  {/* Name: text-base */}
                 <Skeleton className="h-3 w-1/2" />  {/* Category: text-xs */}
                 <Skeleton className="h-3 w-2/3" />  {/* Rating + Delivery */}
@@ -334,11 +739,6 @@ export const CustomerHome = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <CustomerMobileHeader />
-      
-      {/* Email Verification Banner - Show if user not verified */}
-      {user && !user.isEmailVerified && (
-        <EmailVerificationBanner email={user.email} />
-      )}
 
       {/* Main Content */}
       <main className="max-w-screen-xl mx-auto space-y-4 pt-4">
@@ -354,19 +754,11 @@ export const CustomerHome = () => {
                   align: "start",
                   loop: true,
                 }}
-                plugins={[
-                  Autoplay({
-                    delay: 3500,  // 3.5 seconds (Swiggy standard)
-                    stopOnInteraction: true,      // Pause on click/drag
-                    stopOnMouseEnter: true,       // Pause on hover (Zomato pattern)
-                    stopOnFocusIn: true,          // Pause on keyboard focus (WCAG 2.2.2)
-                  }),
-                ]}
                 className="w-full"
               >
                 <CarouselContent className="-ml-2">
                   {banners.map((item) => (
-                    <CarouselItem key={item.id} className="basis-[90%] pl-2 md:basis-[45%]">
+                    <CarouselItem key={item.id} className="basis-[85%] pl-2 md:basis-[45%]">
                       <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] border-0 overflow-hidden">
                         <CardContent className="p-0">
                           <div
@@ -379,8 +771,17 @@ export const CustomerHome = () => {
                                 src={item.image_url}
                                 alt={item.title}
                                 width={400}
-                                height={128}
-                                className="absolute inset-0 w-full h-full object-cover"
+                                height={160}
+                                className="absolute inset-0 w-full h-full object-cover md:hidden"
+                              />
+                            )}
+                            {item.image_url && (
+                              <OptimizedImage
+                                src={item.image_url}
+                                alt={item.title}
+                                width={800}
+                                height={192}
+                                className="absolute inset-0 w-full h-full object-cover hidden md:block"
                               />
                             )}
                             
@@ -407,7 +808,7 @@ export const CustomerHome = () => {
               </Carousel>
               
               {/* Indicators (left) & Small Navigation Arrows (right) - Below carousel */}
-              <div className="flex items-center justify-between mt-3 px-2">
+              <div className="flex items-center justify-between mt-3 px-4">
                 {/* Left: Dot Indicators */}
                 <div className="flex gap-1">
                   {banners.map((_, idx) => (
@@ -451,35 +852,18 @@ export const CustomerHome = () => {
           )}
         </section>
 
-        {/* Active Campaigns - Swiggy/Zomato Offers Pattern */}
-        {featuredCampaigns.length > 0 && (
-          <section className="space-y-3">
-            <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                🎯 Active Offers
-                <Badge variant="secondary" className="text-xs">
-                  {featuredCampaigns.length}
-                </Badge>
-              </h2>
-              <Button
-                variant="link"
-                className="text-primary p-0 h-auto text-sm"
-                onClick={() => navigate(RouteMap.search("filter=offers"))}
-              >
-                View All →
-              </Button>
-            </div>
-            <div className="px-4 space-y-3">
-              {featuredCampaigns.slice(0, 3).map((campaign) => (
-                <CampaignCard key={campaign.id} campaign={campaign} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Occasions - ROUND cards like Swiggy: Single row for service marketplace focus */}
+        {/* Occasions - Swiggy pattern */}
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold px-4">What's the occasion?</h2>
+          <div className="flex items-center justify-between px-4">
+            <h2 className="text-lg font-semibold">Shop by Occasion</h2>
+            <Button
+              variant="link"
+              className="text-primary p-0 h-auto text-sm"
+              onClick={() => navigate(RouteMap.search())}
+            >
+              View All →
+            </Button>
+          </div>
           {/* Single row horizontal scroll (optimized for partner card visibility) */}
           <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
             {occasions.map((occasion) => (
@@ -505,39 +889,99 @@ export const CustomerHome = () => {
           </div>
         </section>
 
-        {/* Filter Chips */}
-        <section className="px-4">
-          <FilterChips onFilterChange={handleFilterChange} />
-        </section>
-
-        {/* Partners Grouped by Delivery Time - Swiggy Pattern */}
-        {groupedPartners.tomorrow.length > 0 && (
+        {/* Featured Offers - Swiggy 2025 pattern */}
+        {offers.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                ⚡ Delivering Tomorrow (Local)
-                <Badge variant="secondary" className="text-xs">
-                  {groupedPartners.tomorrow.length}
-                </Badge>
-              </h2>
+              <h2 className="text-lg font-semibold">Featured Offers</h2>
               <Button
                 variant="link"
-                className="text-primary p-0 h-auto"
-                onClick={() => navigate(RouteMap.search("delivery=tomorrow"))}
+                className="text-primary p-0 h-auto text-sm"
+                onClick={() => navigate(RouteMap.search('?filter=offers'))}
               >
                 View All →
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
-              {groupedPartners.tomorrow.slice(0, 6).map((partner) => (
+            {/* Horizontal scroll */}
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+              {offers.map((offer) => (
+                <OfferCard
+                  key={offer.id}
+                  offer={offer}
+                  onClick={() => navigate(offer.ctaLink || RouteMap.search())}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Top Rated Partners - Single unified section (Swiggy pattern) */}
+        {!loading && partners.length === 0 ? (
+          /* Empty State when no partners available */
+          <section className="px-4 py-8">
+            <EmptyStates.Products
+              title="No partners available"
+              description={`We couldn't find any partners in ${location}. Try changing your location or check back later.`}
+              action={{
+                label: "Change Location",
+                onClick: () => {
+                  // Trigger location selector
+                  const locationButton = document.querySelector('[aria-label="Change location"]');
+                  if (locationButton) {
+                    (locationButton as HTMLElement).click();
+                  }
+                }
+              }}
+              secondaryAction={{
+                label: "Browse All",
+                onClick: () => navigate(RouteMap.search())
+              }}
+            />
+          </section>
+        ) : partners.length > 0 ? (
+          <section className="space-y-3 bg-background">
+            {/* Smart Filters - Sticky (Swiggy 2025 pattern) */}
+            <SmartFilters
+              sortBy={sortBy}
+              filters={filters}
+              onSortChange={setSortBy}
+              onFilterChange={setFilters}
+              sticky={true}
+            />
+            
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-lg font-semibold">
+                Top Rated • {location}
+              </h2>
+              <Button
+                variant="link"
+                className="text-primary p-0 h-auto text-sm"
+                onClick={() => navigate(RouteMap.search())}
+              >
+                View All →
+              </Button>
+            </div>
+            <PullToRefresh
+              isRefreshing={isRefreshing}
+              pullDistance={pullDistance}
+              onTouchStart={handleTouchStart}
+            >
+              <InfiniteScroll
+                hasMore={hasMorePartners}
+                isLoading={isLoadingMore}
+                onLoadMore={loadMorePartners}
+                threshold={100}
+              >
+                <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
+                  {displayedPartners.map((partner) => (
               <Card
                 key={partner.id}
                 className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
                 onClick={() => navigate(RouteMap.vendor(partner.id))}
               >
-                <CardContent className="p-2">
+                <CardContent className="p-2.5">
                   {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
+                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
                     <OptimizedImage
                       src={partner.image}
                       alt={partner.name}
@@ -556,16 +1000,21 @@ export const CustomerHome = () => {
                     {/* Bestseller/Trending Badge - Top Right (Small icon + text, no conflict with sponsored) */}
                     {partner.badge && !partner.sponsored && (
                       <Badge
-                        className="absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] bg-[#FFB3AF] dark:bg-[#8B4A47] border-0"
+                        className={cn(
+                          "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
+                          partner.badge === 'bestseller'
+                            ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
+                            : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                        )}
                       >
                         {partner.badge === 'bestseller' ? (
                           <>
-                            <Trophy className="h-2.5 w-2.5 text-foreground" />
+                            <Trophy className="h-2.5 w-2.5" />
                             <span className="font-medium">Bestseller</span>
                           </>
                         ) : (
                           <>
-                            <Flame className="h-2.5 w-2.5 text-foreground" />
+                            <Flame className="h-2.5 w-2.5" />
                             <span className="font-medium">Trending</span>
                           </>
                         )}
@@ -574,7 +1023,7 @@ export const CustomerHome = () => {
                   </div>
                   
                   {/* Content */}
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {/* Name - clamp to 2 lines for stability */}
                     <h3 className="text-base font-bold line-clamp-2">
                       {partner.name}
@@ -593,12 +1042,7 @@ export const CustomerHome = () => {
                       </span>
                       <span>•</span>
                       <span>{partner.delivery}</span>
-                      {partner.distance && (
-                        <>
-                          <span>•</span>
-                          <span>{partner.distance}</span>
-                        </>
-                      )}
+                      {/* Distance can be added to Partner type later if needed */}
                     </div>
                     {/* No price in vendor cards to keep to 3 signals */}
                     
@@ -607,61 +1051,43 @@ export const CustomerHome = () => {
                       <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
                     )}
                   </div>
-                  
-                  {/* Product Thumbnails Preview - Uber Eats pattern for discovery */}
-                  <div className="flex gap-1 mt-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="snap-start w-12 h-12 rounded bg-muted flex-shrink-0">
-                        <OptimizedImage 
-                          src={`https://picsum.photos/seed/thumb-${partner.id}-${i}/100/100`}
-                          alt={`Product ${i}`}
-                          width={48}
-                          height={48}
-                          className="w-full h-full object-cover rounded"
-                          loading="lazy"
-                        />
-                      </div>
-                    ))}
-                  </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </section>
-        )}
+                  ))}
+                </div>
+              </InfiniteScroll>
+            </PullToRefresh>
+          </section>
+        ) : null}
 
-        {/* Regional Partners - 2-3 Days */}
-        {groupedPartners.regional.length > 0 && (
+        {/* Trending Partners - Swiggy 2025 pattern */}
+        {trendingPartners.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                📦 Delivering in 2-3 Days (Regional)
-                <Badge variant="secondary" className="text-xs">
-                  {groupedPartners.regional.length}
-                </Badge>
-              </h2>
+              <h2 className="text-lg font-semibold">Trending</h2>
               <Button
                 variant="link"
-                className="text-primary p-0 h-auto"
-                onClick={() => navigate(RouteMap.search("delivery=regional"))}
+                className="text-primary p-0 h-auto text-sm"
+                onClick={() => navigate(RouteMap.search('?filter=trending'))}
               >
                 View All →
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
-              {groupedPartners.regional.slice(0, 6).map((partner) => (
+            {/* Horizontal scroll */}
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+              {trendingPartners.map((partner) => (
                 <Card
                   key={partner.id}
-                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[160px] md:w-[180px]"
                   onClick={() => navigate(RouteMap.vendor(partner.id))}
                 >
-                  <CardContent className="p-2">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
+                  <CardContent className="p-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
                       <OptimizedImage
                         src={partner.image}
                         alt={partner.name}
-                        width={200}
-                        height={200}
+                        width={160}
+                        height={160}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
@@ -671,14 +1097,34 @@ export const CustomerHome = () => {
                           <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
                         </Badge>
                       )}
-                      {partner.badge && (
-                        <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground px-1.5 py-0.5 text-[10px]">
-                          {partner.badge === 'bestseller' ? '🔥' : '📈'} {partner.badge}
+                      {partner.badge && !partner.sponsored && (
+                        <Badge
+                          className={cn(
+                            "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
+                            partner.badge === 'bestseller'
+                              ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
+                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                          )}
+                        >
+                          {partner.badge === 'bestseller' ? (
+                            <>
+                              <Trophy className="h-2.5 w-2.5" />
+                              <span className="font-medium">Bestseller</span>
+                            </>
+                          ) : (
+                            <>
+                              <Flame className="h-2.5 w-2.5" />
+                              <span className="font-medium">Trending</span>
+                            </>
+                          )}
                         </Badge>
                       )}
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="text-base font-semibold line-clamp-2">{partner.name}</h3>
+                    <div className="space-y-1.5">
+                      <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
+                      {partner.category && (
+                        <p className="text-xs text-muted-foreground">{partner.category}</p>
+                      )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -686,12 +1132,6 @@ export const CustomerHome = () => {
                         </span>
                         <span>•</span>
                         <span>{partner.delivery}</span>
-                        {partner.distance && (
-                          <>
-                            <span>•</span>
-                            <span>{partner.distance}</span>
-                          </>
-                        )}
                       </div>
                       {partner.tagline && (
                         <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
@@ -704,38 +1144,34 @@ export const CustomerHome = () => {
           </section>
         )}
 
-        {/* Pan-India Partners - 5-7 Days */}
-        {groupedPartners.panIndia.length > 0 && (
+        {/* New Launches - Swiggy 2025 pattern */}
+        {newLaunches.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                🌐 More Options (Pan-India)
-                <Badge variant="secondary" className="text-xs">
-                  {groupedPartners.panIndia.length}
-                </Badge>
-              </h2>
+              <h2 className="text-lg font-semibold">New on Wyshkit</h2>
               <Button
                 variant="link"
-                className="text-primary p-0 h-auto"
-                onClick={() => navigate(RouteMap.search("delivery=pan-india"))}
+                className="text-primary p-0 h-auto text-sm"
+                onClick={() => navigate(RouteMap.search('?filter=new'))}
               >
                 View All →
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4">
-              {groupedPartners.panIndia.slice(0, 6).map((partner) => (
+            {/* Horizontal scroll */}
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+              {newLaunches.map((partner) => (
                 <Card
                   key={partner.id}
-                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[160px] md:w-[180px]"
                   onClick={() => navigate(RouteMap.vendor(partner.id))}
                 >
-                  <CardContent className="p-2">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
+                  <CardContent className="p-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
                       <OptimizedImage
                         src={partner.image}
                         alt={partner.name}
-                        width={200}
-                        height={200}
+                        width={160}
+                        height={160}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
@@ -745,14 +1181,34 @@ export const CustomerHome = () => {
                           <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
                         </Badge>
                       )}
-                      {partner.badge && (
-                        <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground px-1.5 py-0.5 text-[10px]">
-                          {partner.badge === 'bestseller' ? '🔥' : '📈'} {partner.badge}
+                      {partner.badge && !partner.sponsored && (
+                        <Badge
+                          className={cn(
+                            "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
+                            partner.badge === 'bestseller'
+                              ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
+                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                          )}
+                        >
+                          {partner.badge === 'bestseller' ? (
+                            <>
+                              <Trophy className="h-2.5 w-2.5" />
+                              <span className="font-medium">Bestseller</span>
+                            </>
+                          ) : (
+                            <>
+                              <Flame className="h-2.5 w-2.5" />
+                              <span className="font-medium">Trending</span>
+                            </>
+                          )}
                         </Badge>
                       )}
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="text-base font-semibold line-clamp-2">{partner.name}</h3>
+                    <div className="space-y-1.5">
+                      <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
+                      {partner.category && (
+                        <p className="text-xs text-muted-foreground">{partner.category}</p>
+                      )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
@@ -760,13 +1216,180 @@ export const CustomerHome = () => {
                         </span>
                         <span>•</span>
                         <span>{partner.delivery}</span>
-                        {partner.distance && (
-                          <>
-                            <span>•</span>
-                            <span>{partner.distance}</span>
-                          </>
-                        )}
                       </div>
+                      {partner.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Personalized Recommendations - Swiggy 2025 pattern */}
+        {recommendedPartners.length > 0 && user && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-lg font-semibold">Recommended for You</h2>
+              <Button
+                variant="link"
+                className="text-primary p-0 h-auto text-sm"
+                onClick={() => navigate(RouteMap.search())}
+              >
+                View All →
+              </Button>
+            </div>
+            {/* Horizontal scroll */}
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+              {recommendedPartners.map((partner) => (
+                <Card
+                  key={partner.id}
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[160px] md:w-[180px]"
+                  onClick={() => navigate(RouteMap.vendor(partner.id))}
+                >
+                  <CardContent className="p-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
+                      <OptimizedImage
+                        src={partner.image}
+                        alt={partner.name}
+                        width={160}
+                        height={160}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {partner.sponsored && (
+                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
+                          <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+                        </Badge>
+                      )}
+                      {partner.badge && !partner.sponsored && (
+                        <Badge
+                          className={cn(
+                            "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
+                            partner.badge === 'bestseller'
+                              ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
+                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                          )}
+                        >
+                          {partner.badge === 'bestseller' ? (
+                            <>
+                              <Trophy className="h-2.5 w-2.5" />
+                              <span className="font-medium">Bestseller</span>
+                            </>
+                          ) : (
+                            <>
+                              <Flame className="h-2.5 w-2.5" />
+                              <span className="font-medium">Trending</span>
+                            </>
+                          )}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
+                      {partner.category && (
+                        <p className="text-xs text-muted-foreground">{partner.category}</p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
+                        </span>
+                        <span>•</span>
+                        <span>{partner.delivery}</span>
+                      </div>
+                      {partner.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Visited Vendors - Conditional (≥2 views) */}
+        {visitedVendors.length >= 2 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-lg font-semibold">Visited Vendors</h2>
+              <Button
+                variant="link"
+                className="text-primary p-0 h-auto text-sm"
+                onClick={() => navigate(RouteMap.search())}
+              >
+                View All →
+              </Button>
+            </div>
+            {/* Horizontal scroll (6 vendors) */}
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+              {visitedVendors.map((partner) => (
+                <Card
+                  key={partner.id}
+                  className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[160px] md:w-[180px]"
+                  onClick={() => navigate(RouteMap.vendor(partner.id))}
+                >
+                  <CardContent className="p-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2.5">
+                      <OptimizedImage
+                        src={partner.image}
+                        alt={partner.name}
+                        width={160}
+                        height={160}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {partner.sponsored && (
+                        <Badge className="absolute top-2 left-2 bg-amber-100 dark:bg-amber-900 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200 dark:border-amber-700">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-900 dark:text-amber-100" />
+                          <span className="text-amber-900 dark:text-amber-100 font-medium">Sponsored</span>
+                        </Badge>
+                      )}
+                      {partner.badge && !partner.sponsored && (
+                        <Badge
+                          className={cn(
+                            "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
+                            partner.badge === 'bestseller'
+                              ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
+                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                          )}
+                        >
+                          {partner.badge === 'bestseller' ? (
+                            <>
+                              <Trophy className="h-2.5 w-2.5" />
+                              <span className="font-medium">Bestseller</span>
+                            </>
+                          ) : (
+                            <>
+                              <Flame className="h-2.5 w-2.5" />
+                              <span className="font-medium">Trending</span>
+                            </>
+                          )}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      {/* Name - clamp to 2 lines for stability */}
+                      <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
+                      {/* Category - 12px gray per spec */}
+                      {partner.category && (
+                        <p className="text-xs text-muted-foreground">{partner.category}</p>
+                      )}
+                      {/* Meta row: rating (+count) • ETA • distance (if available) */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
+                        </span>
+                        <span>•</span>
+                        <span>{partner.delivery}</span>
+                        {/* Distance can be added to Partner type later if needed */}
+                      </div>
+                      {/* Tagline - 12px gray, 1 line per spec */}
                       {partner.tagline && (
                         <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
                       )}
@@ -779,10 +1402,6 @@ export const CustomerHome = () => {
         )}
       </main>
 
-      {/* Enhanced Footer - Swiggy/Zomato Pattern */}
-      <EnhancedFooter />
-      
-      <FloatingCartButton />
       <CustomerBottomNav />
     </div>
   );

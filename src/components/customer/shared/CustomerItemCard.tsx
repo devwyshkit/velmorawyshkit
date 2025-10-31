@@ -76,16 +76,21 @@ export const CustomerItemCard = ({
           {/* Bestseller/Trending Badge - Top Right (Small icon + text, Swiggy pattern) */}
           {badge && !campaignDiscount && (
             <Badge
-              className="absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] bg-[#FFB3AF] dark:bg-[#8B4A47] border-0"
+              className={cn(
+                "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
+                badge === 'bestseller'
+                  ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
+                  : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+              )}
             >
               {badge === 'bestseller' ? (
                 <>
-                  <Trophy className="h-2.5 w-2.5 text-foreground" />
+                  <Trophy className="h-2.5 w-2.5" />
                   <span className="font-medium">Bestseller</span>
                 </>
               ) : (
                 <>
-                  <Flame className="h-2.5 w-2.5 text-foreground" />
+                  <Flame className="h-2.5 w-2.5" />
                   <span className="font-medium">Trending</span>
                 </>
               )}

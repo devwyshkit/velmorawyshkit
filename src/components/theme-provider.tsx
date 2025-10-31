@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 
 type Theme = "dark" | "light" | "system";
 
@@ -26,9 +26,23 @@ export function ThemeProvider({
   storageKey = "wyshkit-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  );
+  // Use lazy initialization to avoid SSR issues
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
+  
+  // Initialize from localStorage in useEffect to avoid SSR issues
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored && ['dark', 'light', 'system'].includes(stored)) {
+          setTheme(stored as Theme);
+        }
+      } catch (error) {
+        // Handle localStorage errors silently
+        console.error('Failed to read theme from localStorage:', error);
+      }
+    }
+  }, [storageKey]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -48,13 +62,20 @@ export function ThemeProvider({
     root.classList.add(theme);
   }, [theme]);
 
-  const value = {
+  const value = useMemo(() => ({
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: (newTheme: Theme) => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(storageKey, newTheme);
+        }
+        setTheme(newTheme);
+      } catch (error) {
+        console.error('Failed to save theme to localStorage:', error);
+        setTheme(newTheme);
+      }
     },
-  };
+  }), [theme, storageKey]);
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>

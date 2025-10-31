@@ -1,19 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search, Calendar } from "lucide-react";
+import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format, addDays } from "date-fns";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/contexts/CartContext";
 import { useDelivery } from "@/contexts/DeliveryContext";
-import { loadGooglePlaces, initAutocomplete, formatAddress, reverseGeocode } from "@/lib/integrations/google-places";
+import { SearchBar } from "@/components/customer/shared/SearchBar";
+import { loadGooglePlaces, initAutocomplete, formatAddress, reverseGeocode, extractAreaAndCity } from "@/lib/integrations/google-places";
 
 interface CustomerMobileHeaderProps {
   showBackButton?: boolean;
@@ -29,27 +26,10 @@ export const CustomerMobileHeader = ({
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { cartCount } = useCart();
-  const { location, setLocation, deliveryDate, setDeliveryDate } = useDelivery();
+  const { location, setLocation } = useDelivery();
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [locationInput, setLocationInput] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
-  
-  // Format delivery date for display
-  const formatDeliveryDate = (date: Date) => {
-    const today = new Date();
-    const tomorrow = addDays(today, 1);
-    const dayAfterTomorrow = addDays(today, 2);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return "Tomorrow";
-    } else if (date.toDateString() === dayAfterTomorrow.toDateString()) {
-      return "Day After";
-    } else {
-      return format(date, "MMM dd");
-    }
-  };
   
   // Determine if dark mode is active (for logo switching)
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -59,11 +39,11 @@ export const CustomerMobileHeader = ({
       loadGooglePlaces().then(() => {
         if (addressInputRef.current) {
           initAutocomplete(addressInputRef.current, (place) => {
-            const formattedAddress = formatAddress(place);
-            // Extract city name from formatted address
-            const cityMatch = formattedAddress.match(/([^,]+),/);
-            const cityName = cityMatch ? cityMatch[1].trim() : formattedAddress.split(',')[0].trim();
-            setLocationInput(cityName);
+            // Extract area and city (Swiggy 2025 pattern: "Area, City")
+            const { area, city, full } = extractAreaAndCity(place);
+            // Display format: "Area, City" or just area if city is same
+            const displayLocation = area && city && area !== city ? `${area}, ${city}` : (area || city || full);
+            setLocationInput(displayLocation);
           });
         }
       });
@@ -125,108 +105,90 @@ export const CustomerMobileHeader = ({
 
   return (
     <header className={"sticky top-0 z-40 bg-white dark:bg-card border-b border-border transition-transform duration-200 " + (hidden ? "-translate-y-full" : "translate-y-0") }>
-      <div className="flex items-center justify-between h-14 px-4">
-        <div className="flex items-center gap-3 flex-1">
-          {showBackButton ? (
-            <>
-              <Button variant="ghost" size="icon" onClick={handleBackClick}>
+      {/* Mobile: Two-row layout | Desktop: Single row */}
+      <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-0 h-auto md:h-14">
+        {/* Row 1: Logo + Location (Mobile) | Logo + Location | SearchBar | Icons (Desktop) */}
+        {showBackButton ? (
+          // Back button mode: Single row on all screens
+          <>
+            <div className="flex items-center gap-2.5 flex-shrink-0 w-full md:w-auto">
+              <Button variant="ghost" size="icon" onClick={handleBackClick} className="flex-shrink-0">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              {title && <h1 className="text-lg font-semibold line-clamp-1">{title}</h1>}
-            </>
-          ) : (
-            <>
+              {title && <h1 className="text-lg font-semibold line-clamp-1 truncate">{title}</h1>}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Mobile Row 1: Logo (left) + Location (right) */}
+            {/* Desktop: Logo + Location (left) */}
+            <div className="flex items-center justify-between w-full md:w-auto md:flex-shrink-0 md:justify-start gap-2 md:gap-2.5">
+              {/* Logo - Responsive sizing (Swiggy 2025 pattern) */}
               <Link to={RouteMap.home()} className="flex-shrink-0" aria-label="Go to home">
                 <img 
                   src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-customer-logo.png"} 
                   alt="Wyshkit" 
-                  className="h-8 hover:opacity-80 transition-opacity" 
+                  className="h-6 md:h-7 lg:h-8 hover:opacity-80 transition-opacity" 
                 />
               </Link>
-              {/* Location and Date - Swiggy pattern */}
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={handleLocationClick}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
-                  aria-label="Change location"
-                >
-                  <MapPin className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium max-w-[100px] truncate">{location}</span>
-                </button>
-                
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button 
-                      className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
-                      aria-label="Change delivery date"
-                    >
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">{formatDeliveryDate(deliveryDate)}</span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={deliveryDate}
-                      onSelect={(date) => date && setDeliveryDate(date)}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </>
-          )}
-        </div>
-        
-        {/* Desktop Only: Search, Cart, Wishlist, Account icons (mobile uses bottom nav) */}
-        <div className="hidden md:flex items-center gap-2">
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11"
-            onClick={() => navigate(RouteMap.search())}
-            aria-label="Search"
-          >
-            <Search className="h-6 w-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-11 w-11"
-              onClick={() => navigate(RouteMap.cart())}
-            aria-label={`Shopping cart with ${cartCount} items`}
-          >
-            <ShoppingBag className="h-6 w-6" />
-            {cartCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs pointer-events-none"
+              {/* Location - Compact (Swiggy 2025 pattern: "Area, City") */}
+              <button 
+                onClick={handleLocationClick}
+                className="flex items-center gap-1.5 px-2 py-1.5 md:py-1 rounded-md hover:bg-muted/50 transition-colors flex-shrink-0"
+                aria-label="Change location"
               >
-                {cartCount > 9 ? '9+' : cartCount}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11"
-              onClick={() => navigate(RouteMap.wishlist())}
-            aria-label="Wishlist"
-          >
-            <Heart className="h-6 w-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11"
-              onClick={() => navigate(RouteMap.profile())}
-            aria-label="Account"
-          >
-            <User className="h-6 w-6" />
-          </Button>
-        </div>
+                <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                <span className="text-sm font-medium max-w-[90px] sm:max-w-[110px] md:max-w-[140px] truncate" title={location}>
+                  {location}
+                </span>
+              </button>
+            </div>
+            
+            {/* Mobile Row 2: Search Bar (full-width) | Desktop: Search Bar (center) */}
+            <div className="w-full md:flex-1 md:min-w-0 md:mx-2 lg:mx-4">
+              <SearchBar variant="navigation" placeholder="Search for gifts, occasions..." showSuggestions={true} />
+            </div>
+            
+            {/* Desktop Only: Cart, Wishlist, Account icons (mobile uses bottom nav) */}
+            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-11 w-11"
+                onClick={() => navigate(RouteMap.cart())}
+                aria-label={`Shopping cart with ${cartCount} items`}
+              >
+                <ShoppingBag className="h-6 w-6" />
+                {cartCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs pointer-events-none"
+                  >
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11"
+                onClick={() => navigate(RouteMap.wishlist())}
+                aria-label="Wishlist"
+              >
+                <Heart className="h-6 w-6" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11"
+                onClick={() => navigate(RouteMap.profile())}
+                aria-label="Account"
+              >
+                <User className="h-6 w-6" />
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Location Selection Sheet */}
@@ -278,12 +240,15 @@ export const CustomerMobileHeader = ({
                       }
                     },
                     (error) => {
-                      // Handle error silently in production
-                      alert("Unable to get your location. Please enable location permissions.");
+                      // Handle error gracefully - show toast instead of alert (better UX)
+                      console.error("Geolocation error:", error);
+                      setLocationInput("Your Current Location");
                     }
                   );
                 } else {
-                  alert("Geolocation is not supported by your browser");
+                  // Geolocation not supported - gracefully handle
+                  console.warn("Geolocation is not supported by your browser");
+                  setLocationInput("Your Current Location");
                 }
               }}
               className="w-full h-12 text-base gap-2"

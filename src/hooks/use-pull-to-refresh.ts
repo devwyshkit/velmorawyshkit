@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 interface UsePullToRefreshOptions {
   onRefresh: () => Promise<void>;
@@ -8,6 +8,13 @@ interface UsePullToRefreshOptions {
 export const usePullToRefresh = ({ onRefresh, threshold = 100 }: UsePullToRefreshOptions) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const pullDistanceRef = useRef(0);
+
+  // Update ref when pullDistance changes
+  const updatePullDistance = useCallback((distance: number) => {
+    setPullDistance(distance);
+    pullDistanceRef.current = distance;
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
@@ -17,9 +24,9 @@ export const usePullToRefresh = ({ onRefresh, threshold = 100 }: UsePullToRefres
       await onRefresh();
     } finally {
       setIsRefreshing(false);
-      setPullDistance(0);
+      updatePullDistance(0);
     }
-  }, [onRefresh, isRefreshing]);
+  }, [onRefresh, isRefreshing, updatePullDistance]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (window.scrollY > 0) return;
@@ -34,15 +41,17 @@ export const usePullToRefresh = ({ onRefresh, threshold = 100 }: UsePullToRefres
       
       if (distance > 0 && window.scrollY === 0) {
         e.preventDefault();
-        setPullDistance(Math.min(distance, threshold * 1.5));
+        const newDistance = Math.min(distance, threshold * 1.5);
+        updatePullDistance(newDistance);
       }
     };
 
     const handleTouchEnd = () => {
-      if (pullDistance >= threshold) {
+      const currentDistance = pullDistanceRef.current;
+      if (currentDistance >= threshold) {
         handleRefresh();
       } else {
-        setPullDistance(0);
+        updatePullDistance(0);
       }
       
       document.removeEventListener('touchmove', handleTouchMove);
@@ -51,7 +60,7 @@ export const usePullToRefresh = ({ onRefresh, threshold = 100 }: UsePullToRefres
 
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd);
-  }, [pullDistance, threshold, handleRefresh]);
+  }, [threshold, handleRefresh, updatePullDistance]);
 
   return {
     isRefreshing,

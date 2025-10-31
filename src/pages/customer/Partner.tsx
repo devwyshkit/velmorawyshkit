@@ -43,6 +43,30 @@ export const Partner = () => {
         const partnerData = await fetchPartnerById(id);
         setPartner(partnerData);
 
+        // Track vendor view in localStorage (for Visited Vendors section)
+        if (partnerData) {
+          const visitedKey = 'wyshkit_visited_vendors';
+          const visited = JSON.parse(localStorage.getItem(visitedKey) || '[]');
+          const vendorEntry = {
+            id: partnerData.id,
+            name: partnerData.name,
+            image: partnerData.image,
+            rating: partnerData.rating,
+            ratingCount: partnerData.ratingCount,
+            delivery: partnerData.delivery,
+            category: partnerData.category,
+            tagline: partnerData.tagline,
+            badge: partnerData.badge,
+            sponsored: partnerData.sponsored,
+            viewedAt: new Date().toISOString(),
+            viewCount: (visited.find((v: any) => v.id === partnerData.id)?.viewCount || 0) + 1
+          };
+          // Remove if exists, add to beginning
+          const filtered = visited.filter((v: any) => v.id !== partnerData.id);
+          const updated = [vendorEntry, ...filtered].slice(0, 20); // Keep last 20
+          localStorage.setItem(visitedKey, JSON.stringify(updated));
+        }
+
         // Load partner items
         const itemsData = await fetchItemsByPartner(id);
         setItems(itemsData);

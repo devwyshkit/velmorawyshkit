@@ -45,6 +45,56 @@ export const formatAddress = (place: any): string => {
   return place.formatted_address || '';
 };
 
+// Extract area and city from Google Places address components (Swiggy 2025 pattern)
+export const extractAreaAndCity = (place: any): { area: string; city: string; full: string } => {
+  if (!place.address_components) {
+    const fallback = place.formatted_address || '';
+    const parts = fallback.split(',');
+    return {
+      area: parts[0]?.trim() || 'Unknown',
+      city: parts[1]?.trim() || parts[0]?.trim() || 'Unknown',
+      full: fallback
+    };
+  }
+
+  const components = place.address_components;
+  
+  // Extract area/locality (neighborhood or sublocality)
+  let area = '';
+  const sublocality = components.find((comp: any) => 
+    comp.types.includes('sublocality') || comp.types.includes('sublocality_level_1')
+  );
+  const neighborhood = components.find((comp: any) => 
+    comp.types.includes('neighborhood')
+  );
+  area = (sublocality?.long_name || neighborhood?.long_name || '');
+
+  // Extract city (locality)
+  let city = '';
+  const locality = components.find((comp: any) => 
+    comp.types.includes('locality')
+  );
+  city = locality?.long_name || '';
+
+  // Fallback to administrative_area_level_2 (district) if no city
+  if (!city) {
+    const district = components.find((comp: any) =>
+      comp.types.includes('administrative_area_level_2')
+    );
+    city = district?.long_name || '';
+  }
+
+  // If no area found, use first part of formatted address
+  if (!area && place.formatted_address) {
+    area = place.formatted_address.split(',')[0]?.trim() || '';
+  }
+
+  // Format: "Area, City" (Swiggy 2025 pattern)
+  const full = area && city ? `${area}, ${city}` : (area || city || place.formatted_address || 'Unknown Location');
+
+  return { area: area || city || 'Unknown', city: city || 'Unknown', full };
+};
+
 export const getLatLng = (place: any): { lat: number; lng: number } | null => {
   if (place.geometry && place.geometry.location) {
     return {
