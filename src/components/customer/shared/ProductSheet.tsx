@@ -1,17 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { Star, Heart, ChevronDown, ChevronUp, Clock, Package, MapPin, AlertCircle, CheckCircle, Undo } from "lucide-react";
+import {
+  Star,
+  Heart,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Package,
+  MapPin,
+  AlertCircle,
+  CheckCircle,
+  Undo,
+  Gift,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
   Carousel,
   CarouselContent,
@@ -23,7 +29,15 @@ import { CartReplacementModal } from "@/components/customer/shared/CartReplaceme
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { isAuthenticated } from "@/lib/integrations/supabase-client";
-import { addToCartSupabase, getMockItems, fetchStoreById, fetchItemById, addToSavedItemsSupabase, removeFromSavedItemsSupabase, fetchSavedItems } from "@/lib/integrations/supabase-data";
+import {
+  addToCartSupabase,
+  getMockItems,
+  fetchStoreById,
+  fetchItemById,
+  addToSavedItemsSupabase,
+  removeFromSavedItemsSupabase,
+  fetchSavedItems,
+} from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 
@@ -37,12 +51,15 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   const { toast } = useToast();
   const { refreshCartCount, currentStoreId, clearCart } = useCart();
   const [quantity, setQuantity] = useState(1);
-  const [selectedPersonalizations, setSelectedPersonalizations] = useState<string[]>([]);
+  const [selectedPersonalizations, setSelectedPersonalizations] = useState<
+    string[]
+  >([]);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [item, setItem] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
-  const [showCartReplacementModal, setShowCartReplacementModal] = useState(false);
+  const [showCartReplacementModal, setShowCartReplacementModal] =
+    useState(false);
   const [currentStoreName, setCurrentStoreName] = useState<string>("");
   const [newStoreName, setNewStoreName] = useState<string>("");
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -59,12 +76,12 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           setItem({
             ...itemData,
             specs: itemData.specs || {
-              weight: '2.5 kg',
-              dimensions: '30cm x 20cm x 15cm',
-              materials: 'Premium packaging with satin finish',
+              weight: "2.5 kg",
+              dimensions: "30cm x 20cm x 15cm",
+              materials: "Premium packaging with satin finish",
             },
           });
-          
+
           // Load store data
           if (itemData.store_id) {
             const storeData = await fetchStoreById(itemData.store_id);
@@ -75,16 +92,16 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
         } else {
           // Fallback to mock if not found
           const items = getMockItems();
-          const foundItem = items.find(i => i.id === itemId) || items[0];
+          const foundItem = items.find((i) => i.id === itemId) || items[0];
           setItem({
             ...foundItem,
             specs: {
-              weight: '2.5 kg',
-              dimensions: '30cm x 20cm x 15cm',
-              materials: 'Premium packaging with satin finish',
+              weight: "2.5 kg",
+              dimensions: "30cm x 20cm x 15cm",
+              materials: "Premium packaging with satin finish",
             },
           });
-          
+
           // Load store for mock item
           if (foundItem.store_id) {
             const storeData = await fetchStoreById(foundItem.store_id);
@@ -93,15 +110,14 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
             }
           }
         }
-        
+
         // Check if item is favourited
         const savedItems = await fetchSavedItems();
-        setIsFavourited(savedItems.some(w => w.id === itemId));
+        setIsFavourited(savedItems.some((w) => w.id === itemId));
       } catch (error) {
-        console.error('Failed to load item:', error);
         // Fallback to mock on error
         const items = getMockItems();
-        const foundItem = items.find(i => i.id === itemId) || items[0];
+        const foundItem = items.find((i) => i.id === itemId) || items[0];
         setItem(foundItem);
       }
     };
@@ -122,23 +138,32 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   }, [carouselApi]);
 
   const handlePersonalizationToggle = (optionId: string) => {
-    setSelectedPersonalizations(prev =>
+    setSelectedPersonalizations((prev) =>
       prev.includes(optionId)
-        ? prev.filter(id => id !== optionId)
-        : [...prev, optionId]
+        ? prev.filter((id) => id !== optionId)
+        : [...prev, optionId],
     );
   };
 
   const calculateTotal = () => {
     if (!item) return 0;
-    
-    const basePrice = item.price * quantity;
-    const personalizationsPrice = selectedPersonalizations.reduce((sum, optionId) => {
-      const option = item.personalizations?.find((p: any) => p.id === optionId);
-      return sum + (option?.price || 0);
-    }, 0);
-    
-    return basePrice + personalizationsPrice;
+
+    // Base item price per unit
+    const basePrice = item.price;
+
+    // Add-ons price per unit
+    const personalizationsPrice = selectedPersonalizations.reduce(
+      (sum, optionId) => {
+        const option = item.personalizations?.find(
+          (p: any) => p.id === optionId,
+        );
+        return sum + (option?.price || 0);
+      },
+      0,
+    );
+
+    // Total = (Base + Add-ons) × Quantity (Swiggy pattern)
+    return (basePrice + personalizationsPrice) * quantity;
   };
 
   const handleAddToCart = async () => {
@@ -147,7 +172,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
       // Fetch store names for modal
       const currentStore = await fetchStoreById(currentStoreId);
       const newStore = await fetchStoreById(item.store_id);
-      
+
       setCurrentStoreName(currentStore?.name || "Current Store");
       setNewStoreName(newStore?.name || "New Store");
       setShowCartReplacementModal(true);
@@ -167,9 +192,14 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
       return;
     } else {
       // Authenticated: save to Supabase
-      const personalizationsList = selectedPersonalizations.map(id => item.personalizations?.find((p: any) => p.id === id)).filter(Boolean);
-      const personalizationsTotal = personalizationsList.reduce((sum: number, p: any) => sum + (p?.price || 0), 0);
-      
+      const personalizationsList = selectedPersonalizations
+        .map((id) => item.personalizations?.find((p: any) => p.id === id))
+        .filter(Boolean);
+      const personalizationsTotal = personalizationsList.reduce(
+        (sum: number, p: any) => sum + (p?.price || 0),
+        0,
+      );
+
       const cartItem = {
         id: item.id,
         name: item.name,
@@ -178,16 +208,16 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
         store_id: item.store_id,
         addOns: personalizationsList,
       };
-      
+
       const success = await addToCartSupabase(cartItem);
-      
+
       if (success) {
         refreshCartCount();
         toast({
           title: "Added to cart",
           description: `${quantity}x ${item.name}`,
           action: (
-            <ToastAction 
+            <ToastAction
               altText="View cart"
               onClick={() => {
                 onClose();
@@ -214,7 +244,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
     // Clear existing cart
     clearCart();
     setShowCartReplacementModal(false);
-    
+
     // Proceed with adding new item
     await proceedWithAddToCart();
   };
@@ -230,362 +260,389 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   return (
     <div className="flex flex-col h-full">
       {/* Grabber - Swiggy 2025 pattern - OUTSIDE scroll container */}
-      <div className="flex justify-center pt-2 pb-0">
+      <div className="flex justify-center py-3">
         <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
       </div>
-      
+
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
-        <div className="space-y-0">
-          {/* Image Carousel */}
-          <div className="space-y-3 mb-3">
-            <Carousel className="w-full" setApi={setCarouselApi}>
-              <CarouselContent>
-                {item.images?.map((image: string, index: number) => (
-                  <CarouselItem key={index}>
-                    <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                      <img
-                        src={image}
-                        alt={`${item.name} ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                      {/* Fallback gift icon */}
-                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
-                        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </div>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-            
-            {/* Dot Indicators */}
-            {item.images && item.images.length > 1 && (
-              <div className="flex justify-center">
-                <div className="flex gap-1">
-                  {item.images.map((_: string, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => carouselApi?.scrollTo(idx)}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all duration-300",
-                        idx === currentSlide 
-                          ? "w-6 bg-primary" 
-                          : "w-1.5 bg-muted-foreground/30"
-                      )}
-                      aria-label={`Go to slide ${idx + 1}`}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {/* Image Carousel */}
+        <div className="space-y-3">
+          <Carousel className="w-full" setApi={setCarouselApi}>
+            <CarouselContent>
+              {item.images?.map((image: string, index: number) => (
+                <CarouselItem key={index}>
+                  <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={image}
+                      alt={`${item.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
                     />
-                  ))}
-                </div>
+                    {/* Fallback gift icon */}
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
+                      <Gift className="w-12 h-12" />
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+
+          {/* Dot Indicators */}
+          {item.images && item.images.length > 1 && (
+            <div className="flex justify-center">
+              <div className="flex gap-1">
+                {item.images.map((_: string, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => carouselApi?.scrollTo(idx)}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300",
+                      idx === currentSlide
+                        ? "w-6 bg-primary"
+                        : "w-1.5 bg-muted-foreground/30",
+                    )}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
               </div>
-            )}
+            </div>
+          )}
+        </div>
+
+        {/* Header */}
+        <div>
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-lg font-semibold flex-1">{item.name}</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              onClick={async (e) => {
+                e.stopPropagation();
+                const success = isFavourited
+                  ? await removeFromSavedItemsSupabase(item.id)
+                  : await addToSavedItemsSupabase(item.id);
+
+                if (success) {
+                  setIsFavourited(!isFavourited);
+                  toast({
+                    title: isFavourited
+                      ? "Removed from favourites"
+                      : "Added to favourites",
+                    description: item.name,
+                  });
+                }
+              }}
+            >
+              <Heart
+                className={cn(
+                  "h-5 w-5 transition-colors duration-200",
+                  isFavourited
+                    ? "fill-red-500 text-red-500"
+                    : "text-muted-foreground",
+                )}
+              />
+            </Button>
           </div>
 
-          {/* Header */}
-          <div>
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="text-xl font-semibold flex-1">{item.name}</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const success = isFavourited 
-                    ? await removeFromSavedItemsSupabase(item.id)
-                    : await addToSavedItemsSupabase(item.id);
-                  
-                  if (success) {
-                    setIsFavourited(!isFavourited);
-                    toast({
-                      title: isFavourited ? "Removed from favourites" : "Added to favourites",
-                      description: item.name
-                    });
-                  }
-                }}
-              >
-                <Heart className={cn(
-                  "h-5 w-5 transition-colors duration-200",
-                  isFavourited ? "fill-red-500 text-red-500" : "text-muted-foreground"
-                )} />
-              </Button>
-            </div>
-            
-            {/* Partner, Rating, Distance */}
-            {store && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <span className="font-medium text-foreground">{store.name}</span>
-                <span>•</span>
-                <div className="flex items-center gap-1">
-                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium">{item.rating}</span>
-                  <span>({item.ratingCount || 156})</span>
-                </div>
-                <span>•</span>
-                <span>{store.delivery || '2-3 days'}</span>
+          {/* Partner, Rating, Distance */}
+          {store && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+              <span className="font-medium text-foreground">{store.name}</span>
+              <span>•</span>
+              <div className="flex items-center gap-1">
+                <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                <span className="font-medium">{item.rating}</span>
+                {item.ratingCount && <span>({item.ratingCount})</span>}
               </div>
+              <span>•</span>
+              <span>{store.delivery || "2-3 days"}</span>
+            </div>
+          )}
+
+          {/* Price with discount */}
+          <div className="flex items-baseline gap-2 mb-1">
+            {item.mrp && item.mrp > item.price && (
+              <>
+                <span className="text-lg text-muted-foreground line-through">
+                  ₹{item.mrp.toLocaleString("en-IN")}
+                </span>
+                <Badge variant="destructive" className="text-xs">
+                  {Math.round(((item.mrp - item.price) / item.mrp) * 100)}% OFF
+                </Badge>
+              </>
             )}
-            
-            {/* Price with discount */}
-            <div className="flex items-baseline gap-2">
-              {item.mrp && item.mrp > item.price && (
+            <span className="text-2xl font-bold text-primary">
+              ₹{item.price.toLocaleString("en-IN")}
+            </span>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-border my-4" />
+
+        {/* Quantity */}
+        <div>
+          <Label className="text-sm font-medium mb-2 block">Quantity</Label>
+          <Stepper value={quantity} onChange={setQuantity} min={1} max={99} />
+        </div>
+
+        {/* Size (if exists) */}
+        {item.variants?.sizes && (
+          <>
+            <div className="border-t border-border my-4" />
+            <div>
+              <Label className="text-sm font-medium mb-2">Size</Label>
+              <div className="flex flex-wrap gap-2">
+                {item.variants.sizes.map((size: any) => (
+                  <Button
+                    key={size.id}
+                    variant={selectedSize === size.id ? "default" : "outline"}
+                    size="sm"
+                    className="h-10 min-w-[48px]"
+                    onClick={() => setSelectedSize(size.id)}
+                    disabled={!size.available}
+                  >
+                    {size.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Color (if exists) */}
+        {item.variants?.colors && (
+          <>
+            <div className="border-t border-border my-4" />
+            <div>
+              <Label className="text-sm font-medium mb-2">Color</Label>
+              <div className="flex flex-wrap gap-3">
+                {item.variants.colors.map((color: any) => (
+                  <button
+                    key={color.id}
+                    onClick={() => setSelectedColor(color.id)}
+                    className={cn(
+                      "relative w-8 h-8 rounded-full border-2 transition-all",
+                      selectedColor === color.id
+                        ? "border-primary ring-2 ring-primary ring-offset-2"
+                        : "border-border",
+                    )}
+                    style={{ backgroundColor: color.hex }}
+                    aria-label={color.name}
+                  >
+                    {selectedColor === color.id && (
+                      <svg
+                        className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Personalization (partner-defined) */}
+        {item.personalizations && item.personalizations.length > 0 && (
+          <>
+            <div className="border-t border-border my-4" />
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Add ons</Label>
+              <div className="space-y-3">
+                {item.personalizations.map((option: any) => (
+                  <div key={option.id} className="flex items-start space-x-2">
+                    <Checkbox
+                      id={option.id}
+                      checked={selectedPersonalizations.includes(option.id)}
+                      onCheckedChange={() =>
+                        handlePersonalizationToggle(option.id)
+                      }
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor={option.id}
+                        className="text-sm font-normal cursor-pointer flex items-center gap-2"
+                      >
+                        {option.label}
+                        {option.price > 0 && (
+                          <span className="text-primary font-medium">
+                            +₹{option.price}
+                          </span>
+                        )}
+                      </Label>
+                      {option.instructions && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          💡 {option.instructions}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Divider */}
+        <div className="border-t border-border my-4" />
+
+        {/* Description */}
+        <div>
+          <Label className="text-sm font-medium mb-1.5">About</Label>
+          <p
+            className={cn(
+              "text-sm text-muted-foreground leading-relaxed",
+              !isDescriptionExpanded && "line-clamp-3",
+            )}
+          >
+            {item.description}
+          </p>
+          {item.description && item.description.length > 150 && (
+            <button
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="text-sm text-primary font-medium mt-1.5 hover:underline inline-flex items-center gap-1"
+            >
+              {isDescriptionExpanded ? (
                 <>
-                  <span className="text-lg text-muted-foreground line-through">
-                    ₹{item.mrp.toLocaleString('en-IN')}
-                  </span>
-                  <Badge variant="destructive" className="text-xs">
-                    {Math.round(((item.mrp - item.price) / item.mrp) * 100)}% OFF
-                  </Badge>
+                  Show less <ChevronUp className="h-3 w-3" />
+                </>
+              ) : (
+                <>
+                  Read more <ChevronDown className="h-3 w-3" />
                 </>
               )}
-              <span className="text-2xl font-bold text-primary">
-                ₹{item.price.toLocaleString('en-IN')}
-              </span>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-border my-4" />
-
-          {/* Quantity */}
-          <div>
-            <Stepper value={quantity} onChange={setQuantity} min={1} max={99} />
-          </div>
-
-          {/* Size (if exists) */}
-          {item.variants?.sizes && (
-            <>
-              <div className="border-t border-border my-4" />
-              <div>
-                <Label className="text-sm font-medium mb-2">Size</Label>
-                <div className="flex flex-wrap gap-2">
-                  {item.variants.sizes.map((size: any) => (
-                    <Button
-                      key={size.id}
-                      variant={selectedSize === size.id ? "default" : "outline"}
-                      size="sm"
-                      className="h-10 min-w-[48px]"
-                      onClick={() => setSelectedSize(size.id)}
-                      disabled={!size.available}
-                    >
-                      {size.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </>
+            </button>
           )}
+        </div>
 
-          {/* Color (if exists) */}
-          {item.variants?.colors && (
-            <>
-              <div className="border-t border-border my-4" />
-              <div>
-                <Label className="text-sm font-medium mb-2">Color</Label>
-                <div className="flex flex-wrap gap-3">
-                  {item.variants.colors.map((color: any) => (
-                    <button
-                      key={color.id}
-                      onClick={() => setSelectedColor(color.id)}
-                      className={cn(
-                        "relative w-8 h-8 rounded-full border-2 transition-all",
-                        selectedColor === color.id 
-                          ? "border-primary ring-2 ring-primary ring-offset-2" 
-                          : "border-border"
-                      )}
-                      style={{ backgroundColor: color.hex }}
-                      aria-label={color.name}
-                    >
-                      {selectedColor === color.id && (
-                        <svg className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
+        <div className="border-t border-border my-4" />
+
+        {/* Delivery */}
+        <div>
+          <Label className="text-sm font-medium mb-1.5">Delivery</Label>
+          <div className="space-y-1.5 text-sm text-muted-foreground">
+            {item.preparationTime && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>Ready in: {item.preparationTime}</span>
               </div>
-            </>
-          )}
-
-          {/* Personalization (partner-defined) */}
-          {item.personalizations && item.personalizations.length > 0 && (
-            <>
-              <div className="border-t border-border my-4" />
-              <div>
-                <Label className="text-sm font-medium mb-3 block">Personalization</Label>
-                <div className="space-y-3">
-                  {item.personalizations.map((option: any) => (
-                    <div key={option.id} className="flex items-start space-x-2">
-                      <Checkbox
-                        id={option.id}
-                        checked={selectedPersonalizations.includes(option.id)}
-                        onCheckedChange={() => handlePersonalizationToggle(option.id)}
-                      />
-                      <div className="flex-1">
-                        <Label
-                          htmlFor={option.id}
-                          className="text-sm font-normal cursor-pointer flex items-center gap-2"
-                        >
-                          {option.label}
-                          {option.price > 0 && (
-                            <span className="text-primary font-medium">
-                              +₹{option.price}
-                            </span>
-                          )}
-                        </Label>
-                        {option.instructions && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            💡 {option.instructions}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Divider */}
-          <div className="border-t border-border my-4" />
-
-          {/* Description */}
-          <div>
-            <Label className="text-sm font-medium mb-2">About</Label>
-            <p className={cn(
-              "text-sm text-muted-foreground leading-relaxed",
-              !isDescriptionExpanded && "line-clamp-3"
-            )}>
-              {item.description}
-            </p>
-            {item.description && item.description.length > 150 && (
-              <button
-                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                className="text-sm text-primary font-medium mt-1.5 hover:underline inline-flex items-center gap-1"
-              >
-                {isDescriptionExpanded ? (
-                  <>Show less <ChevronUp className="h-3 w-3" /></>
-                ) : (
-                  <>Read more <ChevronDown className="h-3 w-3" /></>
-                )}
-              </button>
             )}
-          </div>
-
-          <div className="border-t border-border my-4" />
-
-          {/* Delivery */}
-          <div>
-            <Label className="text-sm font-medium mb-2">Delivery</Label>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              {item.preparationTime && (
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>Ready in: {item.preparationTime}</span>
-                </div>
-              )}
-              {item.deliveryTime && (
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  <span>Delivery: {item.deliveryTime}</span>
-                </div>
-              )}
-              {store?.location && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>Ships from: {store.location}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="border-t border-border my-4" />
-
-          {/* Product Details */}
-          <div>
-            <Label className="text-sm font-medium mb-2">Details</Label>
-            <ul className="space-y-1.5 text-sm text-muted-foreground">
-              {item.specs?.materials && <li>• {item.specs.materials}</li>}
-              {item.specs?.dimensions && <li>• {item.specs.dimensions}</li>}
-              {item.specs?.weight && <li>• Weight: {item.specs.weight}</li>}
-            </ul>
-          </div>
-
-          <div className="border-t border-border my-4" />
-
-          {/* Return Policy */}
-          <div>
-            <Label className="text-sm font-medium mb-2">Returns</Label>
-            {item.isCustomizable ? (
-              <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2 text-amber-600">
-                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span>No returns on personalized items</span>
-                </div>
-                <div className="flex items-start gap-2 text-green-600">
-                  <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span>Defects covered within 48h of delivery</span>
-                </div>
+            {item.deliveryTime && (
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                <span>Delivery: {item.deliveryTime}</span>
               </div>
-            ) : (
-              <div className="space-y-2 text-sm">
-                <div className="flex items-start gap-2 text-green-600">
-                  <Undo className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span>7-day return available</span>
-                </div>
-                <p className="text-muted-foreground pl-6">
-                  Delivery charges apply as per marketplace policy
-                </p>
+            )}
+            {store?.location && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                <span>Ships from: {store.location}</span>
               </div>
             )}
           </div>
         </div>
+
+        <div className="border-t border-border my-4" />
+
+        {/* Product Details */}
+        <div>
+          <Label className="text-sm font-medium mb-1.5">Details</Label>
+          <ul className="space-y-1 text-sm text-muted-foreground">
+            {item.specs?.materials && <li>• {item.specs.materials}</li>}
+            {item.specs?.dimensions && <li>• {item.specs.dimensions}</li>}
+            {item.specs?.weight && <li>• Weight: {item.specs.weight}</li>}
+          </ul>
+        </div>
+
+        <div className="border-t border-border my-4" />
+
+        {/* Return Policy */}
+        <div>
+          <Label className="text-sm font-medium mb-1.5">Returns</Label>
+          {item.isCustomizable ? (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-start gap-2 text-amber-600">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>No returns on personalized items</span>
+              </div>
+              <div className="flex items-start gap-2 text-green-600">
+                <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>Defects covered within 48h of delivery</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-start gap-2 text-green-600">
+                <Undo className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>7-day return available</span>
+              </div>
+              <p className="text-muted-foreground pl-6">
+                Delivery charges apply as per marketplace policy
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer with Add Button */}
-      <div className="sticky bottom-0 bg-white border-t border-border px-4 py-4">
+      <div className="sticky bottom-0 bg-background border-t border-border px-4 py-4">
         {/* Price breakdown (if personalizations selected) */}
         {selectedPersonalizations.length > 0 && (
-          <div className="mb-3 space-y-1 text-sm">
+          <div className="mb-3 space-y-1.5 text-sm">
             <div className="flex justify-between text-muted-foreground">
               <span>Item ({quantity}×)</span>
-              <span>₹{(item.price * quantity).toLocaleString('en-IN')}</span>
+              <span>₹{(item.price * quantity).toLocaleString("en-IN")}</span>
             </div>
-            {selectedPersonalizations.map(id => {
-              const option = item.personalizations?.find((p: any) => p.id === id);
+            {selectedPersonalizations.map((id) => {
+              const option = item.personalizations?.find(
+                (p: any) => p.id === id,
+              );
               return option ? (
-                <div key={id} className="flex justify-between text-muted-foreground">
-                  <span>{option.label}</span>
-                  <span>+₹{option.price.toLocaleString('en-IN')}</span>
+                <div
+                  key={id}
+                  className="flex justify-between text-muted-foreground"
+                >
+                  <span>
+                    {option.label} ({quantity}×)
+                  </span>
+                  <span>
+                    +₹{(option.price * quantity).toLocaleString("en-IN")}
+                  </span>
                 </div>
               ) : null;
             })}
             <div className="border-t border-border pt-1" />
           </div>
         )}
-        
+
         {/* Total */}
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-muted-foreground">Total</span>
           <span className="text-2xl font-bold text-primary">
-            ₹{calculateTotal().toLocaleString('en-IN')}
+            ₹{calculateTotal().toLocaleString("en-IN")}
           </span>
         </div>
-        
+
         {/* Add to Cart Button */}
         <Button
           onClick={handleAddToCart}
           className="w-full h-12 text-base font-semibold"
           size="lg"
         >
-          Add to Cart • ₹{calculateTotal().toLocaleString('en-IN')}
+          Add to Cart • ₹{calculateTotal().toLocaleString("en-IN")}
         </Button>
       </div>
 

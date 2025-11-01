@@ -25,7 +25,11 @@ import { useDelivery } from "@/contexts/DeliveryContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyStates } from "@/components/ui/empty-state";
-import { SmartFilters, type SortOption, type FilterOption } from "@/components/customer/shared/SmartFilters";
+import {
+  SmartFilters,
+  type SortOption,
+  type FilterOption,
+} from "@/components/customer/shared/SmartFilters";
 import { OfferCard, type Offer } from "@/components/customer/shared/OfferCard";
 import { cn } from "@/lib/utils";
 
@@ -42,18 +46,20 @@ export const CustomerHome = () => {
   const { toast } = useToast();
   const { location, deliveryDate } = useDelivery();
   const { user } = useAuth();
-  const [banners, setBanners] = useState<Array<{ 
-    id: string; 
-    title?: string; 
-    image_url?: string; 
-    cta_link?: string; 
-    link?: string;
-    store_id?: string;
-    subtitle?: string;
-    description?: string;
-    cta_text?: string;
-    is_active?: boolean;
-  }>>([]);
+  const [banners, setBanners] = useState<
+    Array<{
+      id: string;
+      title?: string;
+      image_url?: string;
+      cta_link?: string;
+      link?: string;
+      store_id?: string;
+      subtitle?: string;
+      description?: string;
+      cta_text?: string;
+      is_active?: boolean;
+    }>
+  >([]);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [displayedStores, setDisplayedStores] = useState<Store[]>([]);
@@ -63,9 +69,11 @@ export const CustomerHome = () => {
   const [loading, setLoading] = useState(true);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [sortBy, setSortBy] = useState<SortOption>('relevance');
+  const [sortBy, setSortBy] = useState<SortOption>("relevance");
   const [filters, setFilters] = useState<FilterOption[]>([]);
-  const [filteredAndSortedStores, setFilteredAndSortedStores] = useState<Store[]>([]);
+  const [filteredAndSortedStores, setFilteredAndSortedStores] = useState<
+    Store[]
+  >([]);
   const [trendingStores, setTrendingStores] = useState<Store[]>([]);
   const [newLaunches, setNewLaunches] = useState<Store[]>([]);
   const [recommendedStores, setRecommendedStores] = useState<Store[]>([]);
@@ -75,33 +83,50 @@ export const CustomerHome = () => {
 
   // Load visited stores from localStorage (shown if ≥2 views)
   useEffect(() => {
-    const visitedKey = 'wyshkit_visited_stores';
-    const visited = JSON.parse(localStorage.getItem(visitedKey) || '[]');
+    const visitedKey = "wyshkit_visited_stores";
+    const visited = JSON.parse(localStorage.getItem(visitedKey) || "[]");
     // Filter stores with 2+ views
-    const filtered = visited.filter((v: { viewCount?: number }) => (v.viewCount || 0) >= 2).slice(0, 6);
+    const filtered = visited
+      .filter((v: { viewCount?: number }) => (v.viewCount || 0) >= 2)
+      .slice(0, 6);
     if (filtered.length >= 2) {
-      setVisitedStores(filtered.map((v: { id: string; name: string; image: string; rating: number; ratingCount?: number; delivery: string; category?: string; tagline?: string; badge?: 'bestseller' | 'trending'; sponsored?: boolean }) => ({
-        id: v.id,
-        name: v.name,
-        image: v.image,
-        rating: v.rating,
-        ratingCount: v.ratingCount,
-        delivery: v.delivery,
-        category: v.category,
-        tagline: v.tagline,
-        badge: v.badge,
-        sponsored: v.sponsored,
-        status: 'approved' as const,
-        is_active: true
-      })));
+      setVisitedStores(
+        filtered.map(
+          (v: {
+            id: string;
+            name: string;
+            image: string;
+            rating: number;
+            ratingCount?: number;
+            delivery: string;
+            category?: string;
+            tagline?: string;
+            badge?: "bestseller" | "trending";
+            sponsored?: boolean;
+          }) => ({
+            id: v.id,
+            name: v.name,
+            image: v.image,
+            rating: v.rating,
+            ratingCount: v.ratingCount,
+            delivery: v.delivery,
+            category: v.category,
+            tagline: v.tagline,
+            badge: v.badge,
+            sponsored: v.sponsored,
+            status: "approved" as const,
+            is_active: true,
+          }),
+        ),
+      );
     }
-    
+
     // Load personalized recommendations (only if user logged in AND visited ≥3 stores)
     if (user && visited.length >= 3) {
       // Use visited stores + some from stores array for recommendations
       const visitedIds = new Set(visited.map((v: { id: string }) => v.id));
       const recommended = stores
-        .filter(s => !visitedIds.has(s.id))
+        .filter((s) => !visitedIds.has(s.id))
         .slice(0, 6);
       setRecommendedStores(recommended);
     }
@@ -109,487 +134,575 @@ export const CustomerHome = () => {
 
   // Load data function - can be called from useEffect or pull-to-refresh
   const loadData = useCallback(async () => {
-      setLoading(true);
-      try {
-        const hasSupabaseEnv = Boolean(
-          import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    setLoading(true);
+    try {
+      const hasSupabaseEnv = Boolean(
+        import.meta.env.VITE_SUPABASE_URL &&
+          import.meta.env.VITE_SUPABASE_ANON_KEY,
+      );
+
+      if (!hasSupabaseEnv) {
+        // No Supabase env in dev → rely on fallbacks immediately
+        setBanners([
+          {
+            id: "1",
+            title: "Welcome to Wyshkit",
+            image_url:
+              "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=128&fit=crop",
+            cta_link: "/search",
+            is_active: true,
+          },
+        ]);
+        const fallbackOccasions: Occasion[] = [
+          {
+            id: "1",
+            name: "Birthday",
+            image:
+              "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=100&h=100&fit=crop",
+            icon: "🎂",
+            slug: "birthday",
+          },
+          {
+            id: "2",
+            name: "Anniversary",
+            image:
+              "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=100&h=100&fit=crop",
+            icon: "💍",
+            slug: "anniversary",
+          },
+          {
+            id: "3",
+            name: "Wedding",
+            image:
+              "https://images.unsplash.com/photo-1519741497674-611481863552?w=100&h=100&fit=crop",
+            icon: "💒",
+            slug: "wedding",
+          },
+          {
+            id: "4",
+            name: "Corporate",
+            image:
+              "https://images.unsplash.com/photo-1556761175-4b46a572b786?w=100&h=100&fit=crop",
+            icon: "🏢",
+            slug: "corporate",
+          },
+        ];
+        setOccasions(fallbackOccasions);
+        const fallbackStores = [
+          {
+            id: "1",
+            name: "GiftCraft Studio",
+            image:
+              "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop",
+            rating: 4.8,
+            delivery: "35–45 min",
+            badge: "bestseller" as const,
+            location: "Bangalore",
+            category: "Custom Gifts",
+            tagline: "Handcrafted personalized gifts",
+            ratingCount: 156,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "2",
+            name: "Luxury Hampers Co",
+            image:
+              "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop",
+            rating: 4.6,
+            delivery: "2–3 days",
+            badge: "trending" as const,
+            location: "Mumbai",
+            category: "Hampers",
+            tagline: "Premium gift hampers",
+            ratingCount: 89,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "3",
+            name: "Sweet Delights Bakery",
+            image:
+              "https://images.unsplash.com/photo-1486427944299-d1955d23da34?w=200&h=200&fit=crop",
+            rating: 4.5,
+            delivery: "1-2 days",
+            location: "Delhi",
+            category: "Chocolates & Sweets",
+            tagline: "Artisan chocolates and gourmet sweets",
+            ratingCount: 32,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "4",
+            name: "Flower Boutique",
+            image:
+              "https://images.unsplash.com/photo-1563241522-316a37a47b7d?w=200&h=200&fit=crop",
+            rating: 4.7,
+            delivery: "Same day",
+            location: "Pune",
+            category: "Flowers",
+            tagline: "Fresh flowers for every occasion",
+            ratingCount: 28,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "5",
+            name: "Tech Gift Hub",
+            image:
+              "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop",
+            rating: 4.4,
+            delivery: "3-5 days",
+            location: "Hyderabad",
+            category: "Tech Gifts",
+            tagline: "Latest gadgets and tech accessories",
+            ratingCount: 45,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "6",
+            name: "Artisan Crafts Co",
+            image:
+              "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=200&h=200&fit=crop",
+            rating: 4.9,
+            delivery: "5-7 days",
+            badge: "trending" as const,
+            location: "Chennai",
+            category: "Handmade",
+            tagline: "Unique handmade gifts",
+            ratingCount: 112,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "7",
+            name: "Gourmet Treats Box",
+            image:
+              "https://images.unsplash.com/photo-1556910096-6f5e72db6803?w=200&h=200&fit=crop",
+            rating: 4.3,
+            delivery: "2-3 days",
+            location: "Kolkata",
+            category: "Food & Beverage",
+            tagline: "Curated gourmet selections",
+            ratingCount: 18,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "8",
+            name: "Books & Beyond",
+            image:
+              "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=200&fit=crop",
+            rating: 4.6,
+            delivery: "3-4 days",
+            location: "Delhi",
+            category: "Books",
+            tagline: "Curated book collections",
+            ratingCount: 25,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+        ];
+        // Sort by rating descending
+        const sorted = [...fallbackStores].sort(
+          (a, b) => (b.rating || 0) - (a.rating || 0),
         );
+        setStores(sorted);
 
-        if (!hasSupabaseEnv) {
-          // No Supabase env in dev → rely on fallbacks immediately
-          setBanners([
-            {
-              id: '1',
-              title: 'Welcome to Wyshkit',
-              image_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=128&fit=crop',
-              cta_link: '/search',
-              is_active: true
-            }
-          ]);
-          const fallbackOccasions: Occasion[] = [
-            { id: '1', name: 'Birthday', image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=100&h=100&fit=crop', icon: '🎂', slug: 'birthday' },
-            { id: '2', name: 'Anniversary', image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=100&h=100&fit=crop', icon: '💍', slug: 'anniversary' },
-            { id: '3', name: 'Wedding', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=100&h=100&fit=crop', icon: '💒', slug: 'wedding' },
-            { id: '4', name: 'Corporate', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=100&h=100&fit=crop', icon: '🏢', slug: 'corporate' }
-          ];
-          setOccasions(fallbackOccasions);
-          const fallbackStores = [
-            {
-              id: '1',
-              name: 'GiftCraft Studio',
-              image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
-              rating: 4.8,
-              delivery: '35–45 min',
-              badge: 'bestseller' as const,
-              location: 'Bangalore',
-              category: 'Custom Gifts',
-              tagline: 'Handcrafted personalized gifts',
-              ratingCount: 156,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            },
-            {
-              id: '2',
-              name: 'Luxury Hampers Co',
-              image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop',
-              rating: 4.6,
-              delivery: '2–3 days',
-              badge: 'trending' as const,
-              location: 'Mumbai',
-              category: 'Hampers',
-              tagline: 'Premium gift hampers',
-              ratingCount: 89,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            },
-            {
-              id: '3',
-              name: 'Sweet Delights Bakery',
-              image: 'https://images.unsplash.com/photo-1486427944299-d1955d23da34?w=200&h=200&fit=crop',
-              rating: 4.5,
-              delivery: '1-2 days',
-              location: 'Delhi',
-              category: 'Chocolates & Sweets',
-              tagline: 'Artisan chocolates and gourmet sweets',
-              ratingCount: 32,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            },
-            {
-              id: '4',
-              name: 'Flower Boutique',
-              image: 'https://images.unsplash.com/photo-1563241522-316a37a47b7d?w=200&h=200&fit=crop',
-              rating: 4.7,
-              delivery: 'Same day',
-              location: 'Pune',
-              category: 'Flowers',
-              tagline: 'Fresh flowers for every occasion',
-              ratingCount: 28,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            },
-            {
-              id: '5',
-              name: 'Tech Gift Hub',
-              image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop',
-              rating: 4.4,
-              delivery: '3-5 days',
-              location: 'Hyderabad',
-              category: 'Tech Gifts',
-              tagline: 'Latest gadgets and tech accessories',
-              ratingCount: 45,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            },
-            {
-              id: '6',
-              name: 'Artisan Crafts Co',
-              image: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=200&h=200&fit=crop',
-              rating: 4.9,
-              delivery: '5-7 days',
-              badge: 'trending' as const,
-              location: 'Chennai',
-              category: 'Handmade',
-              tagline: 'Unique handmade gifts',
-              ratingCount: 112,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            },
-            {
-              id: '7',
-              name: 'Gourmet Treats Box',
-              image: 'https://images.unsplash.com/photo-1556910096-6f5e72db6803?w=200&h=200&fit=crop',
-              rating: 4.3,
-              delivery: '2-3 days',
-              location: 'Kolkata',
-              category: 'Food & Beverage',
-              tagline: 'Curated gourmet selections',
-              ratingCount: 18,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            },
-            {
-              id: '8',
-              name: 'Books & Beyond',
-              image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=200&fit=crop',
-              rating: 4.6,
-              delivery: '3-4 days',
-              location: 'Delhi',
-              category: 'Books',
-              tagline: 'Curated book collections',
-              ratingCount: 25,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            }
-          ];
-            // Sort by rating descending
-            const sorted = [...fallbackStores].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-            setStores(sorted);
-            
-            // Filter trending and new for fallback data
-            const trending = sorted
-              .filter(s => s.badge === 'trending' || (s.ratingCount || 0) > 100)
-              .slice(0, 8);
-            setTrendingStores(trending);
-            
-            const newOnes = sorted
-              .filter(s => (s.ratingCount || 0) < 50)
-              .slice(0, 8);
-            // Ensure we always have new launches if stores exist (defensive check)
-            if (newOnes.length === 0 && sorted.length > 0) {
-              // If no stores match, use first few stores as fallback (they're already sorted by rating)
-              // This ensures the section always shows during development
-              const fallbackNew = sorted.slice(0, Math.min(5, sorted.length));
-              setNewLaunches(fallbackNew);
-            } else {
-              setNewLaunches(newOnes);
-            }
-            
-            // Mock offers for fallback
-            const mockOffers: Offer[] = [
-              {
-                id: '1',
-                title: 'Bank Offers',
-                discount: '10% OFF',
-                validUntil: 'Valid till 31 Dec',
-                ctaLink: '/search?filter=offers',
-                bankName: 'HDFC Bank',
-                description: 'On orders above ₹1000'
-              },
-              {
-                id: '2',
-                title: 'First Order Bonus',
-                discount: '₹200 OFF',
-                validUntil: 'Limited time',
-                ctaLink: '/search',
-                description: 'For new customers'
-              },
-              {
-                id: '3',
-                title: 'Festive Special',
-                discount: '15% OFF',
-                validUntil: 'Valid till 31 Dec',
-                ctaLink: '/search',
-                description: 'On all occasions'
-              }
-            ];
-            setOffers(mockOffers);
-          return;
-        }
+        // Filter trending and new for fallback data
+        const trending = sorted
+          .filter((s) => s.badge === "trending" || (s.ratingCount || 0) > 100)
+          .slice(0, 8);
+        setTrendingStores(trending);
 
-        // Load banners from Supabase
-        const { data: bannersData } = await supabase
-          .from('banners')
-          .select('*')
-          .eq('is_active', true)
-          .order('display_order', { ascending: true });
-        
-        if (bannersData && bannersData.length > 0) {
-          setBanners(bannersData);
+        const newOnes = sorted
+          .filter((s) => (s.ratingCount || 0) < 50)
+          .slice(0, 8);
+        // Ensure we always have new launches if stores exist (defensive check)
+        if (newOnes.length === 0 && sorted.length > 0) {
+          // If no stores match, use first few stores as fallback (they're already sorted by rating)
+          // This ensures the section always shows during development
+          const fallbackNew = sorted.slice(0, Math.min(5, sorted.length));
+          setNewLaunches(fallbackNew);
         } else {
-          // Fallback data for development - Multiple banners to test navigation
-          setBanners([
-            {
-              id: '1',
-              title: 'Welcome to Wyshkit',
-              image_url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=128&fit=crop',
-              cta_link: '/search',
-              is_active: true
-            },
-            {
-              id: '2',
-              title: 'Festive Season Special',
-              image_url: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400&h=128&fit=crop',
-              cta_link: '/search?occasion=festival',
-              is_active: true
-            },
-            {
-              id: '3',
-              title: 'New Arrivals',
-              image_url: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400&h=128&fit=crop',
-              cta_link: '/search?filter=new',
-              is_active: true
-            }
-          ]);
+          setNewLaunches(newOnes);
         }
 
-        // Load occasions from Supabase
-        const { data: occasionsData } = await supabase
-          .from('occasions')
-          .select('*')
-          .eq('is_active', true)
-          .order('display_order', { ascending: true });
-        
-        if (occasionsData && occasionsData.length > 0) {
-          setOccasions(occasionsData.map(occ => ({
+        // Mock offers for fallback
+        const mockOffers: Offer[] = [
+          {
+            id: "1",
+            title: "Bank Offers",
+            discount: "10% OFF",
+            validUntil: "Valid till 31 Dec",
+            ctaLink: "/search?filter=offers",
+            bankName: "HDFC Bank",
+            description: "On orders above ₹1000",
+          },
+          {
+            id: "2",
+            title: "First Order Bonus",
+            discount: "₹200 OFF",
+            validUntil: "Limited time",
+            ctaLink: "/search",
+            description: "For new customers",
+          },
+          {
+            id: "3",
+            title: "Festive Special",
+            discount: "15% OFF",
+            validUntil: "Valid till 31 Dec",
+            ctaLink: "/search",
+            description: "On all occasions",
+          },
+        ];
+        setOffers(mockOffers);
+        return;
+      }
+
+      // Load banners from Supabase
+      const { data: bannersData } = await supabase
+        .from("banners")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (bannersData && bannersData.length > 0) {
+        setBanners(bannersData);
+      } else {
+        // Fallback data for development - Multiple banners to test navigation
+        setBanners([
+          {
+            id: "1",
+            title: "Welcome to Wyshkit",
+            image_url:
+              "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=128&fit=crop",
+            cta_link: "/search",
+            is_active: true,
+          },
+          {
+            id: "2",
+            title: "Festive Season Special",
+            image_url:
+              "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400&h=128&fit=crop",
+            cta_link: "/search?occasion=festival",
+            is_active: true,
+          },
+          {
+            id: "3",
+            title: "New Arrivals",
+            image_url:
+              "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400&h=128&fit=crop",
+            cta_link: "/search?filter=new",
+            is_active: true,
+          },
+        ]);
+      }
+
+      // Load occasions from Supabase
+      const { data: occasionsData } = await supabase
+        .from("occasions")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (occasionsData && occasionsData.length > 0) {
+        setOccasions(
+          occasionsData.map((occ) => ({
             id: occ.id,
             name: occ.name,
             image: occ.image_url,
             icon: occ.icon_emoji,
             slug: occ.slug,
-          })));
-        } else {
-          // Fallback data for development
-          setOccasions([
-            { id: '1', name: 'Birthday', image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=100&h=100&fit=crop', icon: '🎂', slug: 'birthday' },
-            { id: '2', name: 'Anniversary', image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=100&h=100&fit=crop', icon: '💍', slug: 'anniversary' },
-            { id: '3', name: 'Wedding', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=100&h=100&fit=crop', icon: '💒', slug: 'wedding' },
-            { id: '4', name: 'Corporate', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=100&h=100&fit=crop', icon: '🏢', slug: 'corporate' }
-          ]);
-        }
-
-          // Load stores from Supabase (sorted by rating descending)
-          const storesData = await fetchStores(location);
-          let sortedStores: Store[] = [];
-          if (storesData && storesData.length > 0) {
-            // Sort by rating descending (Swiggy pattern: Top Rated)
-            sortedStores = [...storesData].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-            setStores(sortedStores);
-          } else {
-          // Fallback data for development
-          const fallbackStores2 = [
-            {
-              id: '1',
-              name: 'GiftCraft Studio',
-              image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop',
-              rating: 4.8,
-              delivery: '1-2 days',
-              badge: 'bestseller' as const,
-              location: 'Bangalore',
-              category: 'Custom Gifts',
-              tagline: 'Handcrafted personalized gifts',
-              ratingCount: 156,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-            },
-            {
-              id: '2',
-              name: 'Luxury Hampers Co',
-              image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop',
-              rating: 4.6,
-              delivery: '2-3 days',
-              badge: 'trending' as const,
-              location: 'Mumbai',
-              category: 'Hampers',
-              tagline: 'Premium gift hampers',
-              ratingCount: 89,
-              sponsored: false,
-              status: 'approved' as const,
-              is_active: true
-              },
-              {
-                id: '3',
-                name: 'Sweet Delights Bakery',
-                image: 'https://images.unsplash.com/photo-1486427944299-d1955d23da34?w=200&h=200&fit=crop',
-                rating: 4.5,
-                delivery: '1-2 days',
-                location: 'Delhi',
-                category: 'Chocolates & Sweets',
-                tagline: 'Artisan chocolates and gourmet sweets',
-                ratingCount: 32,
-                sponsored: false,
-                status: 'approved' as const,
-                is_active: true
-              },
-              {
-                id: '4',
-                name: 'Flower Boutique',
-                image: 'https://images.unsplash.com/photo-1563241522-316a37a47b7d?w=200&h=200&fit=crop',
-                rating: 4.7,
-                delivery: 'Same day',
-                location: 'Pune',
-                category: 'Flowers',
-                tagline: 'Fresh flowers for every occasion',
-                ratingCount: 28,
-                sponsored: false,
-                status: 'approved' as const,
-                is_active: true
-              },
-              {
-                id: '5',
-                name: 'Tech Gift Hub',
-                image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop',
-                rating: 4.4,
-                delivery: '3-5 days',
-                location: 'Hyderabad',
-                category: 'Tech Gifts',
-                tagline: 'Latest gadgets and tech accessories',
-                ratingCount: 45,
-                sponsored: false,
-                status: 'approved' as const,
-                is_active: true
-              },
-              {
-                id: '6',
-                name: 'Artisan Crafts Co',
-                image: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=200&h=200&fit=crop',
-                rating: 4.9,
-                delivery: '5-7 days',
-                badge: 'trending' as const,
-                location: 'Chennai',
-                category: 'Handmade',
-                tagline: 'Unique handmade gifts',
-                ratingCount: 112,
-                sponsored: false,
-                status: 'approved' as const,
-                is_active: true
-              },
-              {
-                id: '7',
-                name: 'Gourmet Treats Box',
-                image: 'https://images.unsplash.com/photo-1556910096-6f5e72db6803?w=200&h=200&fit=crop',
-                rating: 4.3,
-                delivery: '2-3 days',
-                location: 'Kolkata',
-                category: 'Food & Beverage',
-                tagline: 'Curated gourmet selections',
-                ratingCount: 18,
-                sponsored: false,
-                status: 'approved' as const,
-                is_active: true
-              },
-              {
-                id: '8',
-                name: 'Books & Beyond',
-                image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=200&fit=crop',
-                rating: 4.6,
-                delivery: '3-4 days',
-                location: 'Delhi',
-                category: 'Books',
-                tagline: 'Curated book collections',
-                ratingCount: 25,
-                sponsored: false,
-                status: 'approved' as const,
-                is_active: true
-            }
-            ];
-            // Sort by rating descending
-            sortedStores = [...fallbackStores2].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-            setStores(sortedStores);
-          }
-          // Initialize displayed stores for infinite scroll
-          // Filtering and sorting will be applied in useEffect
-          setDisplayedStores(sortedStores.slice(0, STORES_PER_PAGE));
-          setHasMoreStores(sortedStores.length > STORES_PER_PAGE);
-          setFilteredAndSortedStores(sortedStores);
-          
-          // Filter trending stores (badge === 'trending' OR high engagement)
-          const trending = sortedStores
-            .filter(s => s.badge === 'trending' || (s.ratingCount || 0) > 100)
-            .slice(0, 8);
-          setTrendingStores(trending);
-          
-          // Filter new launches (ratingCount < 50 - indicates newer stores)
-          const newOnes = sortedStores
-            .filter(s => (s.ratingCount || 0) < 50)
-            .slice(0, 8);
-          // Ensure we always have new launches if stores exist (defensive check)
-          if (newOnes.length === 0 && sortedStores.length > 0) {
-            // If no stores match, use first few stores as fallback (they're already sorted by rating)
-            // This ensures the section always shows during development
-            const fallbackNew = sortedStores.slice(0, Math.min(5, sortedStores.length));
-            setNewLaunches(fallbackNew);
-          } else {
-            setNewLaunches(newOnes);
-          }
-          
-          // Load offers (mock data - can be migrated to Supabase later)
-          const mockOffers: Offer[] = [
-            {
-              id: '1',
-              title: 'Bank Offers',
-              discount: '10% OFF',
-              validUntil: 'Valid till 31 Dec',
-              ctaLink: '/search?filter=offers',
-              bankName: 'HDFC Bank',
-              description: 'On orders above ₹1000'
-            },
-            {
-              id: '2',
-              title: 'First Order Bonus',
-              discount: '₹200 OFF',
-              validUntil: 'Limited time',
-              ctaLink: '/search',
-              description: 'For new customers'
-            },
-            {
-              id: '3',
-              title: 'Festive Special',
-              discount: '15% OFF',
-              validUntil: 'Valid till 31 Dec',
-              ctaLink: '/search',
-              description: 'On all occasions'
-            }
-          ];
-          setOffers(mockOffers);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        // Ensure offers are still set even on error (fallback)
-        const mockOffers: Offer[] = [
+          })),
+        );
+      } else {
+        // Fallback data for development
+        setOccasions([
           {
-            id: '1',
-            title: 'Bank Offers',
-            discount: '10% OFF',
-            validUntil: 'Valid till 31 Dec',
-            ctaLink: '/search?filter=offers',
-            bankName: 'HDFC Bank',
-            description: 'On orders above ₹1000'
+            id: "1",
+            name: "Birthday",
+            image:
+              "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=100&h=100&fit=crop",
+            icon: "🎂",
+            slug: "birthday",
           },
           {
-            id: '2',
-            title: 'First Order Bonus',
-            discount: '₹200 OFF',
-            validUntil: 'Limited time',
-            ctaLink: '/search',
-            description: 'For new customers'
+            id: "2",
+            name: "Anniversary",
+            image:
+              "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=100&h=100&fit=crop",
+            icon: "💍",
+            slug: "anniversary",
           },
           {
-            id: '3',
-            title: 'Festive Special',
-            discount: '15% OFF',
-            validUntil: 'Valid till 31 Dec',
-            ctaLink: '/search',
-            description: 'On all occasions'
-          }
-        ];
-        setOffers(mockOffers);
-        toast({
-          title: "Loading error",
-          description: "Some content may not be available",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+            id: "3",
+            name: "Wedding",
+            image:
+              "https://images.unsplash.com/photo-1519741497674-611481863552?w=100&h=100&fit=crop",
+            icon: "💒",
+            slug: "wedding",
+          },
+          {
+            id: "4",
+            name: "Corporate",
+            image:
+              "https://images.unsplash.com/photo-1556761175-4b46a572b786?w=100&h=100&fit=crop",
+            icon: "🏢",
+            slug: "corporate",
+          },
+        ]);
       }
+
+      // Load stores from Supabase (sorted by rating descending)
+      const storesData = await fetchStores(location);
+      let sortedStores: Store[] = [];
+      if (storesData && storesData.length > 0) {
+        // Sort by rating descending (Swiggy pattern: Top Rated)
+        sortedStores = [...storesData].sort(
+          (a, b) => (b.rating || 0) - (a.rating || 0),
+        );
+        setStores(sortedStores);
+      } else {
+        // Fallback data for development
+        const fallbackStores2 = [
+          {
+            id: "1",
+            name: "GiftCraft Studio",
+            image:
+              "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop",
+            rating: 4.8,
+            delivery: "1-2 days",
+            badge: "bestseller" as const,
+            location: "Bangalore",
+            category: "Custom Gifts",
+            tagline: "Handcrafted personalized gifts",
+            ratingCount: 156,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "2",
+            name: "Luxury Hampers Co",
+            image:
+              "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop",
+            rating: 4.6,
+            delivery: "2-3 days",
+            badge: "trending" as const,
+            location: "Mumbai",
+            category: "Hampers",
+            tagline: "Premium gift hampers",
+            ratingCount: 89,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "3",
+            name: "Sweet Delights Bakery",
+            image:
+              "https://images.unsplash.com/photo-1486427944299-d1955d23da34?w=200&h=200&fit=crop",
+            rating: 4.5,
+            delivery: "1-2 days",
+            location: "Delhi",
+            category: "Chocolates & Sweets",
+            tagline: "Artisan chocolates and gourmet sweets",
+            ratingCount: 32,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "4",
+            name: "Flower Boutique",
+            image:
+              "https://images.unsplash.com/photo-1563241522-316a37a47b7d?w=200&h=200&fit=crop",
+            rating: 4.7,
+            delivery: "Same day",
+            location: "Pune",
+            category: "Flowers",
+            tagline: "Fresh flowers for every occasion",
+            ratingCount: 28,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "5",
+            name: "Tech Gift Hub",
+            image:
+              "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&h=200&fit=crop",
+            rating: 4.4,
+            delivery: "3-5 days",
+            location: "Hyderabad",
+            category: "Tech Gifts",
+            tagline: "Latest gadgets and tech accessories",
+            ratingCount: 45,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "6",
+            name: "Artisan Crafts Co",
+            image:
+              "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=200&h=200&fit=crop",
+            rating: 4.9,
+            delivery: "5-7 days",
+            badge: "trending" as const,
+            location: "Chennai",
+            category: "Handmade",
+            tagline: "Unique handmade gifts",
+            ratingCount: 112,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "7",
+            name: "Gourmet Treats Box",
+            image:
+              "https://images.unsplash.com/photo-1556910096-6f5e72db6803?w=200&h=200&fit=crop",
+            rating: 4.3,
+            delivery: "2-3 days",
+            location: "Kolkata",
+            category: "Food & Beverage",
+            tagline: "Curated gourmet selections",
+            ratingCount: 18,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+          {
+            id: "8",
+            name: "Books & Beyond",
+            image:
+              "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=200&fit=crop",
+            rating: 4.6,
+            delivery: "3-4 days",
+            location: "Delhi",
+            category: "Books",
+            tagline: "Curated book collections",
+            ratingCount: 25,
+            sponsored: false,
+            status: "approved" as const,
+            is_active: true,
+          },
+        ];
+        // Sort by rating descending
+        sortedStores = [...fallbackStores2].sort(
+          (a, b) => (b.rating || 0) - (a.rating || 0),
+        );
+        setStores(sortedStores);
+      }
+      // Initialize displayed stores for infinite scroll
+      // Filtering and sorting will be applied in useEffect
+      setDisplayedStores(sortedStores.slice(0, STORES_PER_PAGE));
+      setHasMoreStores(sortedStores.length > STORES_PER_PAGE);
+      setFilteredAndSortedStores(sortedStores);
+
+      // Filter trending stores (badge === 'trending' OR high engagement)
+      const trending = sortedStores
+        .filter((s) => s.badge === "trending" || (s.ratingCount || 0) > 100)
+        .slice(0, 8);
+      setTrendingStores(trending);
+
+      // Filter new launches (ratingCount < 50 - indicates newer stores)
+      const newOnes = sortedStores
+        .filter((s) => (s.ratingCount || 0) < 50)
+        .slice(0, 8);
+      // Ensure we always have new launches if stores exist (defensive check)
+      if (newOnes.length === 0 && sortedStores.length > 0) {
+        // If no stores match, use first few stores as fallback (they're already sorted by rating)
+        // This ensures the section always shows during development
+        const fallbackNew = sortedStores.slice(
+          0,
+          Math.min(5, sortedStores.length),
+        );
+        setNewLaunches(fallbackNew);
+      } else {
+        setNewLaunches(newOnes);
+      }
+
+      // Load offers (mock data - can be migrated to Supabase later)
+      const mockOffers: Offer[] = [
+        {
+          id: "1",
+          title: "Bank Offers",
+          discount: "10% OFF",
+          validUntil: "Valid till 31 Dec",
+          ctaLink: "/search?filter=offers",
+          bankName: "HDFC Bank",
+          description: "On orders above ₹1000",
+        },
+        {
+          id: "2",
+          title: "First Order Bonus",
+          discount: "₹200 OFF",
+          validUntil: "Limited time",
+          ctaLink: "/search",
+          description: "For new customers",
+        },
+        {
+          id: "3",
+          title: "Festive Special",
+          discount: "15% OFF",
+          validUntil: "Valid till 31 Dec",
+          ctaLink: "/search",
+          description: "On all occasions",
+        },
+      ];
+      setOffers(mockOffers);
+    } catch (error) {
+      console.error("Error loading data:", error);
+      // Ensure offers are still set even on error (fallback)
+      const mockOffers: Offer[] = [
+        {
+          id: "1",
+          title: "Bank Offers",
+          discount: "10% OFF",
+          validUntil: "Valid till 31 Dec",
+          ctaLink: "/search?filter=offers",
+          bankName: "HDFC Bank",
+          description: "On orders above ₹1000",
+        },
+        {
+          id: "2",
+          title: "First Order Bonus",
+          discount: "₹200 OFF",
+          validUntil: "Limited time",
+          ctaLink: "/search",
+          description: "For new customers",
+        },
+        {
+          id: "3",
+          title: "Festive Special",
+          discount: "15% OFF",
+          validUntil: "Valid till 31 Dec",
+          ctaLink: "/search",
+          description: "On all occasions",
+        },
+      ];
+      setOffers(mockOffers);
+      toast({
+        title: "Loading error",
+        description: "Some content may not be available",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [location, toast]);
 
   useEffect(() => {
@@ -614,15 +727,15 @@ export const CustomerHome = () => {
 
     // Apply filters
     if (filters.length > 0) {
-      filters.forEach(filter => {
+      filters.forEach((filter) => {
         switch (filter) {
-          case 'offers':
+          case "offers":
             // Stores with offers/badges (mock: check for badge or sponsored)
-            filtered = filtered.filter(s => s.badge || s.sponsored);
+            filtered = filtered.filter((s) => s.badge || s.sponsored);
             break;
-          case 'fast-delivery':
+          case "fast-delivery":
             // Stores with fast delivery (mock: delivery time < 1 day)
-            filtered = filtered.filter(s => {
+            filtered = filtered.filter((s) => {
               const deliveryMatch = s.delivery?.match(/\d+/);
               if (deliveryMatch) {
                 const hours = parseInt(deliveryMatch[0]);
@@ -631,9 +744,11 @@ export const CustomerHome = () => {
               return false;
             });
             break;
-          case 'new':
+          case "new":
             // New stores (mock: no badge and ratingCount < 50)
-            filtered = filtered.filter(s => !s.badge && (s.ratingCount || 0) < 50);
+            filtered = filtered.filter(
+              (s) => !s.badge && (s.ratingCount || 0) < 50,
+            );
             break;
         }
       });
@@ -642,10 +757,10 @@ export const CustomerHome = () => {
     // Apply sorting
     const sorted = [...filtered];
     switch (sortBy) {
-      case 'rating':
+      case "rating":
         sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
-      case 'delivery':
+      case "delivery":
         // Sort by delivery time (extract numbers, lower is faster)
         sorted.sort((a, b) => {
           const aMatch = a.delivery?.match(/\d+/);
@@ -655,15 +770,15 @@ export const CustomerHome = () => {
           return aTime - bTime;
         });
         break;
-      case 'cost-low':
+      case "cost-low":
         // Mock: sort by ratingCount (lower = cheaper, for demo)
         sorted.sort((a, b) => (a.ratingCount || 0) - (b.ratingCount || 0));
         break;
-      case 'cost-high':
+      case "cost-high":
         // Mock: sort by ratingCount (higher = expensive, for demo)
         sorted.sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0));
         break;
-      case 'relevance':
+      case "relevance":
       default:
         // Relevance = rating + review count (Swiggy pattern)
         sorted.sort((a, b) => {
@@ -683,18 +798,23 @@ export const CustomerHome = () => {
   // Load more stores for infinite scroll
   const loadMoreStores = async () => {
     if (isLoadingMore || !hasMoreStores) return;
-    
+
     setIsLoadingMore(true);
     try {
       // Simulate loading delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       const currentCount = displayedStores.length;
-      const nextBatch = filteredAndSortedStores.slice(currentCount, currentCount + STORES_PER_PAGE);
+      const nextBatch = filteredAndSortedStores.slice(
+        currentCount,
+        currentCount + STORES_PER_PAGE,
+      );
       setDisplayedStores([...displayedStores, ...nextBatch]);
-      setHasMoreStores(currentCount + STORES_PER_PAGE < filteredAndSortedStores.length);
+      setHasMoreStores(
+        currentCount + STORES_PER_PAGE < filteredAndSortedStores.length,
+      );
     } catch (error) {
-      console.error('Error loading more stores:', error);
+      console.error("Error loading more stores:", error);
     } finally {
       setIsLoadingMore(false);
     }
@@ -708,9 +828,8 @@ export const CustomerHome = () => {
   // Wire up pull-to-refresh hook
   const { isRefreshing, pullDistance, handleTouchStart } = usePullToRefresh({
     onRefresh: handleRefresh,
-    threshold: 100
+    threshold: 100,
   });
-
 
   if (loading) {
     return (
@@ -721,10 +840,10 @@ export const CustomerHome = () => {
           <section className="px-4">
             <Skeleton className="h-40 w-full rounded-xl" />
           </section>
-          
+
           {/* Occasions Skeleton */}
           <div className="flex gap-4 overflow-hidden">
-            {[1, 2, 3, 4, 5].map(i => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex flex-col items-center gap-2">
                 <Skeleton className="w-20 h-20 rounded-full" />
                 <Skeleton className="h-3 w-12" />
@@ -734,13 +853,13 @@ export const CustomerHome = () => {
 
           {/* Stores Skeleton - Matches actual store card structure */}
           <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
-            {[1, 2, 3, 4, 5, 6].map(i => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="space-y-1.5 p-2.5 bg-card rounded-xl">
                 <Skeleton className="aspect-square rounded-lg mb-2.5 bg-card" />
-                <Skeleton className="h-4 w-3/4" />  {/* Name: text-base */}
-                <Skeleton className="h-3 w-1/2" />  {/* Category: text-xs */}
-                <Skeleton className="h-3 w-2/3" />  {/* Rating + Delivery */}
-                <Skeleton className="h-3 w-full" />  {/* Tagline */}
+                <Skeleton className="h-4 w-3/4" /> {/* Name: text-base */}
+                <Skeleton className="h-3 w-1/2" /> {/* Category: text-xs */}
+                <Skeleton className="h-3 w-2/3" /> {/* Rating + Delivery */}
+                <Skeleton className="h-3 w-full" /> {/* Tagline */}
               </div>
             ))}
           </div>
@@ -772,12 +891,21 @@ export const CustomerHome = () => {
               >
                 <CarouselContent className="-ml-2">
                   {banners.map((item) => (
-                    <CarouselItem key={item.id} className="basis-[85%] pl-2 md:basis-[45%]">
+                    <CarouselItem
+                      key={item.id}
+                      className="basis-[85%] pl-2 md:basis-[45%]"
+                    >
                       <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] border-0 overflow-hidden">
                         <CardContent className="p-0">
                           <div
-                            className="relative h-40 md:h-48"  // 160px mobile, 192px desktop (Swiggy standard)
-                            onClick={() => navigate(item.cta_link || item.link || item.store_id ? RouteMap.store(item.store_id) : '/')}
+                            className="relative h-40 md:h-48" // 160px mobile, 192px desktop (Swiggy standard)
+                            onClick={() =>
+                              navigate(
+                                item.cta_link || item.link || item.store_id
+                                  ? RouteMap.store(item.store_id)
+                                  : "/",
+                              )
+                            }
                           >
                             {/* Banner Image */}
                             {item.image_url && (
@@ -798,19 +926,25 @@ export const CustomerHome = () => {
                                 className="absolute inset-0 w-full h-full object-cover hidden md:block"
                               />
                             )}
-                            
+
                             {/* Gradient Overlay (for better text readability) */}
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-transparent" />
-                            
+
                             {/* Content - Center-aligned */}
                             <div className="relative z-10 p-4 h-full flex flex-col justify-center text-center space-y-1">
                               <div className="h-10 w-10 bg-white/20 rounded-lg mx-auto mb-2 flex items-center justify-center">
                                 <Gift className="h-6 w-6 text-white" />
                               </div>
-                              <h3 className="font-semibold text-white text-sm">{item.title}</h3>
-                              <p className="text-white/90 text-xs">{item.subtitle || item.description}</p>
+                              <h3 className="font-semibold text-white text-sm">
+                                {item.title}
+                              </h3>
+                              <p className="text-white/90 text-xs">
+                                {item.subtitle || item.description}
+                              </p>
                               {item.cta_text && (
-                                <span className="text-white/80 text-xs font-medium">{item.cta_text} →</span>
+                                <span className="text-white/80 text-xs font-medium">
+                                  {item.cta_text} →
+                                </span>
                               )}
                             </div>
                           </div>
@@ -820,7 +954,7 @@ export const CustomerHome = () => {
                   ))}
                 </CarouselContent>
               </Carousel>
-              
+
               {/* Dot Indicators - Below carousel, left-aligned (Modern Ecommerce Pattern) */}
               {banners.length > 1 && (
                 <div className="flex justify-start mt-3 px-4">
@@ -831,7 +965,9 @@ export const CustomerHome = () => {
                         onClick={() => carouselApi?.scrollTo(idx)}
                         className={cn(
                           "h-1.5 rounded-full transition-all duration-300",
-                          idx === currentSlide ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                          idx === currentSlide
+                            ? "w-6 bg-primary"
+                            : "w-1.5 bg-muted-foreground/30",
                         )}
                         aria-label={`Go to slide ${idx + 1}`}
                       />
@@ -860,7 +996,11 @@ export const CustomerHome = () => {
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
-                onClick={() => navigate(RouteMap.search(`occasion=${occasion.name.toLowerCase()}`))}
+                onClick={() =>
+                  navigate(
+                    RouteMap.search(`occasion=${occasion.name.toLowerCase()}`),
+                  )
+                }
                 className="snap-start flex flex-col items-center gap-2 min-w-[80px] shrink-0 md:min-w-0"
                 aria-label={`Browse ${occasion.name} gifts`}
               >
@@ -888,7 +1028,7 @@ export const CustomerHome = () => {
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto text-sm"
-                onClick={() => navigate(RouteMap.search('?filter=offers'))}
+                onClick={() => navigate(RouteMap.search("?filter=offers"))}
               >
                 View All →
               </Button>
@@ -917,15 +1057,17 @@ export const CustomerHome = () => {
                 label: "Change Location",
                 onClick: () => {
                   // Trigger location selector
-                  const locationButton = document.querySelector('[aria-label="Change location"]');
+                  const locationButton = document.querySelector(
+                    '[aria-label="Change location"]',
+                  );
                   if (locationButton) {
                     (locationButton as HTMLElement).click();
                   }
-                }
+                },
               }}
               secondaryAction={{
                 label: "Browse All",
-                onClick: () => navigate(RouteMap.search())
+                onClick: () => navigate(RouteMap.search()),
               }}
             />
           </section>
@@ -938,12 +1080,11 @@ export const CustomerHome = () => {
               onSortChange={setSortBy}
               onFilterChange={setFilters}
               sticky={true}
+              stickyTop="top-0"
             />
-            
+
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-semibold">
-                Top Rated • {location}
-              </h2>
+              <h2 className="text-lg font-semibold">Top Rated • {location}</h2>
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto text-sm"
@@ -965,85 +1106,96 @@ export const CustomerHome = () => {
               >
                 <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
                   {displayedStores.map((store) => (
-              <Card
-                key={store.id}
-                className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
-                onClick={() => navigate(RouteMap.store(store.id))}
-              >
-                <CardContent className="p-2.5">
-                  {/* Image - 3:2 landscape (Swiggy pattern for store cards) */}
-                  <div className="relative w-full aspect-[3/2] rounded-lg overflow-hidden bg-card mb-2.5">
-                    <OptimizedImage
-                      src={store.image}
-                      alt={store.name}
-                      width={300}
-                      height={200}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    {/* Sponsored Badge - Top Left (Small icon + text, Zomato pattern) */}
-                    {store.sponsored && (
-                      <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
-                        <Sparkles className="h-2.5 w-2.5 text-amber-900" />
-                        <span className="text-amber-900 font-medium">Sponsored</span>
-                      </Badge>
-                    )}
-                    {/* Bestseller/Trending Badge - Top Right (Small icon + text, no conflict with sponsored) */}
-                    {store.badge && !store.sponsored && (
-                      <Badge
-                        className={cn(
-                          "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                          store.badge === 'bestseller'
-                            ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
-                            : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
-                        )}
-                      >
-                        {store.badge === 'bestseller' ? (
-                          <>
-                            <Trophy className="h-2.5 w-2.5" />
-                            <span className="font-medium">Bestseller</span>
-                          </>
-                        ) : (
-                          <>
-                            <Flame className="h-2.5 w-2.5" />
-                            <span className="font-medium">Trending</span>
-                          </>
-                        )}
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="space-y-1.5">
-                    {/* Name - clamp to 2 lines for stability */}
-                    <h3 className="text-base font-bold line-clamp-2">
-                      {store.name}
-                    </h3>
-                    
-                    {/* Category - 12px gray per spec */}
-                    {store.category && (
-                      <p className="text-xs text-muted-foreground">{store.category}</p>
-                    )}
-                    
-                    {/* Meta row: rating (+count) • ETA • distance (if available) */}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
-                      <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
-                      </span>
-                      <span>•</span>
-                      <span>{store.delivery}</span>
-                      {/* Distance can be added to Store type later if needed */}
-                    </div>
-                    {/* No price in store cards to keep to 3 signals */}
-                    
-                    {/* Tagline - 12px gray, 1 line per spec */}
-                    {store.tagline && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    <Card
+                      key={store.id}
+                      className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
+                      onClick={() => navigate(RouteMap.store(store.id))}
+                    >
+                      <CardContent className="p-2.5">
+                        {/* Image - 3:2 landscape (Swiggy pattern for store cards) */}
+                        <div className="relative w-full aspect-[3/2] rounded-lg overflow-hidden bg-card mb-2.5">
+                          <OptimizedImage
+                            src={store.image}
+                            alt={store.name}
+                            width={300}
+                            height={200}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {/* Sponsored Badge - Top Left (Small icon + text, Zomato pattern) */}
+                          {store.sponsored && (
+                            <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
+                              <Sparkles className="h-2.5 w-2.5 text-amber-900" />
+                              <span className="text-amber-900 font-medium">
+                                Sponsored
+                              </span>
+                            </Badge>
+                          )}
+                          {/* Bestseller/Trending Badge - Top Right (Small icon + text, no conflict with sponsored) */}
+                          {store.badge && !store.sponsored && (
+                            <Badge
+                              className={cn(
+                                "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
+                                store.badge === "bestseller"
+                                  ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
+                                  : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]",
+                              )}
+                            >
+                              {store.badge === "bestseller" ? (
+                                <>
+                                  <Trophy className="h-2.5 w-2.5" />
+                                  <span className="font-medium">
+                                    Bestseller
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <Flame className="h-2.5 w-2.5" />
+                                  <span className="font-medium">Trending</span>
+                                </>
+                              )}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="space-y-1.5">
+                          {/* Name - clamp to 2 lines for stability */}
+                          <h3 className="text-base font-bold line-clamp-2">
+                            {store.name}
+                          </h3>
+
+                          {/* Category - 12px gray per spec */}
+                          {store.category && (
+                            <p className="text-xs text-muted-foreground">
+                              {store.category}
+                            </p>
+                          )}
+
+                          {/* Meta row: rating (+count) • ETA • distance (if available) */}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+                            <span className="flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              {store.rating}
+                              {store.ratingCount
+                                ? ` (${store.ratingCount})`
+                                : ""}
+                            </span>
+                            <span>•</span>
+                            <span>{store.delivery}</span>
+                            {/* Distance can be added to Store type later if needed */}
+                          </div>
+                          {/* No price in store cards to keep to 3 signals */}
+
+                          {/* Tagline - 12px gray, 1 line per spec */}
+                          {store.tagline && (
+                            <p className="text-xs text-muted-foreground line-clamp-1">
+                              {store.tagline}
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               </InfiniteScroll>
@@ -1059,7 +1211,7 @@ export const CustomerHome = () => {
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto text-sm"
-                onClick={() => navigate(RouteMap.search('?filter=trending'))}
+                onClick={() => navigate(RouteMap.search("?filter=trending"))}
               >
                 View All →
               </Button>
@@ -1085,19 +1237,21 @@ export const CustomerHome = () => {
                       {store.sponsored && (
                         <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                           <Sparkles className="h-2.5 w-2.5 text-amber-900" />
-                          <span className="text-amber-900 font-medium">Sponsored</span>
+                          <span className="text-amber-900 font-medium">
+                            Sponsored
+                          </span>
                         </Badge>
                       )}
                       {store.badge && !store.sponsored && (
                         <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                            store.badge === 'bestseller'
+                            store.badge === "bestseller"
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
-                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]",
                           )}
                         >
-                          {store.badge === 'bestseller' ? (
+                          {store.badge === "bestseller" ? (
                             <>
                               <Trophy className="h-2.5 w-2.5" />
                               <span className="font-medium">Bestseller</span>
@@ -1112,20 +1266,27 @@ export const CustomerHome = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <h3 className="text-base font-bold line-clamp-2">{store.name}</h3>
+                      <h3 className="text-base font-bold line-clamp-2">
+                        {store.name}
+                      </h3>
                       {store.category && (
-                        <p className="text-xs text-muted-foreground">{store.category}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {store.category}
+                        </p>
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          {store.rating}
+                          {store.ratingCount ? ` (${store.ratingCount})` : ""}
                         </span>
                         <span>•</span>
                         <span>{store.delivery}</span>
                       </div>
                       {store.tagline && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {store.tagline}
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -1143,7 +1304,7 @@ export const CustomerHome = () => {
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto text-sm"
-                onClick={() => navigate(RouteMap.search('?filter=new'))}
+                onClick={() => navigate(RouteMap.search("?filter=new"))}
               >
                 View All →
               </Button>
@@ -1169,19 +1330,21 @@ export const CustomerHome = () => {
                       {store.sponsored && (
                         <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                           <Sparkles className="h-2.5 w-2.5 text-amber-900" />
-                          <span className="text-amber-900 font-medium">Sponsored</span>
+                          <span className="text-amber-900 font-medium">
+                            Sponsored
+                          </span>
                         </Badge>
                       )}
                       {store.badge && !store.sponsored && (
                         <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                            store.badge === 'bestseller'
+                            store.badge === "bestseller"
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
-                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]",
                           )}
                         >
-                          {store.badge === 'bestseller' ? (
+                          {store.badge === "bestseller" ? (
                             <>
                               <Trophy className="h-2.5 w-2.5" />
                               <span className="font-medium">Bestseller</span>
@@ -1196,20 +1359,27 @@ export const CustomerHome = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <h3 className="text-base font-bold line-clamp-2">{store.name}</h3>
+                      <h3 className="text-base font-bold line-clamp-2">
+                        {store.name}
+                      </h3>
                       {store.category && (
-                        <p className="text-xs text-muted-foreground">{store.category}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {store.category}
+                        </p>
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
+                          {store.rating}
+                          {store.ratingCount ? ` (${store.ratingCount})` : ""}
                         </span>
                         <span>•</span>
                         <span>{store.delivery}</span>
                       </div>
                       {store.tagline && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {store.tagline}
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -1235,65 +1405,74 @@ export const CustomerHome = () => {
             {/* Horizontal scroll */}
             <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
               {recommendedStores.map((store) => (
-              <Card
-                key={store.id}
+                <Card
+                  key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                onClick={() => navigate(RouteMap.store(store.id))}
-              >
+                  onClick={() => navigate(RouteMap.store(store.id))}
+                >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
-                    <OptimizedImage
-                      src={store.image}
-                      alt={store.name}
+                      <OptimizedImage
+                        src={store.image}
+                        alt={store.name}
                         width={160}
                         height={160}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    {store.sponsored && (
-                      <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
-                        <Sparkles className="h-2.5 w-2.5 text-amber-900" />
-                        <span className="text-amber-900 font-medium">Sponsored</span>
-                      </Badge>
-                    )}
-                    {store.badge && !store.sponsored && (
-                      <Badge
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {store.sponsored && (
+                        <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
+                          <Sparkles className="h-2.5 w-2.5 text-amber-900" />
+                          <span className="text-amber-900 font-medium">
+                            Sponsored
+                          </span>
+                        </Badge>
+                      )}
+                      {store.badge && !store.sponsored && (
+                        <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                            store.badge === 'bestseller'
+                            store.badge === "bestseller"
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
-                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]",
                           )}
-                      >
-                        {store.badge === 'bestseller' ? (
-                          <>
+                        >
+                          {store.badge === "bestseller" ? (
+                            <>
                               <Trophy className="h-2.5 w-2.5" />
-                            <span className="font-medium">Bestseller</span>
-                          </>
-                        ) : (
-                          <>
+                              <span className="font-medium">Bestseller</span>
+                            </>
+                          ) : (
+                            <>
                               <Flame className="h-2.5 w-2.5" />
-                            <span className="font-medium">Trending</span>
-                          </>
-                        )}
-                      </Badge>
-                    )}
-                  </div>
+                              <span className="font-medium">Trending</span>
+                            </>
+                          )}
+                        </Badge>
+                      )}
+                    </div>
                     <div className="space-y-1.5">
-                      <h3 className="text-base font-bold line-clamp-2">{store.name}</h3>
+                      <h3 className="text-base font-bold line-clamp-2">
+                        {store.name}
+                      </h3>
                       {store.category && (
-                        <p className="text-xs text-muted-foreground">{store.category}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {store.category}
+                        </p>
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
+                          {store.rating}
+                          {store.ratingCount ? ` (${store.ratingCount})` : ""}
                         </span>
                         <span>•</span>
                         <span>{store.delivery}</span>
                       </div>
                       {store.tagline && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {store.tagline}
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -1337,19 +1516,21 @@ export const CustomerHome = () => {
                       {store.sponsored && (
                         <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                           <Sparkles className="h-2.5 w-2.5 text-amber-900" />
-                          <span className="text-amber-900 font-medium">Sponsored</span>
+                          <span className="text-amber-900 font-medium">
+                            Sponsored
+                          </span>
                         </Badge>
                       )}
                       {store.badge && !store.sponsored && (
                         <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                            store.badge === 'bestseller'
+                            store.badge === "bestseller"
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
-                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
+                              : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]",
                           )}
                         >
-                          {store.badge === 'bestseller' ? (
+                          {store.badge === "bestseller" ? (
                             <>
                               <Trophy className="h-2.5 w-2.5" />
                               <span className="font-medium">Bestseller</span>
@@ -1363,33 +1544,40 @@ export const CustomerHome = () => {
                         </Badge>
                       )}
                     </div>
-                  <div className="space-y-1">
-                    {/* Name - clamp to 2 lines for stability */}
-                      <h3 className="text-base font-bold line-clamp-2">{store.name}</h3>
-                    {/* Category - 12px gray per spec */}
-                    {store.category && (
-                      <p className="text-xs text-muted-foreground">{store.category}</p>
-                    )}
-                    {/* Meta row: rating (+count) • ETA • distance (if available) */}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
-                      <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
-                      </span>
-                      <span>•</span>
-                      <span>{store.delivery}</span>
+                    <div className="space-y-1.5">
+                      {/* Name - clamp to 2 lines for stability */}
+                      <h3 className="text-base font-bold line-clamp-2">
+                        {store.name}
+                      </h3>
+                      {/* Category - 12px gray per spec */}
+                      {store.category && (
+                        <p className="text-xs text-muted-foreground">
+                          {store.category}
+                        </p>
+                      )}
+                      {/* Meta row: rating (+count) • ETA • distance (if available) */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          {store.rating}
+                          {store.ratingCount ? ` (${store.ratingCount})` : ""}
+                        </span>
+                        <span>•</span>
+                        <span>{store.delivery}</span>
                         {/* Distance can be added to Store type later if needed */}
+                      </div>
+                      {/* Tagline - 12px gray, 1 line per spec */}
+                      {store.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {store.tagline}
+                        </p>
+                      )}
                     </div>
-                    {/* Tagline - 12px gray, 1 line per spec */}
-                    {store.tagline && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
         )}
       </main>
 
@@ -1397,4 +1585,3 @@ export const CustomerHome = () => {
     </div>
   );
 };
-
