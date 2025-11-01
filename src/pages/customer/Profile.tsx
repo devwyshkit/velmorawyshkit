@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -120,7 +119,6 @@ export const Profile = () => {
         </Card>
       </main>
 
-      <ComplianceFooter />
       <CustomerBottomNav />
     </div>
   );

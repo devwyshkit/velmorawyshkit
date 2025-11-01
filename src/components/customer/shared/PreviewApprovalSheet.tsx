@@ -17,11 +17,14 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/integrations/supabase-client";
+import { updateOrderStatus } from "@/lib/integrations/order-status";
 
 interface PreviewApprovalSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  orderId?: string;
+  orderId?: string; // Order number for display
+  orderItemId?: string; // Order item UUID for backend operations
   deadline?: Date;
   deliveryDate?: Date;
   productionDays?: number;
@@ -33,6 +36,7 @@ export const PreviewApprovalSheet = ({
   isOpen, 
   onClose, 
   orderId,
+  orderItemId,
   deadline,
   deliveryDate,
   productionDays = 3,
@@ -135,8 +139,44 @@ export const PreviewApprovalSheet = ({
     setLoading(true);
 
     try {
-      // Submit approval to backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!orderItemId) {
+        throw new Error('Order item ID missing');
+      }
+
+      // Update order item preview status to approved
+      const { error: itemError } = await supabase
+        .from('order_items')
+        .update({
+          preview_status: 'approved',
+          preview_approved_at: new Date().toISOString()
+        })
+        .eq('id', orderItemId);
+
+      if (itemError) throw itemError;
+
+      // Check if all items approved and update order status
+      const { data: orderItem } = await supabase
+        .from('order_items')
+        .select('order_id')
+        .eq('id', orderItemId)
+        .single();
+
+      if (orderItem) {
+        const { data: pendingItems } = await supabase
+          .from('order_items')
+          .select('id')
+          .eq('order_id', orderItem.order_id)
+          .neq('preview_status', 'approved')
+          .not('customization_files', 'is', null);
+
+        if (!pendingItems || pendingItems.length === 0) {
+          // All approved, start production
+          await updateOrderStatus(orderItem.order_id, 'in_production', {
+            changedBy: { type: 'user', id: '' },
+            notes: 'All previews approved, starting production'
+          });
+        }
+      }
 
       toast({
         title: "Proof Approved! ✅",
@@ -144,8 +184,11 @@ export const PreviewApprovalSheet = ({
       });
 
       onClose();
-      navigate(`${RouteMap.track(proof.orderId)}`);
+      if (orderId) {
+        navigate(`${RouteMap.track(orderId)}`);
+      }
     } catch (error) {
+      console.error('Approval error:', error);
       toast({
         title: "Approval failed",
         description: "Please try again",
@@ -170,8 +213,38 @@ export const PreviewApprovalSheet = ({
     setLoading(true);
 
     try {
-      // Submit revisions to backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!orderItemId) {
+        throw new Error('Order item ID missing');
+      }
+
+      // Update order item with revision request
+      const { data: orderItem } = await supabase
+        .from('order_items')
+        .select('order_id, revision_count')
+        .eq('id', orderItemId)
+        .single();
+
+      if (!orderItem) throw new Error('Order item not found');
+
+      const newRevisionCount = (orderItem.revision_count || 0) + 1;
+
+      const { error: updateError } = await supabase
+        .from('order_items')
+        .update({
+          preview_status: 'revision_requested',
+          revision_count: newRevisionCount,
+          revision_notes: feedback || null,
+          revision_requested_at: new Date().toISOString()
+        })
+        .eq('id', orderItemId);
+
+      if (updateError) throw updateError;
+
+      // Update order status
+      await updateOrderStatus(orderItem.order_id, 'revision_requested', {
+        changedBy: { type: 'user', id: '' },
+        notes: 'Revision requested by customer'
+      });
 
       toast({
         title: "Changes requested",
@@ -180,6 +253,7 @@ export const PreviewApprovalSheet = ({
 
       onClose();
     } catch (error) {
+      console.error('Revision submission error:', error);
       toast({
         title: "Submission failed",
         description: "Please try again",

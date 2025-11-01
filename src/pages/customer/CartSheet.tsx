@@ -236,7 +236,7 @@ HSN Code: 9985
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
+        <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
           <h2 className="text-lg font-semibold">My Cart ({items.length})</h2>
           {storeName && (
             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">

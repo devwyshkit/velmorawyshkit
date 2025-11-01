@@ -535,7 +535,6 @@ export const Store = () => {
           <SheetContent
             side="bottom"
             className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
-            hideCloseButton
           >
             <ProductSheet
               itemId={selectedItemId}

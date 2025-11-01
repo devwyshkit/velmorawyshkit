@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
-import { PreviewApprovalSheet } from "@/components/customer/shared/PreviewApprovalSheet";
 import { useToast } from "@/hooks/use-toast";
 import { getETAEstimate } from "@/lib/integrations/openai";
 import { supabase } from "@/lib/integrations/supabase-client";
@@ -29,7 +27,6 @@ export const Track = () => {
   const { toast } = useToast();
   const orderId = id || 'ORD-' + Date.now();
   const [eta, setEta] = useState<string>('');
-  const [isProofSheetOpen, setIsProofSheetOpen] = useState(false);
   const [isRatingSheetOpen, setIsRatingSheetOpen] = useState(false);
   const [timeline, setTimeline] = useState<TimelineStep[]>([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
@@ -366,7 +363,7 @@ export const Track = () => {
                   </p>
                 </div>
                 <Button
-                  onClick={() => setIsProofSheetOpen(true)}
+                  onClick={() => navigate(RouteMap.preview(orderId))}
                   variant="default"
                   size="sm"
                 >
@@ -426,15 +423,7 @@ export const Track = () => {
         </Button>
       </main>
 
-      <ComplianceFooter />
       <CustomerBottomNav />
-
-      {/* Preview Approval Sheet */}
-      <PreviewApprovalSheet
-        isOpen={isProofSheetOpen}
-        onClose={() => setIsProofSheetOpen(false)}
-        orderId={orderId}
-      />
 
       {/* Rating Sheet - Auto-opens after delivery */}
       <RatingSheet

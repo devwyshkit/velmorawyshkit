@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 
 interface Order {
   id: string;
@@ -177,7 +176,6 @@ export const Orders = () => {
         )}
       </main>
       
-      <ComplianceFooter />
       <CustomerBottomNav />
     </div>
   );

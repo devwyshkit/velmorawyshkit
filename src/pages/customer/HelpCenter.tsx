@@ -9,7 +9,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { MessageCircle, Phone, Mail } from "lucide-react";
 
 export const HelpCenter = () => {
@@ -104,7 +103,6 @@ export const HelpCenter = () => {
         </div>
       </main>
       
-      <ComplianceFooter />
       <CustomerBottomNav />
     </div>
   );

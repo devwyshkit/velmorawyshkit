@@ -11,7 +11,6 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -576,7 +575,6 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
         </div>
       </main>
 
-      <ComplianceFooter />
       <CustomerBottomNav />
       
       {/* Bottom Sheet Modals */}

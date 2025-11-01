@@ -14,6 +14,7 @@ import {
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { HomeFooter } from "@/components/customer/shared/HomeFooter";
 import { OptimizedImage } from "@/components/ui/skeleton-screen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InfiniteScroll } from "@/components/ui/infinite-scroll";
@@ -104,16 +105,16 @@ export const CustomerHome = () => {
             badge?: "bestseller" | "trending";
             sponsored?: boolean;
           }) => ({
-            id: v.id,
-            name: v.name,
-            image: v.image,
-            rating: v.rating,
-            ratingCount: v.ratingCount,
-            delivery: v.delivery,
-            category: v.category,
-            tagline: v.tagline,
-            badge: v.badge,
-            sponsored: v.sponsored,
+        id: v.id,
+        name: v.name,
+        image: v.image,
+        rating: v.rating,
+        ratingCount: v.ratingCount,
+        delivery: v.delivery,
+        category: v.category,
+        tagline: v.tagline,
+        badge: v.badge,
+        sponsored: v.sponsored,
             status: "approved" as const,
             is_active: true,
           }),
@@ -134,17 +135,17 @@ export const CustomerHome = () => {
 
   // Load data function - can be called from useEffect or pull-to-refresh
   const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const hasSupabaseEnv = Boolean(
+      setLoading(true);
+      try {
+        const hasSupabaseEnv = Boolean(
         import.meta.env.VITE_SUPABASE_URL &&
           import.meta.env.VITE_SUPABASE_ANON_KEY,
-      );
+        );
 
-      if (!hasSupabaseEnv) {
-        // No Supabase env in dev → rely on fallbacks immediately
-        setBanners([
-          {
+        if (!hasSupabaseEnv) {
+          // No Supabase env in dev → rely on fallbacks immediately
+          setBanners([
+            {
             id: "1",
             title: "Welcome to Wyshkit",
             image_url:
@@ -152,8 +153,8 @@ export const CustomerHome = () => {
             cta_link: "/search",
             is_active: true,
           },
-        ]);
-        const fallbackOccasions: Occasion[] = [
+          ]);
+          const fallbackOccasions: Occasion[] = [
           {
             id: "1",
             name: "Birthday",
@@ -186,22 +187,22 @@ export const CustomerHome = () => {
             icon: "🏢",
             slug: "corporate",
           },
-        ];
-        setOccasions(fallbackOccasions);
+          ];
+          setOccasions(fallbackOccasions);
         const fallbackStores = [
           {
             id: "1",
             name: "GiftCraft Studio",
             image:
               "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop",
-            rating: 4.8,
+              rating: 4.8,
             delivery: "35–45 min",
             badge: "bestseller" as const,
             location: "Bangalore",
             category: "Custom Gifts",
             tagline: "Handcrafted personalized gifts",
-            ratingCount: 156,
-            sponsored: false,
+              ratingCount: 156,
+              sponsored: false,
             status: "approved" as const,
             is_active: true,
           },
@@ -210,14 +211,14 @@ export const CustomerHome = () => {
             name: "Luxury Hampers Co",
             image:
               "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop",
-            rating: 4.6,
+              rating: 4.6,
             delivery: "2–3 days",
             badge: "trending" as const,
             location: "Mumbai",
             category: "Hampers",
             tagline: "Premium gift hampers",
-            ratingCount: 89,
-            sponsored: false,
+              ratingCount: 89,
+              sponsored: false,
             status: "approved" as const,
             is_active: true,
           },
@@ -312,8 +313,8 @@ export const CustomerHome = () => {
             status: "approved" as const,
             is_active: true,
           },
-        ];
-        // Sort by rating descending
+          ];
+            // Sort by rating descending
         const sorted = [...fallbackStores].sort(
           (a, b) => (b.rating || 0) - (a.rating || 0),
         );
@@ -367,22 +368,22 @@ export const CustomerHome = () => {
           },
         ];
         setOffers(mockOffers);
-        return;
-      }
+          return;
+        }
 
-      // Load banners from Supabase
-      const { data: bannersData } = await supabase
+        // Load banners from Supabase
+        const { data: bannersData } = await supabase
         .from("banners")
         .select("*")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
-
-      if (bannersData && bannersData.length > 0) {
-        setBanners(bannersData);
-      } else {
+        
+        if (bannersData && bannersData.length > 0) {
+          setBanners(bannersData);
+        } else {
         // Fallback data for development - Multiple banners to test navigation
-        setBanners([
-          {
+          setBanners([
+            {
             id: "1",
             title: "Welcome to Wyshkit",
             image_url:
@@ -406,17 +407,17 @@ export const CustomerHome = () => {
             cta_link: "/search?filter=new",
             is_active: true,
           },
-        ]);
-      }
+          ]);
+        }
 
-      // Load occasions from Supabase
-      const { data: occasionsData } = await supabase
+        // Load occasions from Supabase
+        const { data: occasionsData } = await supabase
         .from("occasions")
         .select("*")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
-
-      if (occasionsData && occasionsData.length > 0) {
+        
+        if (occasionsData && occasionsData.length > 0) {
         setOccasions(
           occasionsData.map((occ) => ({
             id: occ.id,
@@ -426,9 +427,9 @@ export const CustomerHome = () => {
             slug: occ.slug,
           })),
         );
-      } else {
-        // Fallback data for development
-        setOccasions([
+        } else {
+          // Fallback data for development
+          setOccasions([
           {
             id: "1",
             name: "Birthday",
@@ -468,27 +469,27 @@ export const CustomerHome = () => {
       const storesData = await fetchStores(location);
       let sortedStores: Store[] = [];
       if (storesData && storesData.length > 0) {
-        // Sort by rating descending (Swiggy pattern: Top Rated)
+            // Sort by rating descending (Swiggy pattern: Top Rated)
         sortedStores = [...storesData].sort(
           (a, b) => (b.rating || 0) - (a.rating || 0),
         );
         setStores(sortedStores);
-      } else {
-        // Fallback data for development
+          } else {
+          // Fallback data for development
         const fallbackStores2 = [
           {
             id: "1",
             name: "GiftCraft Studio",
             image:
               "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop",
-            rating: 4.8,
+              rating: 4.8,
             delivery: "1-2 days",
             badge: "bestseller" as const,
             location: "Bangalore",
             category: "Custom Gifts",
             tagline: "Handcrafted personalized gifts",
-            ratingCount: 156,
-            sponsored: false,
+              ratingCount: 156,
+              sponsored: false,
             status: "approved" as const,
             is_active: true,
           },
@@ -497,14 +498,14 @@ export const CustomerHome = () => {
             name: "Luxury Hampers Co",
             image:
               "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=200&h=200&fit=crop",
-            rating: 4.6,
+              rating: 4.6,
             delivery: "2-3 days",
             badge: "trending" as const,
             location: "Mumbai",
             category: "Hampers",
             tagline: "Premium gift hampers",
-            ratingCount: 89,
-            sponsored: false,
+              ratingCount: 89,
+              sponsored: false,
             status: "approved" as const,
             is_active: true,
           },
@@ -599,8 +600,8 @@ export const CustomerHome = () => {
             status: "approved" as const,
             is_active: true,
           },
-        ];
-        // Sort by rating descending
+            ];
+            // Sort by rating descending
         sortedStores = [...fallbackStores2].sort(
           (a, b) => (b.rating || 0) - (a.rating || 0),
         );
@@ -664,7 +665,7 @@ export const CustomerHome = () => {
         },
       ];
       setOffers(mockOffers);
-    } catch (error) {
+      } catch (error) {
       console.error("Error loading data:", error);
       // Ensure offers are still set even on error (fallback)
       const mockOffers: Offer[] = [
@@ -695,14 +696,14 @@ export const CustomerHome = () => {
         },
       ];
       setOffers(mockOffers);
-      toast({
-        title: "Loading error",
-        description: "Some content may not be available",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+        toast({
+          title: "Loading error",
+          description: "Some content may not be available",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
   }, [location, toast]);
 
   useEffect(() => {
@@ -840,7 +841,7 @@ export const CustomerHome = () => {
           <section className="px-4">
             <Skeleton className="h-40 w-full rounded-xl" />
           </section>
-
+          
           {/* Occasions Skeleton */}
           <div className="flex gap-4 overflow-hidden">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -926,10 +927,10 @@ export const CustomerHome = () => {
                                 className="absolute inset-0 w-full h-full object-cover hidden md:block"
                               />
                             )}
-
+                            
                             {/* Gradient Overlay (for better text readability) */}
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-transparent" />
-
+                            
                             {/* Content - Center-aligned */}
                             <div className="relative z-10 p-4 h-full flex flex-col justify-center text-center space-y-1">
                               <div className="h-10 w-10 bg-white/20 rounded-lg mx-auto mb-2 flex items-center justify-center">
@@ -954,25 +955,25 @@ export const CustomerHome = () => {
                   ))}
                 </CarouselContent>
               </Carousel>
-
+              
               {/* Dot Indicators - Below carousel, left-aligned (Modern Ecommerce Pattern) */}
               {banners.length > 1 && (
                 <div className="flex justify-start mt-3 px-4">
-                  <div className="flex gap-1">
-                    {banners.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => carouselApi?.scrollTo(idx)}
-                        className={cn(
-                          "h-1.5 rounded-full transition-all duration-300",
+                <div className="flex gap-1">
+                  {banners.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => carouselApi?.scrollTo(idx)}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-300",
                           idx === currentSlide
                             ? "w-6 bg-primary"
                             : "w-1.5 bg-muted-foreground/30",
-                        )}
-                        aria-label={`Go to slide ${idx + 1}`}
-                      />
-                    ))}
-                  </div>
+                      )}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
                 </div>
               )}
             </div>
@@ -980,7 +981,7 @@ export const CustomerHome = () => {
         </section>
 
         {/* Occasions - Swiggy pattern */}
-        <section className="space-y-3">
+        <section className="space-y-4">
           <div className="flex items-center justify-between px-4">
             <h2 className="text-lg font-semibold">Shop by Occasion</h2>
             <Button
@@ -992,7 +993,7 @@ export const CustomerHome = () => {
             </Button>
           </div>
           {/* Single row horizontal scroll (optimized for store card visibility) */}
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
@@ -1001,7 +1002,7 @@ export const CustomerHome = () => {
                     RouteMap.search(`occasion=${occasion.name.toLowerCase()}`),
                   )
                 }
-                className="snap-start flex flex-col items-center gap-2 min-w-[80px] shrink-0 md:min-w-0"
+                className="snap-start flex flex-col items-center gap-1.5 min-w-[80px] shrink-0 md:min-w-0"
                 aria-label={`Browse ${occasion.name} gifts`}
               >
                 {/* ROUND circular image - Swiggy pattern (80px optimal) */}
@@ -1022,7 +1023,7 @@ export const CustomerHome = () => {
 
         {/* Featured Offers - Swiggy 2025 pattern */}
         {offers.length > 0 && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-lg font-semibold">Featured Offers</h2>
               <Button
@@ -1106,19 +1107,19 @@ export const CustomerHome = () => {
               >
                 <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
                   {displayedStores.map((store) => (
-                    <Card
+                <Card
                       key={store.id}
                       className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
                       onClick={() => navigate(RouteMap.store(store.id))}
                     >
                       <CardContent className="p-2.5">
-                        {/* Image - 3:2 landscape (Swiggy pattern for store cards) */}
-                        <div className="relative w-full aspect-[3/2] rounded-lg overflow-hidden bg-card mb-2.5">
-                          <OptimizedImage
+                        {/* Image - Square 1:1 (Swiggy pattern for store cards) */}
+                        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
+                      <OptimizedImage
                             src={store.image}
                             alt={store.name}
                             width={300}
-                            height={200}
+                            height={300}
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
@@ -1205,7 +1206,7 @@ export const CustomerHome = () => {
 
         {/* Trending Stores - Swiggy 2025 pattern */}
         {trendingStores.length > 0 && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-lg font-semibold">Trending</h2>
               <Button
@@ -1217,7 +1218,7 @@ export const CustomerHome = () => {
               </Button>
             </div>
             {/* Horizontal scroll */}
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
               {trendingStores.map((store) => (
                 <Card
                   key={store.id}
@@ -1298,7 +1299,7 @@ export const CustomerHome = () => {
 
         {/* New Launches - Swiggy 2025 pattern */}
         {newLaunches.length > 0 && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-lg font-semibold">New on Wyshkit</h2>
               <Button
@@ -1310,7 +1311,7 @@ export const CustomerHome = () => {
               </Button>
             </div>
             {/* Horizontal scroll */}
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
               {newLaunches.map((store) => (
                 <Card
                   key={store.id}
@@ -1391,7 +1392,7 @@ export const CustomerHome = () => {
 
         {/* Personalized Recommendations - Swiggy 2025 pattern */}
         {recommendedStores.length > 0 && user && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-lg font-semibold">Recommended for You</h2>
               <Button
@@ -1403,7 +1404,7 @@ export const CustomerHome = () => {
               </Button>
             </div>
             {/* Horizontal scroll */}
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
               {recommendedStores.map((store) => (
                 <Card
                   key={store.id}
@@ -1462,7 +1463,7 @@ export const CustomerHome = () => {
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                           {store.rating}
                           {store.ratingCount ? ` (${store.ratingCount})` : ""}
                         </span>
@@ -1484,7 +1485,7 @@ export const CustomerHome = () => {
 
         {/* Visited Stores - Conditional (≥2 views) */}
         {visitedStores.length >= 2 && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-lg font-semibold">Visited Stores</h2>
               <Button
@@ -1496,33 +1497,33 @@ export const CustomerHome = () => {
               </Button>
             </div>
             {/* Horizontal scroll (6 stores) */}
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
               {visitedStores.map((store) => (
-                <Card
+              <Card
                   key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
                   onClick={() => navigate(RouteMap.store(store.id))}
                 >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
-                      <OptimizedImage
+                    <OptimizedImage
                         src={store.image}
                         alt={store.name}
                         width={150}
                         height={150}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
                       {store.sponsored && (
                         <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                           <Sparkles className="h-2.5 w-2.5 text-amber-900" />
                           <span className="text-amber-900 font-medium">
                             Sponsored
                           </span>
-                        </Badge>
-                      )}
+                      </Badge>
+                    )}
                       {store.badge && !store.sponsored && (
-                        <Badge
+                      <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
                             store.badge === "bestseller"
@@ -1533,55 +1534,56 @@ export const CustomerHome = () => {
                           {store.badge === "bestseller" ? (
                             <>
                               <Trophy className="h-2.5 w-2.5" />
-                              <span className="font-medium">Bestseller</span>
-                            </>
-                          ) : (
-                            <>
+                            <span className="font-medium">Bestseller</span>
+                          </>
+                        ) : (
+                          <>
                               <Flame className="h-2.5 w-2.5" />
-                              <span className="font-medium">Trending</span>
-                            </>
-                          )}
-                        </Badge>
-                      )}
-                    </div>
+                            <span className="font-medium">Trending</span>
+                          </>
+                        )}
+                      </Badge>
+                    )}
+                  </div>
                     <div className="space-y-1.5">
-                      {/* Name - clamp to 2 lines for stability */}
-                      <h3 className="text-base font-bold line-clamp-2">
+                    {/* Name - clamp to 2 lines for stability */}
+                    <h3 className="text-base font-bold line-clamp-2">
                         {store.name}
-                      </h3>
-                      {/* Category - 12px gray per spec */}
+                    </h3>
+                    {/* Category - 12px gray per spec */}
                       {store.category && (
                         <p className="text-xs text-muted-foreground">
                           {store.category}
                         </p>
                       )}
-                      {/* Meta row: rating (+count) • ETA • distance (if available) */}
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
-                        <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    {/* Meta row: rating (+count) • ETA • distance (if available) */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                           {store.rating}
                           {store.ratingCount ? ` (${store.ratingCount})` : ""}
-                        </span>
-                        <span>•</span>
+                      </span>
+                      <span>•</span>
                         <span>{store.delivery}</span>
                         {/* Distance can be added to Store type later if needed */}
-                      </div>
-                      {/* Tagline - 12px gray, 1 line per spec */}
+                    </div>
+                    {/* Tagline - 12px gray, 1 line per spec */}
                       {store.tagline && (
                         <p className="text-xs text-muted-foreground line-clamp-1">
                           {store.tagline}
                         </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
         )}
       </main>
 
       <CustomerBottomNav />
+      <HomeFooter />
     </div>
   );
 };

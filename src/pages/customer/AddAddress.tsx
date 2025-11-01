@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { useToast } from "@/hooks/use-toast";
 
 export const AddAddress = () => {
@@ -146,8 +145,6 @@ export const AddAddress = () => {
           </Button>
         </form>
       </main>
-      
-      <ComplianceFooter />
     </div>
   );
 };

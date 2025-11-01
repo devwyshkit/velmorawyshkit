@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 
 interface Address {
   id: string;
@@ -145,8 +144,7 @@ export const AddressBook = () => {
           ))
         )}
       </main>
-      
-      <ComplianceFooter />
+
       <CustomerBottomNav />
     </div>
   );

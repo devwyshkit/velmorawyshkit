@@ -158,7 +158,7 @@ export const RatingSheet = ({ isOpen, onClose, orderId, partnerName, items }: Ra
       >
         {/* Drag Handle - Material Design 3 */}
         <div className="flex justify-center py-2">
-          <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
+          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
 
         <div className="px-4 pb-4 space-y-6">

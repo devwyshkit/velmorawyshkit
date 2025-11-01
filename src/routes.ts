@@ -8,6 +8,7 @@ export const RouteMap = {
   checkout: () => `/checkout`,
   confirmation: (orderId: string) => `/order/${orderId}/confirmed`,
   track: (orderId: string) => `/order/${orderId}/track`,
+  preview: (orderId: string) => `/order/${orderId}/preview`,
   orders: () => `/orders`,
   addresses: () => `/account/addresses`,
   addAddress: () => `/account/addresses/add`,

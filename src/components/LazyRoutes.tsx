@@ -9,6 +9,7 @@ export const Saved = lazy(() => import('../pages/customer/Saved').then(m => ({ d
 export const Checkout = lazy(() => import('../pages/customer/Checkout').then(m => ({ default: m.Checkout })));
 export const Confirmation = lazy(() => import('../pages/customer/Confirmation').then(m => ({ default: m.Confirmation })));
 export const Track = lazy(() => import('../pages/customer/Track').then(m => ({ default: m.Track })));
+export const PreviewApproval = lazy(() => import('../pages/customer/PreviewApproval').then(m => ({ default: m.PreviewApproval })));
 export const Profile = lazy(() => import('../pages/customer/Profile').then(m => ({ default: m.Profile })));
 export const Search = lazy(() => import('../pages/customer/Search').then(m => ({ default: m.CustomerMobileSearch })));
 export const Orders = lazy(() => import('../pages/customer/Orders').then(m => ({ default: m.Orders })));

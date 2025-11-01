@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { searchItems, searchStores, fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase } from "@/lib/integrations/supabase-data";
@@ -266,7 +265,6 @@ export const CustomerMobileSearch = () => {
         )}
       </main>
 
-      <ComplianceFooter />
       <CustomerBottomNav />
       
       {/* Product Sheet for items */}
@@ -275,7 +273,6 @@ export const CustomerMobileSearch = () => {
           <SheetContent 
             side="bottom" 
             className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
-            hideCloseButton
           >
             <ProductSheet
               itemId={selectedItemId}

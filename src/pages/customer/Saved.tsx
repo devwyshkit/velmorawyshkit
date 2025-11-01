@@ -8,7 +8,6 @@ import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
-import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyStates } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
@@ -142,7 +141,6 @@ export const Saved = () => {
         </div>
       </main>
 
-      <ComplianceFooter />
       <CustomerBottomNav />
       
       {/* Product Sheet for items */}
@@ -151,7 +149,6 @@ export const Saved = () => {
           <SheetContent 
             side="bottom" 
             className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
-            hideCloseButton
           >
             <ProductSheet
               itemId={selectedItemId}

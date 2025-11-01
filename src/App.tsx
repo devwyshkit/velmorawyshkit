@@ -60,6 +60,11 @@ const App = () => (
                           <LazyPages.Track />
                         </ProtectedRoute>
                       } />
+                    <Route path="/order/:orderId/preview" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.PreviewApproval />
+                        </ProtectedRoute>
+                      } />
                     <Route path="/orders" element={
                         <ProtectedRoute requiredRole="customer">
                           <LazyPages.Orders />
