@@ -6,7 +6,7 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { FloatingCartButton } from "@/components/customer/shared/FloatingCartButton";
 import { SmartFilters, type SortOption, type FilterOption } from "@/components/customer/shared/SmartFilters";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchPartnerById, fetchItemsByPartner, type Item as ItemType, type Partner as PartnerType } from "@/lib/integrations/supabase-data";
+import { fetchStoreById, fetchItemsByStore, type Item as ItemType, type Store as StoreType } from "@/lib/integrations/supabase-data";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,12 +15,13 @@ import { EmptyStates } from "@/components/ui/empty-state";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase } from "@/lib/integrations/supabase-data";
 
-export const Partner = () => {
+export const Store = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [partner, setPartner] = useState<PartnerType | null>(null);
+  const [store, setStore] = useState<StoreType | null>(null);
   const [items, setItems] = useState<ItemType[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
@@ -33,49 +34,50 @@ export const Partner = () => {
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [favouritedItems, setFavouritedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const loadPartnerData = async () => {
+    const loadStoreData = async () => {
       if (!id) return;
       
       setLoading(true);
       try {
-        // Load partner details
-        const partnerData = await fetchPartnerById(id);
-        setPartner(partnerData);
+        // Load store details
+        const storeData = await fetchStoreById(id);
+        setStore(storeData);
 
-        // Track vendor view in localStorage (for Visited Vendors section)
-        if (partnerData) {
-          const visitedKey = 'wyshkit_visited_vendors';
+        // Track store view in localStorage (for Visited Stores section)
+        if (storeData) {
+          const visitedKey = 'wyshkit_visited_stores';
           const visited = JSON.parse(localStorage.getItem(visitedKey) || '[]');
-          const vendorEntry = {
-            id: partnerData.id,
-            name: partnerData.name,
-            image: partnerData.image,
-            rating: partnerData.rating,
-            ratingCount: partnerData.ratingCount,
-            delivery: partnerData.delivery,
-            category: partnerData.category,
-            tagline: partnerData.tagline,
-            badge: partnerData.badge,
-            sponsored: partnerData.sponsored,
+          const storeEntry = {
+            id: storeData.id,
+            name: storeData.name,
+            image: storeData.image,
+            rating: storeData.rating,
+            ratingCount: storeData.ratingCount,
+            delivery: storeData.delivery,
+            category: storeData.category,
+            tagline: storeData.tagline,
+            badge: storeData.badge,
+            sponsored: storeData.sponsored,
             viewedAt: new Date().toISOString(),
-            viewCount: (visited.find((v: any) => v.id === partnerData.id)?.viewCount || 0) + 1
+            viewCount: (visited.find((v: any) => v.id === storeData.id)?.viewCount || 0) + 1
           };
           // Remove if exists, add to beginning
-          const filtered = visited.filter((v: any) => v.id !== partnerData.id);
-          const updated = [vendorEntry, ...filtered].slice(0, 20); // Keep last 20
+          const filtered = visited.filter((v: any) => v.id !== storeData.id);
+          const updated = [storeEntry, ...filtered].slice(0, 20); // Keep last 20
           localStorage.setItem(visitedKey, JSON.stringify(updated));
         }
 
-        // Load partner items
-        const itemsData = await fetchItemsByPartner(id);
+        // Load store items
+        const itemsData = await fetchItemsByStore(id);
         setItems(itemsData);
       } catch (error) {
         // Handle error silently in production
         toast({
           title: "Loading error",
-          description: "Failed to load partner information",
+          description: "Failed to load store information",
           variant: "destructive",
         });
       } finally {
@@ -83,10 +85,37 @@ export const Partner = () => {
       }
     };
 
-    loadPartnerData();
+    loadStoreData();
   }, [id, toast]);
 
+  // Load favourites on mount
+  useEffect(() => {
+    const loadFavourites = async () => {
+      const items = await fetchSavedItems();
+      setFavouritedItems(new Set(items.map(i => i.id)));
+    };
+    loadFavourites();
+  }, []);
 
+  const handleFavouriteToggle = async (itemId: string, isFavourited: boolean) => {
+    if (isFavourited) {
+      const success = await addToSavedItemsSupabase(itemId);
+      if (success) {
+        setFavouritedItems(prev => new Set([...prev, itemId]));
+        toast({ title: "Added to favourites" });
+      }
+    } else {
+      const success = await removeFromSavedItemsSupabase(itemId);
+      if (success) {
+        setFavouritedItems(prev => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
+        toast({ title: "Removed from favourites" });
+      }
+    }
+  };
 
   // Scroll to category
   const scrollToCategory = (categoryId: string) => {
@@ -213,7 +242,7 @@ export const Partner = () => {
     setCategories(grouped);
   }, [items, searchQuery, filters, sortBy]);
 
-  if (loading || !partner) {
+  if (loading || !store) {
     return (
       <div className="min-h-screen bg-background pb-20">
         <CustomerMobileHeader showBackButton title="Loading..." />
@@ -265,42 +294,42 @@ export const Partner = () => {
   return (
     <>
       <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader showBackButton title={partner?.name || 'Partner'} />
+        <CustomerMobileHeader showBackButton title={store?.name || 'Store'} />
 
         {/* Partner Header - Scrolls away */}
         <section className="px-4 py-4 bg-card">
           <div className="flex gap-3">
             <img
-              src={partner.image}
-              alt={partner.name}
+              src={store.image}
+              alt={store.name}
               className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold mb-1 truncate">{partner.name}</h1>
-              {partner.tagline && (
-                <p className="text-sm text-muted-foreground mb-2 line-clamp-1">{partner.tagline}</p>
+              <h1 className="text-xl font-bold mb-1 truncate">{store.name}</h1>
+              {store.tagline && (
+                <p className="text-sm text-muted-foreground mb-2 line-clamp-1">{store.tagline}</p>
               )}
               <div className="flex items-center gap-3 text-sm">
                 <span className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium">{partner.rating}</span>
-                  {partner.ratingCount && (
-                    <span className="text-muted-foreground">({partner.ratingCount})</span>
+                  <span className="font-medium">{store.rating}</span>
+                  {store.ratingCount && (
+                    <span className="text-muted-foreground">({store.ratingCount})</span>
                   )}
                 </span>
                 <span className="text-muted-foreground">•</span>
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>{partner.delivery}</span>
+                  <span>{store.delivery}</span>
                 </span>
               </div>
             </div>
           </div>
           
           {/* Category tags */}
-          {partner.category && (
+          {store.category && (
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 mt-3">
-              {partner.category.split('•').map((cat, i) => (
+              {store.category.split('•').map((cat, i) => (
                 <Badge key={i} variant="secondary" className="text-xs whitespace-nowrap">
                   {cat.trim()}
                 </Badge>
@@ -315,7 +344,7 @@ export const Partner = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={`Search in ${partner.name}`}
+                placeholder={`Search in ${store.name}`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-10 bg-muted/50"
@@ -395,6 +424,8 @@ export const Partner = () => {
                       isCustomizable={item.isCustomizable}
                       moq={item.moq}
                       eta={item.eta || "1-2 days"}
+                      isFavourited={favouritedItems.has(item.id)}
+                      onFavouriteToggle={handleFavouriteToggle}
                       onClick={() => setSelectedItemId(item.id)}
                     />
                   ))}

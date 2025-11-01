@@ -4,8 +4,8 @@ import { lazy } from 'react';
 export const Login = lazy(() => import('../pages/customer/Login').then(m => ({ default: m.CustomerMobileLogin })));
 export const Signup = lazy(() => import('../pages/customer/Signup').then(m => ({ default: m.CustomerMobileSignup })));
 export const Home = lazy(() => import('../pages/customer/CustomerHome').then(m => ({ default: m.CustomerHome })));
-export const Partner = lazy(() => import('../pages/customer/Partner').then(m => ({ default: m.Partner })));
-export const Wishlist = lazy(() => import('../pages/customer/Wishlist').then(m => ({ default: m.Wishlist })));
+export const Store = lazy(() => import('../pages/customer/Store').then(m => ({ default: m.Store })));
+export const Saved = lazy(() => import('../pages/customer/Saved').then(m => ({ default: m.Saved })));
 export const Checkout = lazy(() => import('../pages/customer/Checkout').then(m => ({ default: m.Checkout })));
 export const Confirmation = lazy(() => import('../pages/customer/Confirmation').then(m => ({ default: m.Confirmation })));
 export const Track = lazy(() => import('../pages/customer/Track').then(m => ({ default: m.Track })));
@@ -15,6 +15,9 @@ export const Orders = lazy(() => import('../pages/customer/Orders').then(m => ({
 export const AddressBook = lazy(() => import('../pages/customer/AddressBook').then(m => ({ default: m.AddressBook })));
 export const AddAddress = lazy(() => import('../pages/customer/AddAddress').then(m => ({ default: m.AddAddress })));
 export const HelpCenter = lazy(() => import('../pages/customer/HelpCenter').then(m => ({ default: m.HelpCenter })));
+
+// Primary export
+export const Favorites = Saved;
 
 // Partner Pages - Business Dashboard
 export { PartnerLogin } from '../pages/partner/Login';

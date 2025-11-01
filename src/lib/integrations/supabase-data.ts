@@ -1,8 +1,11 @@
 import { supabase, isAuthenticated } from './supabase-client';
 import { ValidationSchemas } from '@/lib/validation/schemas';
 
+// Re-export favorites service
+export * from '@/lib/services/favorites';
+
 // Type definitions
-export interface Partner {
+export interface Store {
   id: string;
   name: string;
   image: string;
@@ -13,9 +16,9 @@ export interface Partner {
   category?: string;  // "Tech Gifts", "Gourmet", etc.
   tagline?: string;   // "Premium tech products"
   ratingCount?: number; // 156
-  sponsored?: boolean; // Promoted/sponsored partner
-  status?: 'pending' | 'approved' | 'rejected';  // Partner approval status
-  is_active?: boolean;  // Partner can self-disable
+  sponsored?: boolean; // Promoted/sponsored store
+  status?: 'pending' | 'approved' | 'rejected';  // Store approval status
+  is_active?: boolean;  // Store can self-disable
   startingPrice?: number; // Starting price from cheapest item
 }
 
@@ -28,7 +31,7 @@ export interface Item {
   price: number;
   rating: number;
   badge?: 'bestseller' | 'trending';
-  partner_id: string;
+  store_id: string;
   specs?: Record<string, string>;
   add_ons?: Array<{ id: string; name: string; price: number }>;
   ratingCount?: number; // 156
@@ -37,6 +40,17 @@ export interface Item {
   isCustomizable?: boolean; // Supports branding/customization (distributor-handled)
   estimatedDeliveryDays?: string; // ETA display (e.g., "3-5 days")
   components?: string[]; // For hampers: list of included items
+  mrp?: number; // Maximum retail price for discount display
+  variants?: {
+    sizes?: Array<{ id: string; label: string; available: boolean }>;
+    colors?: Array<{ id: string; name: string; hex: string }>;
+  };
+  personalizations?: Array<{ id: string; label: string; price: number; instructions?: string }>;
+  preparationTime?: string; // Ready in: X hours/days
+  deliveryTime?: string; // Delivery: X days
+  campaignDiscount?: { type: 'percentage' | 'flat'; value: number }; // Discount badge
+  moq?: number; // Minimum order quantity
+  eta?: string; // Delivery ETA (legacy alias for estimatedDeliveryDays)
 }
 
 export interface CartItemData {
@@ -46,10 +60,10 @@ export interface CartItemData {
   quantity: number;
   image?: string;
   addOns?: Array<{ id: string; name: string; price: number }>;
-  partner_id?: string;
+  store_id?: string;
 }
 
-export interface WishlistItemData {
+export interface SavedItemData {
   id: string;
   name: string;
   image: string;
@@ -58,8 +72,9 @@ export interface WishlistItemData {
   badge?: 'bestseller' | 'trending';
 }
 
+
 // Mock data fallbacks (UUIDs match database for seamless fallback)
-const mockPartners: Partner[] = [
+const mockStores: Store[] = [
   {
     id: '00000000-0000-0000-0000-000000000001',
     name: 'Premium Gifts Co',
@@ -124,7 +139,7 @@ const mockPartners: Partner[] = [
     tagline: 'Luxury gift collections',
     ratingCount: 276,
   },
-  // New partners with ratingCount < 50 for "New Launches" section
+    // New stores with ratingCount < 50 for "New Launches" section
   {
     id: '00000000-0000-0000-0000-000000000007',
     name: 'Sweet Delights Bakery',
@@ -193,8 +208,17 @@ const mockItems: Item[] = [
     price: 2499,
     rating: 4.6,
     ratingCount: 234,
-    partner_id: '00000000-0000-0000-0000-000000000001',
+    store_id: '00000000-0000-0000-0000-000000000001',
     sponsored: true,
+    mrp: 2999,
+    personalizations: [
+      { id: 'card', label: 'Greeting Card', price: 99, instructions: 'Add a personalized message' },
+      { id: 'wrap', label: 'Premium Gift Wrap', price: 149, instructions: 'Elegant wrapping with ribbon' },
+      { id: 'express', label: 'Express Delivery', price: 199, instructions: 'Delivery within 24 hours' }
+    ],
+    preparationTime: '2-3 hours',
+    deliveryTime: '3-5 days',
+    isCustomizable: true,
     specs: {
       weight: '2.5 kg',
       dimensions: '30cm x 20cm x 15cm',
@@ -212,7 +236,17 @@ const mockItems: Item[] = [
     rating: 4.8,
     ratingCount: 189,
     badge: 'trending',
-    partner_id: '00000000-0000-0000-0000-000000000001',
+    store_id: '00000000-0000-0000-0000-000000000001',
+    mrp: 1499,
+    variants: {
+      sizes: [
+        { id: 'small', label: 'Small (12 pcs)', available: true },
+        { id: 'medium', label: 'Medium (24 pcs)', available: true },
+        { id: 'large', label: 'Large (36 pcs)', available: false }
+      ]
+    },
+    preparationTime: '1-2 hours',
+    deliveryTime: '1-2 days',
   },
   {
     id: '00000000-0000-0000-0001-000000000003',
@@ -223,7 +257,22 @@ const mockItems: Item[] = [
     price: 899,
     rating: 4.5,
     ratingCount: 98,
-    partner_id: '00000000-0000-0000-0000-000000000001',
+    store_id: '00000000-0000-0000-0000-000000000001',
+    mrp: 1199,
+    variants: {
+      colors: [
+        { id: 'black', name: 'Black', hex: '#000000' },
+        { id: 'white', name: 'White', hex: '#FFFFFF' },
+        { id: 'gold', name: 'Gold', hex: '#FFD700' },
+        { id: 'silver', name: 'Silver', hex: '#C0C0C0' }
+      ]
+    },
+    personalizations: [
+      { id: 'engrave', label: 'Custom Engraving', price: 299, instructions: 'Add name or message (max 50 chars)' }
+    ],
+    preparationTime: '3-5 days',
+    deliveryTime: '5-7 days',
+    isCustomizable: true,
   },
   {
     id: '00000000-0000-0000-0001-000000000004',
@@ -234,7 +283,7 @@ const mockItems: Item[] = [
     price: 3999,
     rating: 4.7,
     ratingCount: 167,
-    partner_id: '00000000-0000-0000-0000-000000000001',
+    store_id: '00000000-0000-0000-0000-000000000001',
     sponsored: true,
   },
   {
@@ -246,7 +295,7 @@ const mockItems: Item[] = [
     price: 1799,
     rating: 4.4,
     ratingCount: 124,
-    partner_id: '00000000-0000-0000-0000-000000000001',
+    store_id: '00000000-0000-0000-0000-000000000001',
   },
   {
     id: '00000000-0000-0000-0001-000000000006',
@@ -258,53 +307,53 @@ const mockItems: Item[] = [
     rating: 4.9,
     ratingCount: 312,
     badge: 'bestseller',
-    partner_id: '00000000-0000-0000-0000-000000000001',
+    store_id: '00000000-0000-0000-0000-000000000001',
   },
 ];
 
-// Helper function to group partners by delivery time
-export const groupPartnersByDelivery = (partners: Partner[], selectedDate: Date) => {
+// Helper function to group stores by delivery time
+export const groupStoresByDelivery = (stores: Store[], selectedDate: Date) => {
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const dayAfterTomorrow = new Date(today);
   dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
   
-  const tomorrowPartners = partners.filter(p => 
+  const tomorrowStores = stores.filter(p => 
     p.delivery?.includes('1-2') || 
     p.delivery?.includes('Tomorrow') || 
     p.delivery?.includes('Same day') ||
     p.delivery?.includes('Today')
   );
   
-  const regionalPartners = partners.filter(p => 
+  const regionalStores = stores.filter(p => 
     p.delivery?.includes('2-3') || 
     p.delivery?.includes('3-4') || 
     p.delivery?.includes('Regional')
   );
   
-  const panIndiaPartners = partners.filter(p => 
+  const panIndiaStores = stores.filter(p => 
     p.delivery?.includes('5-7') || 
     p.delivery?.includes('7+') || 
     p.delivery?.includes('Pan-India')
   );
   
   return {
-    tomorrow: tomorrowPartners,
-    regional: regionalPartners,
-    panIndia: panIndiaPartners
+    tomorrow: tomorrowStores,
+    regional: regionalStores,
+    panIndia: panIndiaStores
   };
 };
 
 // Data fetching functions
-export const fetchPartners = async (location?: string): Promise<Partner[]> => {
+export const fetchStores = async (location?: string): Promise<Store[]> => {
   try {
-    // Query partners table with items to calculate starting price
+    // Query stores table with items to calculate starting price
     const { data, error } = await supabase
-      .from('partners')
+      .from('stores')
       .select(`
         *,
-        items!inner(price)
+        store_items!inner(price)
       `)
       .order('rating', { ascending: false });
 
@@ -313,19 +362,19 @@ export const fetchPartners = async (location?: string): Promise<Partner[]> => {
     if (data && data.length > 0) {
       return data.map(p => {
         // Calculate starting price from cheapest item
-        const startingPrice = p.items && p.items.length > 0 
-          ? Math.min(...p.items.map((item: any) => item.price))
+        const startingPrice = p.store_items && p.store_items.length > 0 
+          ? Math.min(...p.store_items.map((item: any) => item.price))
           : 299; // Default fallback price
         
         return {
           id: p.id,
           name: p.name,
-          image: p.image || 'https://picsum.photos/seed/partner/400/400',
+          image: p.logo_url || p.banner_url || 'https://picsum.photos/seed/store/400/400',
           rating: p.rating || 4.5,
           delivery: p.delivery_time || '3-5 days',
-          location: p.location,
+          location: p.city,
           category: p.category,
-          ratingCount: 100, // Default until we have actual data
+          ratingCount: p.rating_count || 100,
           startingPrice,
         };
       });
@@ -335,19 +384,19 @@ export const fetchPartners = async (location?: string): Promise<Partner[]> => {
   }
   
   // Fallback to mock data with starting prices
-  return mockPartners.map(p => ({
+  return mockStores.map(p => ({
     ...p,
     startingPrice: p.startingPrice || 299
   }));
 };
 
-export const fetchPartnerById = async (id: string): Promise<Partner | null> => {
+export const fetchStoreById = async (id: string): Promise<Store | null> => {
   // Map simple numeric IDs to mock data
   if (id === '1' || id === '2' || id === '3' || id === '4' || id === '5' || id === '6' || id === '7' || id === '8') {
-    // Return corresponding mock partner based on ID
+    // Return corresponding mock store based on ID
     const mockIndex = parseInt(id) - 1;
-    if (mockIndex >= 0 && mockIndex < mockPartners.length) {
-      return mockPartners[mockIndex];
+    if (mockIndex >= 0 && mockIndex < mockStores.length) {
+      return mockStores[mockIndex];
     }
   }
   
@@ -357,30 +406,39 @@ export const fetchPartnerById = async (id: string): Promise<Partner | null> => {
   if (isUUID) {
     try {
       const { data, error } = await supabase
-        .from('partners')
+        .from('stores')
         .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      if (data) return data;
+      if (data) return {
+        id: data.id,
+        name: data.name,
+        image: data.logo_url || data.banner_url || '',
+        rating: data.rating || 0,
+        delivery: data.delivery_time || '',
+        location: data.city,
+        category: data.category,
+        ratingCount: data.rating_count || 0,
+      };
     } catch (error) {
       // Handle database errors silently
-      console.error('Error fetching partner:', error);
+      console.error('Error fetching store:', error);
     }
   }
   
   // Fallback to mock data for non-UUID or failed lookups
-  return mockPartners.find(p => p.id === id) || mockPartners[0];
+  return mockStores.find(p => p.id === id) || mockStores[0];
 };
 
-export const fetchItemsByPartner = async (partnerId: string): Promise<Item[]> => {
+export const fetchItemsByStore = async (storeId: string): Promise<Item[]> => {
   try {
     const { data, error } = await supabase
-      .from('partner_products')
+      .from('store_items')
       .select('*')
-      .eq('partner_id', partnerId)
-      .eq('approval_status', 'approved')
+      .eq('store_id', storeId)
+      .eq('status', 'approved')
       .order('rating', { ascending: false });
 
     if (error) throw error;
@@ -396,10 +454,11 @@ export const fetchItemsByPartner = async (partnerId: string): Promise<Item[]> =>
   return mockItems;
 };
 
+
 export const fetchItemById = async (id: string): Promise<Item | null> => {
   try {
     const { data, error } = await supabase
-      .from('partner_products')
+      .from('store_items')
       .select('*')
       .eq('id', id)
       .single();
@@ -428,7 +487,15 @@ export const fetchCartItems = async (): Promise<CartItemData[]> => {
 
     const { data, error } = await supabase
       .from('cart_items')
-      .select('*')
+      .select(`
+        *,
+        store_items (
+          name,
+          image,
+          price,
+          add_ons
+        )
+      `)
       .eq('user_id', user.id);
 
     if (error) throw error;
@@ -436,12 +503,12 @@ export const fetchCartItems = async (): Promise<CartItemData[]> => {
     if (data && data.length > 0) {
       return data.map(item => ({
         id: item.id,
-        name: item.product_name || 'Product',
-        price: item.price || 0,
+        name: item.store_items?.name || 'Product',
+        price: item.unit_price || 0,
         quantity: item.quantity || 1,
-        image: item.image || '/placeholder.svg',
-        addOns: item.add_ons || [],
-        partner_id: item.partner_id,
+        image: item.store_items?.image || '/placeholder.svg',
+        addOns: item.personalizations || [],
+        store_id: item.store_id,
       }));
     }
   } catch (error) {
@@ -459,17 +526,19 @@ export const addToCartSupabase = async (item: CartItemData): Promise<boolean> =>
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
+    const unitPrice = item.price;
+    const totalPrice = unitPrice * (item.quantity || 1);
+
     const { error } = await supabase
       .from('cart_items')
       .insert({
         user_id: user.id,
-        product_id: item.id,
-        product_name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-        add_ons: item.addOns,
-        partner_id: item.partner_id,
+        item_id: item.id,
+        store_id: item.store_id!,
+        quantity: item.quantity || 1,
+        personalizations: item.addOns || [],
+        unit_price: unitPrice,
+        total_price: totalPrice,
       });
 
     if (error) throw error;
@@ -485,9 +554,20 @@ export const updateCartItemSupabase = async (itemId: string, quantity: number): 
   if (!authenticated) return false;
 
   try {
+    // Need to fetch current unit_price to recalculate total_price
+    const { data: cartItem } = await supabase
+      .from('cart_items')
+      .select('unit_price')
+      .eq('id', itemId)
+      .single();
+
+    if (!cartItem) return false;
+
+    const totalPrice = cartItem.unit_price * quantity;
+
     const { error } = await supabase
       .from('cart_items')
-      .update({ quantity })
+      .update({ quantity, total_price: totalPrice })
       .eq('id', itemId);
 
     if (error) throw error;
@@ -516,82 +596,8 @@ export const removeCartItemSupabase = async (itemId: string): Promise<boolean> =
   }
 };
 
-export const fetchWishlistItems = async (): Promise<WishlistItemData[]> => {
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return [];
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('wishlist_items')
-      .select('*, items(*)')
-      .eq('user_id', user.id);
-
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      return data.map(item => ({
-        id: item.items?.id || item.id,
-        name: item.items?.name || 'Product',
-        image: item.items?.image || '/placeholder.svg',
-        price: item.items?.price || 0,
-        rating: item.items?.rating || 4.5,
-        badge: item.items?.badge,
-      }));
-    }
-  } catch (error) {
-    // Handle error silently in production
-  }
-  
-  return [];
-};
-
-export const addToWishlistSupabase = async (itemId: string): Promise<boolean> => {
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return false;
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
-    const { error } = await supabase
-      .from('wishlist_items')
-      .insert({
-        user_id: user.id,
-        item_id: itemId,
-      });
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    // Handle error silently in production
-    return false;
-  }
-};
-
-export const removeFromWishlistSupabase = async (itemId: string): Promise<boolean> => {
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return false;
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
-    const { error } = await supabase
-      .from('wishlist_items')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('item_id', itemId);
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    // Handle error silently in production
-    return false;
-  }
-};
+// Note: fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase
+// are now provided by the favorites service (exported via line 5)
 
 // Search functions using Postgres Full-Text Search
 export const searchItems = async (query: string): Promise<Item[]> => {
@@ -606,7 +612,7 @@ export const searchItems = async (query: string): Promise<Item[]> => {
     try {
       // Try direct table search first (more reliable than RPC)
       const { data, error } = await supabase
-        .from('items')
+        .from('store_items')
         .select('*')
         .or(`name.ilike.%${query}%,description.ilike.%${query}%,short_desc.ilike.%${query}%`)
         .limit(20);
@@ -638,7 +644,7 @@ export const searchItems = async (query: string): Promise<Item[]> => {
   );
 };
 
-export const searchPartners = async (query: string): Promise<Partner[]> => {
+export const searchStores = async (query: string): Promise<Store[]> => {
   if (!query || query.trim().length < 2) {
     return [];
   }
@@ -648,9 +654,9 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Simple search on partners table
+      // Simple search on stores table
       const { data, error } = await supabase
-        .from('partners')
+        .from('stores')
         .select('*')
         .or(`name.ilike.%${query}%,category.ilike.%${query}%`)
         .order('rating', { ascending: false })
@@ -662,12 +668,12 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
         return data.map(p => ({
           id: p.id,
           name: p.name,
-          image: p.image || 'https://picsum.photos/seed/partner/400/400',
+          image: p.logo_url || p.banner_url || 'https://picsum.photos/seed/store/400/400',
           rating: p.rating || 4.5,
           delivery: p.delivery_time || '3-5 days',
-          location: p.location,
+          location: p.city,
           category: p.category,
-          ratingCount: 100,
+          ratingCount: p.rating_count || 100,
         }));
       }
       
@@ -683,19 +689,16 @@ export const searchPartners = async (query: string): Promise<Partner[]> => {
     }
   }
   
-  // Fallback to client-side search if all backend attempts fail
   // Fallback to client-side search
-  
-  // Fallback to client-side search (mock partners are implicitly approved)
-  return mockPartners.filter(partner =>
-    partner.name.toLowerCase().includes(query.toLowerCase()) ||
-    partner.tagline?.toLowerCase().includes(query.toLowerCase()) ||
-    partner.category?.toLowerCase().includes(query.toLowerCase())
+  return mockStores.filter(store =>
+    store.name.toLowerCase().includes(query.toLowerCase()) ||
+    store.tagline?.toLowerCase().includes(query.toLowerCase()) ||
+    store.category?.toLowerCase().includes(query.toLowerCase())
   );
 };
 
 // Mock data getters (for fallback)
-export const getMockPartners = () => mockPartners;
+export const getMockStores = () => mockStores;
 export const getMockItems = () => mockItems;
 
 // ============================================

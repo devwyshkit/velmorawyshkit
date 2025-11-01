@@ -1,8 +1,7 @@
 export const RouteMap = {
   home: () => `/`,
   search: (query?: string) => (query ? `/search?${query}` : `/search`),
-  vendor: (id: string) => `/partners/${id}`,
-  partner: (id: string) => `/partners/${id}`, // Alias for vendor
+  store: (id: string) => `/store/${id}`,
   login: () => `/login`,
   signup: () => `/signup`,
   favorites: () => `/favorites`,

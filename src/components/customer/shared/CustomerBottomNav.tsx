@@ -17,7 +17,7 @@ export const CustomerBottomNav = () => {
   const navItems = [
     { icon: Home, label: "Home", path: RouteMap.home() },
     { icon: Search, label: "Search", path: RouteMap.search() },
-    { icon: Heart, label: "Favorites", path: RouteMap.favorites() },
+    { icon: Heart, label: "Favourites", path: RouteMap.favorites() },
     { icon: User, label: "Account", path: RouteMap.profile() },
   ];
 

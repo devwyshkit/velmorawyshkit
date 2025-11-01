@@ -11,7 +11,7 @@ import { Stepper } from "@/components/customer/shared/Stepper";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
-import { fetchPartnerById } from "@/lib/integrations/supabase-data";
+import { fetchStoreById } from "@/lib/integrations/supabase-data";
 
 interface CartSheetProps {
   isOpen: boolean;
@@ -25,7 +25,7 @@ interface CartItem {
   quantity: number;
   image?: string;
   addOns?: any[];
-  partner_id?: string;
+  store_id?: string;
 }
 
 export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
@@ -34,7 +34,7 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [gstin, setGstin] = useState("");
   const [loading, setLoading] = useState(false);
-  const [partnerName, setPartnerName] = useState<string>("");
+  const [storeName, setStoreName] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
@@ -59,7 +59,7 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
           price: 2499,
           quantity: 2,
           image: '/placeholder.svg',
-          partner_id: '1',
+          store_id: '1',
         },
         {
           id: '2',
@@ -67,15 +67,15 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
           price: 1299,
           quantity: 1,
           image: '/placeholder.svg',
-          partner_id: '1',
+          store_id: '1',
         },
       ];
       setItems(mockItems);
       
-      // Load partner name
-      if (mockItems.length > 0 && mockItems[0].partner_id) {
-        const partner = await fetchPartnerById(mockItems[0].partner_id);
-        setPartnerName(partner?.name || "");
+      // Load store name
+      if (mockItems.length > 0 && mockItems[0].store_id) {
+        const store = await fetchStoreById(mockItems[0].store_id);
+        setStoreName(store?.name || "");
       }
     }
   };
@@ -209,10 +209,10 @@ HSN Code: 9985
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
           <h2 className="text-lg font-semibold">My Cart ({items.length})</h2>
-          {partnerName && (
+          {storeName && (
             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
               <Store className="h-4 w-4" />
-              <span>Items from <span className="font-medium text-foreground">{partnerName}</span></span>
+              <span>Items from <span className="font-medium text-foreground">{storeName}</span></span>
             </div>
           )}
         </div>

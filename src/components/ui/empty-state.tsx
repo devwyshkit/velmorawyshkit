@@ -30,7 +30,7 @@ export interface EmptyStateProps {
     label: string;
     onClick: () => void;
   };
-  variant?: 'default' | 'search' | 'cart' | 'wishlist' | 'products' | 'orders' | 'error';
+  variant?: 'default' | 'search' | 'cart' | 'wishlist' | 'favourites' | 'saved' | 'products' | 'orders' | 'error';
   className?: string;
 }
 
@@ -51,6 +51,10 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       case 'cart':
         return ShoppingCart;
       case 'wishlist':
+        return Heart;
+      case 'favourites':
+        return Heart;
+      case 'saved':
         return Heart;
       case 'products':
         return Package;
@@ -130,12 +134,26 @@ export const EmptyStates = {
         onClick: () => window.location.href = '/login'
       }}
       secondaryAction={{
-        label: "Browse Partners",
+        label: "Browse Stores",
         onClick: () => window.location.href = '/'
       }}
       {...props}
     />
   ),
+  
+  Favourites: (props: Partial<EmptyStateProps>) => (
+    <EmptyState
+      variant="favourites"
+      title="No favourites yet"
+      description="Tap the heart icon to save stores and products you love"
+      action={{
+        label: "Start Exploring",
+        onClick: () => window.location.href = '/'
+      }}
+      {...props}
+    />
+  ),
+  
   
   Products: (props: Partial<EmptyStateProps>) => (
     <EmptyState

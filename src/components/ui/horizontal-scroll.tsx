@@ -16,7 +16,7 @@ interface HorizontalScrollProps {
   paddingX?: "none" | "sm" | "md" | "lg";
   snapAlign?: "start" | "center" | "end";
   showIndicators?: boolean;
-  cardType?: "product" | "vendor" | "category" | "auto";
+  cardType?: "product" | "store" | "vendor" | "category" | "auto";
 }
 
 export const HorizontalScroll = ({ 
@@ -57,6 +57,7 @@ export const HorizontalScroll = ({
     switch (cardType) {
       case "product":
         return "[&>*]:w-[75vw] [&>*]:max-w-[280px] [&>*]:min-w-[160px] sm:[&>*]:w-48";
+      case "store":
       case "vendor": 
         return "[&>*]:w-[85vw] [&>*]:max-w-[320px] [&>*]:min-w-[280px] sm:[&>*]:w-64";
       case "category":
@@ -74,7 +75,7 @@ export const HorizontalScroll = ({
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
     
     // Calculate current page for indicators
-    if (cardType === "product" || cardType === "vendor") {
+    if (cardType === "product" || cardType === "store" || cardType === "vendor") {
       const itemWidth = cardType === "product" ? 200 : 260; // Approximate width
       const visibleItems = Math.floor(clientWidth / itemWidth);
       const totalItems = React.Children.count(children);

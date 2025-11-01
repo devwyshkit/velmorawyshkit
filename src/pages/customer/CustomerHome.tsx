@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InfiniteScroll } from "@/components/ui/infinite-scroll";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
-import { fetchPartners, type Partner } from "@/lib/integrations/supabase-data";
+import { fetchStores, type Store } from "@/lib/integrations/supabase-data";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useDelivery } from "@/contexts/DeliveryContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,39 +48,39 @@ export const CustomerHome = () => {
     image_url?: string; 
     cta_link?: string; 
     link?: string;
-    partner_id?: string;
+    store_id?: string;
     subtitle?: string;
     description?: string;
     cta_text?: string;
     is_active?: boolean;
   }>>([]);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
-  const [partners, setPartners] = useState<Partner[]>([]);
-  const [displayedPartners, setDisplayedPartners] = useState<Partner[]>([]);
-  const [hasMorePartners, setHasMorePartners] = useState(false);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [displayedStores, setDisplayedStores] = useState<Store[]>([]);
+  const [hasMoreStores, setHasMoreStores] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [visitedVendors, setVisitedVendors] = useState<Partner[]>([]);
+  const [visitedStores, setVisitedStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [filters, setFilters] = useState<FilterOption[]>([]);
-  const [filteredAndSortedPartners, setFilteredAndSortedPartners] = useState<Partner[]>([]);
-  const [trendingPartners, setTrendingPartners] = useState<Partner[]>([]);
-  const [newLaunches, setNewLaunches] = useState<Partner[]>([]);
-  const [recommendedPartners, setRecommendedPartners] = useState<Partner[]>([]);
+  const [filteredAndSortedStores, setFilteredAndSortedStores] = useState<Store[]>([]);
+  const [trendingStores, setTrendingStores] = useState<Store[]>([]);
+  const [newLaunches, setNewLaunches] = useState<Store[]>([]);
+  const [recommendedStores, setRecommendedStores] = useState<Store[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
 
-  const PARTNERS_PER_PAGE = 8;
+  const STORES_PER_PAGE = 8;
 
-  // Load visited vendors from localStorage (shown if ≥2 views)
+  // Load visited stores from localStorage (shown if ≥2 views)
   useEffect(() => {
-    const visitedKey = 'wyshkit_visited_vendors';
+    const visitedKey = 'wyshkit_visited_stores';
     const visited = JSON.parse(localStorage.getItem(visitedKey) || '[]');
-    // Filter vendors with 2+ views
+    // Filter stores with 2+ views
     const filtered = visited.filter((v: { viewCount?: number }) => (v.viewCount || 0) >= 2).slice(0, 6);
     if (filtered.length >= 2) {
-      setVisitedVendors(filtered.map((v: { id: string; name: string; image: string; rating: number; ratingCount?: number; delivery: string; category?: string; tagline?: string; badge?: 'bestseller' | 'trending'; sponsored?: boolean }) => ({
+      setVisitedStores(filtered.map((v: { id: string; name: string; image: string; rating: number; ratingCount?: number; delivery: string; category?: string; tagline?: string; badge?: 'bestseller' | 'trending'; sponsored?: boolean }) => ({
         id: v.id,
         name: v.name,
         image: v.image,
@@ -96,16 +96,16 @@ export const CustomerHome = () => {
       })));
     }
     
-    // Load personalized recommendations (only if user logged in AND visited ≥3 vendors)
+    // Load personalized recommendations (only if user logged in AND visited ≥3 stores)
     if (user && visited.length >= 3) {
-      // Use visited vendors + some from partners array for recommendations
+      // Use visited stores + some from stores array for recommendations
       const visitedIds = new Set(visited.map((v: { id: string }) => v.id));
-      const recommended = partners
-        .filter(p => !visitedIds.has(p.id))
+      const recommended = stores
+        .filter(s => !visitedIds.has(s.id))
         .slice(0, 6);
-      setRecommendedPartners(recommended);
+      setRecommendedStores(recommended);
     }
-  }, [user, partners]);
+  }, [user, stores]);
 
   // Load data function - can be called from useEffect or pull-to-refresh
   const loadData = useCallback(async () => {
@@ -133,7 +133,7 @@ export const CustomerHome = () => {
             { id: '4', name: 'Corporate', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=100&h=100&fit=crop', icon: '🏢', slug: 'corporate' }
           ];
           setOccasions(fallbackOccasions);
-          const fallbackPartners = [
+          const fallbackStores = [
             {
               id: '1',
               name: 'GiftCraft Studio',
@@ -251,21 +251,21 @@ export const CustomerHome = () => {
             }
           ];
             // Sort by rating descending
-            const sorted = [...fallbackPartners].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-            setPartners(sorted);
+            const sorted = [...fallbackStores].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            setStores(sorted);
             
             // Filter trending and new for fallback data
             const trending = sorted
-              .filter(p => p.badge === 'trending' || (p.ratingCount || 0) > 100)
+              .filter(s => s.badge === 'trending' || (s.ratingCount || 0) > 100)
               .slice(0, 8);
-            setTrendingPartners(trending);
+            setTrendingStores(trending);
             
             const newOnes = sorted
-              .filter(p => (p.ratingCount || 0) < 50)
+              .filter(s => (s.ratingCount || 0) < 50)
               .slice(0, 8);
-            // Ensure we always have new launches if partners exist (defensive check)
+            // Ensure we always have new launches if stores exist (defensive check)
             if (newOnes.length === 0 && sorted.length > 0) {
-              // If no partners match, use first few partners as fallback (they're already sorted by rating)
+              // If no stores match, use first few stores as fallback (they're already sorted by rating)
               // This ensures the section always shows during development
               const fallbackNew = sorted.slice(0, Math.min(5, sorted.length));
               setNewLaunches(fallbackNew);
@@ -366,16 +366,16 @@ export const CustomerHome = () => {
           ]);
         }
 
-          // Load partners from Supabase (sorted by rating descending)
-          const partnersData = await fetchPartners(location);
-          let sortedPartners: Partner[] = [];
-          if (partnersData && partnersData.length > 0) {
+          // Load stores from Supabase (sorted by rating descending)
+          const storesData = await fetchStores(location);
+          let sortedStores: Store[] = [];
+          if (storesData && storesData.length > 0) {
             // Sort by rating descending (Swiggy pattern: Top Rated)
-            sortedPartners = [...partnersData].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-            setPartners(sortedPartners);
+            sortedStores = [...storesData].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            setStores(sortedStores);
           } else {
           // Fallback data for development
-          const fallbackPartners = [
+          const fallbackStores2 = [
             {
               id: '1',
               name: 'GiftCraft Studio',
@@ -493,30 +493,30 @@ export const CustomerHome = () => {
             }
             ];
             // Sort by rating descending
-            sortedPartners = [...fallbackPartners].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-            setPartners(sortedPartners);
+            sortedStores = [...fallbackStores2].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            setStores(sortedStores);
           }
-          // Initialize displayed partners for infinite scroll
+          // Initialize displayed stores for infinite scroll
           // Filtering and sorting will be applied in useEffect
-          setDisplayedPartners(sortedPartners.slice(0, PARTNERS_PER_PAGE));
-          setHasMorePartners(sortedPartners.length > PARTNERS_PER_PAGE);
-          setFilteredAndSortedPartners(sortedPartners);
+          setDisplayedStores(sortedStores.slice(0, STORES_PER_PAGE));
+          setHasMoreStores(sortedStores.length > STORES_PER_PAGE);
+          setFilteredAndSortedStores(sortedStores);
           
-          // Filter trending partners (badge === 'trending' OR high engagement)
-          const trending = sortedPartners
-            .filter(p => p.badge === 'trending' || (p.ratingCount || 0) > 100)
+          // Filter trending stores (badge === 'trending' OR high engagement)
+          const trending = sortedStores
+            .filter(s => s.badge === 'trending' || (s.ratingCount || 0) > 100)
             .slice(0, 8);
-          setTrendingPartners(trending);
+          setTrendingStores(trending);
           
-          // Filter new launches (ratingCount < 50 - indicates newer partners)
-          const newOnes = sortedPartners
-            .filter(p => (p.ratingCount || 0) < 50)
+          // Filter new launches (ratingCount < 50 - indicates newer stores)
+          const newOnes = sortedStores
+            .filter(s => (s.ratingCount || 0) < 50)
             .slice(0, 8);
-          // Ensure we always have new launches if partners exist (defensive check)
-          if (newOnes.length === 0 && sortedPartners.length > 0) {
-            // If no partners match, use first few partners as fallback (they're already sorted by rating)
+          // Ensure we always have new launches if stores exist (defensive check)
+          if (newOnes.length === 0 && sortedStores.length > 0) {
+            // If no stores match, use first few stores as fallback (they're already sorted by rating)
             // This ensures the section always shows during development
-            const fallbackNew = sortedPartners.slice(0, Math.min(5, sortedPartners.length));
+            const fallbackNew = sortedStores.slice(0, Math.min(5, sortedStores.length));
             setNewLaunches(fallbackNew);
           } else {
             setNewLaunches(newOnes);
@@ -608,22 +608,22 @@ export const CustomerHome = () => {
     });
   }, [carouselApi]);
 
-  // Apply filters and sorting to partners
+  // Apply filters and sorting to stores
   useEffect(() => {
-    let filtered = [...partners];
+    let filtered = [...stores];
 
     // Apply filters
     if (filters.length > 0) {
       filters.forEach(filter => {
         switch (filter) {
           case 'offers':
-            // Partners with offers/badges (mock: check for badge or sponsored)
-            filtered = filtered.filter(p => p.badge || p.sponsored);
+            // Stores with offers/badges (mock: check for badge or sponsored)
+            filtered = filtered.filter(s => s.badge || s.sponsored);
             break;
           case 'fast-delivery':
-            // Partners with fast delivery (mock: delivery time < 1 day)
-            filtered = filtered.filter(p => {
-              const deliveryMatch = p.delivery?.match(/\d+/);
+            // Stores with fast delivery (mock: delivery time < 1 day)
+            filtered = filtered.filter(s => {
+              const deliveryMatch = s.delivery?.match(/\d+/);
               if (deliveryMatch) {
                 const hours = parseInt(deliveryMatch[0]);
                 return hours < 24; // Less than 24 hours
@@ -632,8 +632,8 @@ export const CustomerHome = () => {
             });
             break;
           case 'new':
-            // New partners (mock: no badge and ratingCount < 50)
-            filtered = filtered.filter(p => !p.badge && (p.ratingCount || 0) < 50);
+            // New stores (mock: no badge and ratingCount < 50)
+            filtered = filtered.filter(s => !s.badge && (s.ratingCount || 0) < 50);
             break;
         }
       });
@@ -674,27 +674,27 @@ export const CustomerHome = () => {
         break;
     }
 
-    setFilteredAndSortedPartners(sorted);
-    // Reset displayed partners when filters/sort change
-    setDisplayedPartners(sorted.slice(0, PARTNERS_PER_PAGE));
-    setHasMorePartners(sorted.length > PARTNERS_PER_PAGE);
-  }, [partners, filters, sortBy, PARTNERS_PER_PAGE]);
+    setFilteredAndSortedStores(sorted);
+    // Reset displayed stores when filters/sort change
+    setDisplayedStores(sorted.slice(0, STORES_PER_PAGE));
+    setHasMoreStores(sorted.length > STORES_PER_PAGE);
+  }, [stores, filters, sortBy, STORES_PER_PAGE]);
 
-  // Load more partners for infinite scroll
-  const loadMorePartners = async () => {
-    if (isLoadingMore || !hasMorePartners) return;
+  // Load more stores for infinite scroll
+  const loadMoreStores = async () => {
+    if (isLoadingMore || !hasMoreStores) return;
     
     setIsLoadingMore(true);
     try {
       // Simulate loading delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const currentCount = displayedPartners.length;
-      const nextBatch = filteredAndSortedPartners.slice(currentCount, currentCount + PARTNERS_PER_PAGE);
-      setDisplayedPartners([...displayedPartners, ...nextBatch]);
-      setHasMorePartners(currentCount + PARTNERS_PER_PAGE < filteredAndSortedPartners.length);
+      const currentCount = displayedStores.length;
+      const nextBatch = filteredAndSortedStores.slice(currentCount, currentCount + STORES_PER_PAGE);
+      setDisplayedStores([...displayedStores, ...nextBatch]);
+      setHasMoreStores(currentCount + STORES_PER_PAGE < filteredAndSortedStores.length);
     } catch (error) {
-      console.error('Error loading more partners:', error);
+      console.error('Error loading more stores:', error);
     } finally {
       setIsLoadingMore(false);
     }
@@ -732,7 +732,7 @@ export const CustomerHome = () => {
             ))}
           </div>
 
-          {/* Partners Skeleton - Matches actual partner card structure */}
+          {/* Stores Skeleton - Matches actual store card structure */}
           <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
             {[1, 2, 3, 4, 5, 6].map(i => (
               <div key={i} className="space-y-1.5 p-2.5 bg-card rounded-xl">
@@ -777,7 +777,7 @@ export const CustomerHome = () => {
                         <CardContent className="p-0">
                           <div
                             className="relative h-40 md:h-48"  // 160px mobile, 192px desktop (Swiggy standard)
-                            onClick={() => navigate(item.cta_link || item.link || RouteMap.vendor(item.partner_id))}
+                            onClick={() => navigate(item.cta_link || item.link || item.store_id ? RouteMap.store(item.store_id) : '/')}
                           >
                             {/* Banner Image */}
                             {item.image_url && (
@@ -855,7 +855,7 @@ export const CustomerHome = () => {
               View All →
             </Button>
           </div>
-          {/* Single row horizontal scroll (optimized for partner card visibility) */}
+          {/* Single row horizontal scroll (optimized for store card visibility) */}
           <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
             {occasions.map((occasion) => (
               <button
@@ -906,13 +906,13 @@ export const CustomerHome = () => {
           </section>
         )}
 
-        {/* Top Rated Partners - Single unified section (Swiggy pattern) */}
-        {!loading && partners.length === 0 ? (
-          /* Empty State when no partners available */
+        {/* Top Rated Stores - Single unified section (Swiggy pattern) */}
+        {!loading && stores.length === 0 ? (
+          /* Empty State when no stores available */
           <section className="px-4 py-8">
             <EmptyStates.Products
-              title="No partners available"
-              description={`We couldn't find any partners in ${location}. Try changing your location or check back later.`}
+              title="No stores available"
+              description={`We couldn't find any stores in ${location}. Try changing your location or check back later.`}
               action={{
                 label: "Change Location",
                 onClick: () => {
@@ -929,7 +929,7 @@ export const CustomerHome = () => {
               }}
             />
           </section>
-        ) : partners.length > 0 ? (
+        ) : stores.length > 0 ? (
           <section className="space-y-3 bg-background">
             {/* Smart Filters - Sticky (Swiggy 2025 pattern) */}
             <SmartFilters
@@ -958,47 +958,47 @@ export const CustomerHome = () => {
               onTouchStart={handleTouchStart}
             >
               <InfiniteScroll
-                hasMore={hasMorePartners}
+                hasMore={hasMoreStores}
                 isLoading={isLoadingMore}
-                onLoadMore={loadMorePartners}
+                onLoadMore={loadMoreStores}
                 threshold={100}
               >
                 <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
-                  {displayedPartners.map((partner) => (
+                  {displayedStores.map((store) => (
               <Card
-                key={partner.id}
+                key={store.id}
                 className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
-                onClick={() => navigate(RouteMap.vendor(partner.id))}
+                onClick={() => navigate(RouteMap.store(store.id))}
               >
                 <CardContent className="p-2.5">
-                  {/* Image - 3:2 landscape (Swiggy pattern for partner cards) */}
+                  {/* Image - 3:2 landscape (Swiggy pattern for store cards) */}
                   <div className="relative w-full aspect-[3/2] rounded-lg overflow-hidden bg-card mb-2.5">
                     <OptimizedImage
-                      src={partner.image}
-                      alt={partner.name}
+                      src={store.image}
+                      alt={store.name}
                       width={300}
                       height={200}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
                     {/* Sponsored Badge - Top Left (Small icon + text, Zomato pattern) */}
-                    {partner.sponsored && (
+                    {store.sponsored && (
                       <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                         <Sparkles className="h-2.5 w-2.5 text-amber-900" />
                         <span className="text-amber-900 font-medium">Sponsored</span>
                       </Badge>
                     )}
                     {/* Bestseller/Trending Badge - Top Right (Small icon + text, no conflict with sponsored) */}
-                    {partner.badge && !partner.sponsored && (
+                    {store.badge && !store.sponsored && (
                       <Badge
                         className={cn(
                           "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                          partner.badge === 'bestseller'
+                          store.badge === 'bestseller'
                             ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
                             : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
                         )}
                       >
-                        {partner.badge === 'bestseller' ? (
+                        {store.badge === 'bestseller' ? (
                           <>
                             <Trophy className="h-2.5 w-2.5" />
                             <span className="font-medium">Bestseller</span>
@@ -1017,29 +1017,29 @@ export const CustomerHome = () => {
                   <div className="space-y-1.5">
                     {/* Name - clamp to 2 lines for stability */}
                     <h3 className="text-base font-bold line-clamp-2">
-                      {partner.name}
+                      {store.name}
                     </h3>
                     
                     {/* Category - 12px gray per spec */}
-                    {partner.category && (
-                      <p className="text-xs text-muted-foreground">{partner.category}</p>
+                    {store.category && (
+                      <p className="text-xs text-muted-foreground">{store.category}</p>
                     )}
                     
                     {/* Meta row: rating (+count) • ETA • distance (if available) */}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                       <span className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
+                        {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
                       </span>
                       <span>•</span>
-                      <span>{partner.delivery}</span>
-                      {/* Distance can be added to Partner type later if needed */}
+                      <span>{store.delivery}</span>
+                      {/* Distance can be added to Store type later if needed */}
                     </div>
-                    {/* No price in vendor cards to keep to 3 signals */}
+                    {/* No price in store cards to keep to 3 signals */}
                     
                     {/* Tagline - 12px gray, 1 line per spec */}
-                    {partner.tagline && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                    {store.tagline && (
+                      <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
                     )}
                   </div>
                 </CardContent>
@@ -1051,8 +1051,8 @@ export const CustomerHome = () => {
           </section>
         ) : null}
 
-        {/* Trending Partners - Swiggy 2025 pattern */}
-        {trendingPartners.length > 0 && (
+        {/* Trending Stores - Swiggy 2025 pattern */}
+        {trendingStores.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-lg font-semibold">Trending</h2>
@@ -1066,38 +1066,38 @@ export const CustomerHome = () => {
             </div>
             {/* Horizontal scroll */}
             <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
-              {trendingPartners.map((partner) => (
+              {trendingStores.map((store) => (
                 <Card
-                  key={partner.id}
+                  key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.vendor(partner.id))}
+                  onClick={() => navigate(RouteMap.store(store.id))}
                 >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
                       <OptimizedImage
-                        src={partner.image}
-                        alt={partner.name}
+                        src={store.image}
+                        alt={store.name}
                         width={150}
                         height={150}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
-                      {partner.sponsored && (
+                      {store.sponsored && (
                         <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                           <Sparkles className="h-2.5 w-2.5 text-amber-900" />
                           <span className="text-amber-900 font-medium">Sponsored</span>
                         </Badge>
                       )}
-                      {partner.badge && !partner.sponsored && (
+                      {store.badge && !store.sponsored && (
                         <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                            partner.badge === 'bestseller'
+                            store.badge === 'bestseller'
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
                               : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
                           )}
                         >
-                          {partner.badge === 'bestseller' ? (
+                          {store.badge === 'bestseller' ? (
                             <>
                               <Trophy className="h-2.5 w-2.5" />
                               <span className="font-medium">Bestseller</span>
@@ -1112,20 +1112,20 @@ export const CustomerHome = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
-                      {partner.category && (
-                        <p className="text-xs text-muted-foreground">{partner.category}</p>
+                      <h3 className="text-base font-bold line-clamp-2">{store.name}</h3>
+                      {store.category && (
+                        <p className="text-xs text-muted-foreground">{store.category}</p>
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
+                          {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
                         </span>
                         <span>•</span>
-                        <span>{partner.delivery}</span>
+                        <span>{store.delivery}</span>
                       </div>
-                      {partner.tagline && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                      {store.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
                       )}
                     </div>
                   </CardContent>
@@ -1150,38 +1150,38 @@ export const CustomerHome = () => {
             </div>
             {/* Horizontal scroll */}
             <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
-              {newLaunches.map((partner) => (
+              {newLaunches.map((store) => (
                 <Card
-                  key={partner.id}
+                  key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.vendor(partner.id))}
+                  onClick={() => navigate(RouteMap.store(store.id))}
                 >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
                       <OptimizedImage
-                        src={partner.image}
-                        alt={partner.name}
+                        src={store.image}
+                        alt={store.name}
                         width={150}
                         height={150}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
-                      {partner.sponsored && (
+                      {store.sponsored && (
                         <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                           <Sparkles className="h-2.5 w-2.5 text-amber-900" />
                           <span className="text-amber-900 font-medium">Sponsored</span>
                         </Badge>
                       )}
-                      {partner.badge && !partner.sponsored && (
+                      {store.badge && !store.sponsored && (
                         <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                            partner.badge === 'bestseller'
+                            store.badge === 'bestseller'
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
                               : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
                           )}
                         >
-                          {partner.badge === 'bestseller' ? (
+                          {store.badge === 'bestseller' ? (
                             <>
                               <Trophy className="h-2.5 w-2.5" />
                               <span className="font-medium">Bestseller</span>
@@ -1196,20 +1196,20 @@ export const CustomerHome = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
-                      {partner.category && (
-                        <p className="text-xs text-muted-foreground">{partner.category}</p>
+                      <h3 className="text-base font-bold line-clamp-2">{store.name}</h3>
+                      {store.category && (
+                        <p className="text-xs text-muted-foreground">{store.category}</p>
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
+                          {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
                         </span>
                         <span>•</span>
-                        <span>{partner.delivery}</span>
+                        <span>{store.delivery}</span>
                       </div>
-                      {partner.tagline && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                      {store.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
                       )}
                     </div>
                   </CardContent>
@@ -1220,7 +1220,7 @@ export const CustomerHome = () => {
         )}
 
         {/* Personalized Recommendations - Swiggy 2025 pattern */}
-        {recommendedPartners.length > 0 && user && (
+        {recommendedStores.length > 0 && user && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-lg font-semibold">Recommended for You</h2>
@@ -1234,38 +1234,38 @@ export const CustomerHome = () => {
             </div>
             {/* Horizontal scroll */}
             <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
-              {recommendedPartners.map((partner) => (
+              {recommendedStores.map((store) => (
               <Card
-                key={partner.id}
+                key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                onClick={() => navigate(RouteMap.vendor(partner.id))}
+                onClick={() => navigate(RouteMap.store(store.id))}
               >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
                     <OptimizedImage
-                      src={partner.image}
-                      alt={partner.name}
+                      src={store.image}
+                      alt={store.name}
                         width={160}
                         height={160}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
-                    {partner.sponsored && (
+                    {store.sponsored && (
                       <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                         <Sparkles className="h-2.5 w-2.5 text-amber-900" />
                         <span className="text-amber-900 font-medium">Sponsored</span>
                       </Badge>
                     )}
-                    {partner.badge && !partner.sponsored && (
+                    {store.badge && !store.sponsored && (
                       <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                            partner.badge === 'bestseller'
+                            store.badge === 'bestseller'
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
                               : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
                           )}
                       >
-                        {partner.badge === 'bestseller' ? (
+                        {store.badge === 'bestseller' ? (
                           <>
                               <Trophy className="h-2.5 w-2.5" />
                             <span className="font-medium">Bestseller</span>
@@ -1280,20 +1280,20 @@ export const CustomerHome = () => {
                     )}
                   </div>
                     <div className="space-y-1.5">
-                      <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
-                      {partner.category && (
-                        <p className="text-xs text-muted-foreground">{partner.category}</p>
+                      <h3 className="text-base font-bold line-clamp-2">{store.name}</h3>
+                      {store.category && (
+                        <p className="text-xs text-muted-foreground">{store.category}</p>
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                         <span className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
+                          {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
                         </span>
                         <span>•</span>
-                        <span>{partner.delivery}</span>
+                        <span>{store.delivery}</span>
                       </div>
-                      {partner.tagline && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                      {store.tagline && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
                       )}
                     </div>
                   </CardContent>
@@ -1303,11 +1303,11 @@ export const CustomerHome = () => {
           </section>
         )}
 
-        {/* Visited Vendors - Conditional (≥2 views) */}
-        {visitedVendors.length >= 2 && (
+        {/* Visited Stores - Conditional (≥2 views) */}
+        {visitedStores.length >= 2 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-semibold">Visited Vendors</h2>
+              <h2 className="text-lg font-semibold">Visited Stores</h2>
               <Button
                 variant="link"
                 className="text-primary p-0 h-auto text-sm"
@@ -1316,40 +1316,40 @@ export const CustomerHome = () => {
                 View All →
               </Button>
             </div>
-            {/* Horizontal scroll (6 vendors) */}
+            {/* Horizontal scroll (6 stores) */}
             <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
-              {visitedVendors.map((partner) => (
+              {visitedStores.map((store) => (
                 <Card
-                  key={partner.id}
+                  key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.vendor(partner.id))}
+                  onClick={() => navigate(RouteMap.store(store.id))}
                 >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
                       <OptimizedImage
-                        src={partner.image}
-                        alt={partner.name}
+                        src={store.image}
+                        alt={store.name}
                         width={150}
                         height={150}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
-                      {partner.sponsored && (
+                      {store.sponsored && (
                         <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
                           <Sparkles className="h-2.5 w-2.5 text-amber-900" />
                           <span className="text-amber-900 font-medium">Sponsored</span>
                         </Badge>
                       )}
-                      {partner.badge && !partner.sponsored && (
+                      {store.badge && !store.sponsored && (
                         <Badge
                           className={cn(
                             "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
-                            partner.badge === 'bestseller'
+                            store.badge === 'bestseller'
                               ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
                               : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
                           )}
                         >
-                          {partner.badge === 'bestseller' ? (
+                          {store.badge === 'bestseller' ? (
                             <>
                               <Trophy className="h-2.5 w-2.5" />
                               <span className="font-medium">Bestseller</span>
@@ -1365,24 +1365,24 @@ export const CustomerHome = () => {
                     </div>
                   <div className="space-y-1">
                     {/* Name - clamp to 2 lines for stability */}
-                      <h3 className="text-base font-bold line-clamp-2">{partner.name}</h3>
+                      <h3 className="text-base font-bold line-clamp-2">{store.name}</h3>
                     {/* Category - 12px gray per spec */}
-                    {partner.category && (
-                      <p className="text-xs text-muted-foreground">{partner.category}</p>
+                    {store.category && (
+                      <p className="text-xs text-muted-foreground">{store.category}</p>
                     )}
                     {/* Meta row: rating (+count) • ETA • distance (if available) */}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
                       <span className="flex items-center gap-1">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        {partner.rating}{partner.ratingCount ? ` (${partner.ratingCount})` : ""}
+                        {store.rating}{store.ratingCount ? ` (${store.ratingCount})` : ""}
                       </span>
                       <span>•</span>
-                      <span>{partner.delivery}</span>
-                        {/* Distance can be added to Partner type later if needed */}
+                      <span>{store.delivery}</span>
+                        {/* Distance can be added to Store type later if needed */}
                     </div>
                     {/* Tagline - 12px gray, 1 line per spec */}
-                    {partner.tagline && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">{partner.tagline}</p>
+                    {store.tagline && (
+                      <p className="text-xs text-muted-foreground line-clamp-1">{store.tagline}</p>
                     )}
                   </div>
                 </CardContent>

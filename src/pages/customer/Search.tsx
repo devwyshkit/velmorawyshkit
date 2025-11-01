@@ -9,9 +9,10 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
-import { searchItems, searchPartners } from "@/lib/integrations/supabase-data";
+import { searchItems, searchStores, fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase } from "@/lib/integrations/supabase-data";
 import { EmptyStates } from "@/components/ui/empty-state";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
 
 interface SearchResult {
   id: string;
@@ -19,7 +20,7 @@ interface SearchResult {
   image: string;
   price: number;
   rating: number;
-  type: 'item' | 'partner';
+  type: 'item' | 'store';
   badge?: 'bestseller' | 'trending';
   ratingCount?: number;
   shortDesc?: string;
@@ -28,10 +29,12 @@ interface SearchResult {
 
 export const CustomerMobileSearch = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [favouritedItems, setFavouritedItems] = useState<Set<string>>(new Set());
 
   // Get query params
   const occasionParam = searchParams.get('occasion');
@@ -47,28 +50,37 @@ export const CustomerMobileSearch = () => {
     'Wedding Favors',
   ];
 
-  // Handle query parameters (occasion or view=partners or q=)
+  // Handle query parameters (occasion or view=stores or q=)
   useEffect(() => {
     if (queryParam) {
       setSearchQuery(queryParam);
     } else if (occasionParam) {
       // Auto-search for occasion
       setSearchQuery(occasionParam);
-    } else if (viewParam === 'partners') {
-      // Show all partners
+    } else if (viewParam === 'stores') {
+      // Show all stores
       setSearchQuery(''); // Will show trending instead
     }
   }, [occasionParam, viewParam, queryParam]);
+
+  // Load favourites on mount
+  useEffect(() => {
+    const loadFavourites = async () => {
+      const items = await fetchSavedItems();
+      setFavouritedItems(new Set(items.map(i => i.id)));
+    };
+    loadFavourites();
+  }, []);
 
   // Backend search with debouncing
   useEffect(() => {
     const performSearch = async () => {
       if (searchQuery.trim() && searchQuery.length > 2) {
         try {
-          // Search both items and partners
-          const [itemResults, partnerResults] = await Promise.all([
+          // Search both items and stores
+          const [itemResults, storeResults] = await Promise.all([
             searchItems(searchQuery),
-            searchPartners(searchQuery),
+            searchStores(searchQuery),
           ]);
           
           // Transform items to search results
@@ -85,22 +97,22 @@ export const CustomerMobileSearch = () => {
             sponsored: item.sponsored,
           }));
           
-          // Transform partners to search results
-          const partnerSearchResults: SearchResult[] = partnerResults.map(partner => ({
-            id: partner.id,
-            name: partner.name,
-            image: partner.image,
-            price: -1, // Use -1 to indicate "no price" for partners (will be hidden in UI)
-            rating: partner.rating,
-            ratingCount: partner.ratingCount,
-            type: 'partner' as const,
-            badge: partner.badge,
-            shortDesc: partner.tagline,
-            sponsored: partner.sponsored,
+          // Transform stores to search results
+          const storeSearchResults: SearchResult[] = storeResults.map(store => ({
+            id: store.id,
+            name: store.name,
+            image: store.image,
+            price: -1, // Use -1 to indicate "no price" for stores (will be hidden in UI)
+            rating: store.rating,
+            ratingCount: store.ratingCount,
+            type: 'store' as const,
+            badge: store.badge,
+            shortDesc: store.tagline,
+            sponsored: store.sponsored,
           }));
           
-          // Combine results: partners first (if any), then items
-          setResults([...partnerSearchResults, ...itemSearchResults]);
+          // Combine results: stores first (if any), then items
+          setResults([...storeSearchResults, ...itemSearchResults]);
         } catch (error) {
           // Handle error silently in production
           setResults([]);
@@ -129,8 +141,28 @@ export const CustomerMobileSearch = () => {
   const handleItemClick = (item: SearchResult) => {
     if (item.type === 'item') {
       setSelectedItemId(item.id);
+    } else if (item.type === 'store') {
+      navigate(RouteMap.store(item.id));
+    }
+  };
+
+  const handleFavouriteToggle = async (itemId: string, isFavourited: boolean) => {
+    if (isFavourited) {
+      const success = await addToSavedItemsSupabase(itemId);
+      if (success) {
+        setFavouritedItems(prev => new Set([...prev, itemId]));
+        toast({ title: "Added to favourites" });
+      }
     } else {
-      navigate(RouteMap.vendor(item.id));
+      const success = await removeFromSavedItemsSupabase(itemId);
+      if (success) {
+        setFavouritedItems(prev => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
+        toast({ title: "Removed from favourites" });
+      }
     }
   };
 
@@ -149,7 +181,7 @@ export const CustomerMobileSearch = () => {
           <div className="flex-1">
             <SearchBar
               variant="fullpage"
-              placeholder="Search for gifts, partners..."
+              placeholder="Search for gifts, stores..."
               onSearch={handleSearch}
               showSuggestions={true}
               showVoiceSearch={true}
@@ -180,6 +212,8 @@ export const CustomerMobileSearch = () => {
                   badge={item.badge}
                   shortDesc={item.shortDesc}
                   sponsored={item.sponsored}
+                  isFavourited={item.type === 'item' ? favouritedItems.has(item.id) : false}
+                  onFavouriteToggle={item.type === 'item' ? handleFavouriteToggle : undefined}
                   onClick={() => handleItemClick(item)}
                 />
               ))}
@@ -224,7 +258,7 @@ export const CustomerMobileSearch = () => {
               <ul className="text-xs text-muted-foreground space-y-1">
                 <li>• Try searching for occasions like "birthday" or "wedding"</li>
                 <li>• Search by product type like "chocolates" or "hampers"</li>
-                <li>• Look for partners by name</li>
+                <li>• Look for stores by name</li>
                 <li>• Use keywords like "custom" or "personalized"</li>
               </ul>
             </div>

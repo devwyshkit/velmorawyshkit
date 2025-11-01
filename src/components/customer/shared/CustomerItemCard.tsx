@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, Flame, Gift, Sparkles, Plus, Minus } from "lucide-react";
+import { Trophy, Flame, Gift, Sparkles, Plus, Minus, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -20,6 +20,8 @@ interface CustomerItemCardProps {
   // Removed variant prop - grid is the global e-commerce standard
   moq?: number; // NEW: Minimum order quantity
   eta?: string; // NEW: Delivery ETA
+  isFavourited?: boolean;
+  onFavouriteToggle?: (itemId: string, isFavourited: boolean) => void;
   onClick?: () => void;
   className?: string;
 }
@@ -39,6 +41,8 @@ export const CustomerItemCard = ({
   // Removed variant prop
   moq,
   eta,
+  isFavourited,
+  onFavouriteToggle,
   onClick,
   className,
 }: CustomerItemCardProps) => {
@@ -75,18 +79,19 @@ export const CustomerItemCard = ({
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
             <Gift className="w-12 h-12" />
           </div>
-          {/* Sponsored Badge - Top Left (Small icon + text, Zomato pattern) */}
-          {sponsored && (
+          {/* Badge Positioning Strategy:
+              - Top Left: Sponsored OR (if not sponsored) Bestseller/Trending
+              - Top Right: Heart button (always visible if onFavouriteToggle provided)
+          */}
+          {sponsored ? (
             <Badge className="absolute top-2 left-2 bg-amber-100 px-1.5 py-0.5 gap-0.5 text-[10px] border-amber-200">
               <Sparkles className="h-2.5 w-2.5 text-amber-900" />
               <span className="text-amber-900 font-medium">Sponsored</span>
             </Badge>
-          )}
-          {/* Bestseller/Trending Badge - Top Right (Small icon + text, Swiggy pattern) */}
-          {badge && !campaignDiscount && (
+          ) : badge ? (
             <Badge
               className={cn(
-                "absolute top-2 right-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
+                "absolute top-2 left-2 px-1.5 py-0.5 gap-0.5 text-[10px] border-0",
                 badge === 'bestseller'
                   ? "bg-[hsl(var(--tertiary-container))] text-[hsl(var(--on-tertiary-container))]"
                   : "bg-[hsl(var(--warning-container))] text-[hsl(var(--on-warning-container))]"
@@ -104,10 +109,30 @@ export const CustomerItemCard = ({
                 </>
               )}
             </Badge>
+          ) : null}
+          
+          {/* Favourite Button - Top Right (Swiggy pattern) */}
+          {onFavouriteToggle && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onFavouriteToggle(id, !isFavourited);
+              }}
+              className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 backdrop-blur-sm border border-border shadow-sm hover:bg-white transition-all duration-200 flex items-center justify-center z-10"
+              aria-label={isFavourited ? "Remove from favourites" : "Add to favourites"}
+            >
+              <Heart 
+                className={cn(
+                  "h-4 w-4 transition-colors duration-200",
+                  isFavourited ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                )} 
+              />
+            </button>
           )}
-          {/* Campaign Discount Badge - Top Right (Highest priority, Zomato pattern) */}
+          
+          {/* Campaign Discount - Overlay on top-right (below heart) */}
           {campaignDiscount && (
-            <Badge className="absolute top-2 right-2 px-2 py-1 gap-0.5 text-xs bg-red-500 text-white border-0 font-bold shadow-md">
+            <Badge className="absolute top-10 right-2 px-2 py-1 gap-0.5 text-xs bg-red-500 text-white border-0 font-bold shadow-md">
               {campaignDiscount.type === 'percentage' 
                 ? `${campaignDiscount.value}% OFF` 
                 : `₹${campaignDiscount.value} OFF`}

@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 
 interface CartContextType {
   cartCount: number;
-  currentPartnerId: string | null;
+  currentStoreId: string | null;
   refreshCartCount: () => void;
   clearCart: () => void;
 }
@@ -11,17 +11,17 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartCount, setCartCount] = useState(0);
-  const [currentPartnerId, setCurrentPartnerId] = useState<string | null>(null);
+  const [currentStoreId, setCurrentStoreId] = useState<string | null>(null);
 
   const refreshCartCount = async () => {
     // Guest cart removed: default to server-backed count (not implemented yet)
       setCartCount(0);
-      setCurrentPartnerId(null);
+      setCurrentStoreId(null);
   };
 
   const clearCart = async () => {
     setCartCount(0);
-    setCurrentPartnerId(null);
+    setCurrentStoreId(null);
   };
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <CartContext.Provider value={{ cartCount, currentPartnerId, refreshCartCount, clearCart }}>
+    <CartContext.Provider value={{ cartCount, currentStoreId, refreshCartCount, clearCart }}>
       {children}
     </CartContext.Provider>
   );

@@ -84,7 +84,7 @@ export const Profile = () => {
           <Link to={RouteMap.favorites()}>
             <Button variant="outline" className="w-full justify-start">
               <Heart className="mr-2" />
-              Favorites
+              Favourites
           </Button>
           </Link>
           <Link to={RouteMap.addresses()}>

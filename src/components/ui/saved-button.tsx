@@ -4,29 +4,29 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-// Global E-commerce Wishlist Button - Amazon/Myntra Standard
+// Global E-commerce Saved Button - Amazon/Myntra Standard
 // Universal pattern for save for later functionality
 
-interface WishlistButtonProps {
+interface SavedButtonProps {
   productId: string;
   productName: string;
-  isWishlisted?: boolean;
-  onToggle?: (productId: string, isWishlisted: boolean) => void;
+  isSaved?: boolean;
+  onToggle?: (productId: string, isSaved: boolean) => void;
   variant?: "icon" | "full";
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export const WishlistButton = ({
+export const SavedButton = ({
   productId,
   productName,
-  isWishlisted: initialWishlisted = false,
+  isSaved: initialSaved = false,
   onToggle,
   variant = "icon",
   size = "md",
   className
-}: WishlistButtonProps) => {
-  const [isWishlisted, setIsWishlisted] = useState(initialWishlisted);
+}: SavedButtonProps) => {
+  const [isSaved, setIsSaved] = useState(initialSaved);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleToggle = async (e: React.MouseEvent) => {
@@ -37,39 +37,39 @@ export const WishlistButton = ({
     setIsLoading(true);
     
     try {
-      const newState = !isWishlisted;
-      setIsWishlisted(newState);
+      const newState = !isSaved;
+      setIsSaved(newState);
       
       // Update localStorage
-      const wishlist = JSON.parse(localStorage.getItem('wyshkit-wishlist') || '[]');
+      const savedItems = JSON.parse(localStorage.getItem('wyshkit-favorites') || '[]');
       if (newState) {
-        wishlist.push({
+        savedItems.push({
           productId,
           productName,
           addedAt: new Date().toISOString()
         });
       } else {
-        const index = wishlist.findIndex((item: any) => item.productId === productId);
-        if (index > -1) wishlist.splice(index, 1);
+        const index = savedItems.findIndex((item: any) => item.productId === productId);
+        if (index > -1) savedItems.splice(index, 1);
       }
-      localStorage.setItem('wyshkit-wishlist', JSON.stringify(wishlist));
+      localStorage.setItem('wyshkit-favorites', JSON.stringify(savedItems));
       
       // Call parent callback
       onToggle?.(productId, newState);
       
       // Show toast
       toast({
-        title: newState ? "Added to wishlist" : "Removed from wishlist",
+        title: newState ? "Added to favourites" : "Removed from favourites",
         description: productName,
       });
       
     } catch (error) {
-      console.error('Failed to update wishlist:', error);
-      setIsWishlisted(!isWishlisted); // Revert on error
+      console.error('Failed to update favourites:', error);
+      setIsSaved(!isSaved); // Revert on error
       
       toast({
         title: "Error",
-        description: "Failed to update wishlist. Please try again.",
+        description: "Failed to update favourites. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -97,18 +97,18 @@ export const WishlistButton = ({
         className={cn(
           sizeClasses[size],
           "bg-background/90 backdrop-blur border shadow-sm transition-all duration-200",
-          isWishlisted && "bg-red-50 border-red-200",
+          isSaved && "bg-red-50 border-red-200",
           className
         )}
         onClick={handleToggle}
         disabled={isLoading}
-        aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+        aria-label={isSaved ? "Remove from favourites" : "Add to favourites"}
       >
         <Heart 
           className={cn(
             iconSizes[size],
             "transition-colors duration-200",
-            isWishlisted ? "fill-red-500 text-red-500" : "text-muted-foreground",
+            isSaved ? "fill-red-500 text-red-500" : "text-muted-foreground",
             isLoading && "animate-pulse"
           )} 
         />
@@ -118,12 +118,12 @@ export const WishlistButton = ({
 
   return (
     <Button
-      variant={isWishlisted ? "default" : "outline"}
+      variant={isSaved ? "default" : "outline"}
       size="sm"
       className={cn(
         sizeClasses[size],
         "transition-all duration-200",
-        isWishlisted && "bg-red-500 hover:bg-red-600 text-white",
+        isSaved && "bg-red-500 hover:bg-red-600 text-white",
         className
       )}
       onClick={handleToggle}
@@ -133,10 +133,10 @@ export const WishlistButton = ({
         className={cn(
           iconSizes[size],
           "mr-2 transition-colors duration-200",
-          isWishlisted ? "fill-current" : ""
+          isSaved ? "fill-current" : ""
         )} 
       />
-      {isWishlisted ? "Saved" : "Save"}
+      {isSaved ? "Favourited" : "Favourite"}
     </Button>
   );
 };

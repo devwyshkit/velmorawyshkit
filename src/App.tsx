@@ -38,11 +38,11 @@ const App = () => (
                     <Route path="/login" element={<LazyPages.Login />} />
                     <Route path="/signup" element={<LazyPages.Signup />} />
                     <Route path="/search" element={<LazyPages.Search />} />
-                    <Route path="/partners/:id" element={<LazyPages.Partner />} />
+                    <Route path="/store/:id" element={<LazyPages.Store />} />
                     {/* Protected Consumer Routes */}
                     <Route path="/favorites" element={
                         <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Wishlist />
+                          <LazyPages.Favorites />
                         </ProtectedRoute>
                       } />
                     <Route path="/checkout" element={
@@ -85,13 +85,18 @@ const App = () => (
                     {/* Legacy redirects from /customer/* */}
                     <Route path="/customer/home" element={<Navigate to="/" replace />} />
                     <Route path="/customer/search" element={<Navigate to="/search" replace />} />
-                    <Route path="/customer/partners/:id" element={<Navigate to="/partners/:id" replace />} />
                     <Route path="/customer/login" element={<Navigate to="/login" replace />} />
                     <Route path="/customer/signup" element={<Navigate to="/signup" replace />} />
                     <Route path="/customer/favorites" element={<Navigate to="/favorites" replace />} />
+                    <Route path="/customer/saved" element={<Navigate to="/favorites" replace />} />
                     <Route path="/customer/checkout" element={<Navigate to="/checkout" replace />} />
                     <Route path="/customer/profile" element={<Navigate to="/profile" replace />} />
                     <Route path="/customer/wishlist" element={<Navigate to="/favorites" replace />} />
+                    <Route path="/saved" element={<Navigate to="/favorites" replace />} />
+                    <Route path="/favourites" element={<Navigate to="/favorites" replace />} />
+                    {/* Legacy /partners route */}
+                    <Route path="/partners/:id" element={<Navigate to="/store/:id" replace />} />
+                    <Route path="/customer/partners/:id" element={<Navigate to="/store/:id" replace />} />
 
                     {/* Partner Routes - Business Dashboard */}
                     <Route path="/partner">

@@ -227,7 +227,7 @@ export const ProductSchema = z.object({
   images: z.array(z.string().url()).optional(),
   rating: z.number().min(0).max(5, "Rating must be 0-5"),
   reviewCount: z.number().min(0, "Review count must be positive"),
-  vendor: z.object({
+  store: z.object({
     id: z.string().min(1),
     name: z.string().min(1),
     rating: z.number().min(0).max(5)
@@ -241,7 +241,7 @@ export const ProductSchema = z.object({
 export const OrderSchema = z.object({
   id: z.string().min(1),
   customerId: z.string().min(1),
-  vendorId: z.string().min(1),
+  storeId: z.string().min(1),
   items: z.array(z.object({
     productId: z.string(),
     quantity: z.number().min(1),
@@ -266,8 +266,8 @@ export const CartItemSchema = z.object({
   id: z.string().min(1),
   productId: z.string().min(1),
   productName: z.string().min(1),
-  vendorId: z.string().min(1),
-  vendorName: z.string().min(1),
+  storeId: z.string().min(1),
+  storeName: z.string().min(1),
   quantity: z.number().min(1).max(1000, "Quantity too high"),
   price: z.number().min(0),
   customization: z.object({

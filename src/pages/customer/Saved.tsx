@@ -10,31 +10,33 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyStates } from "@/components/ui/empty-state";
 import { useToast } from "@/hooks/use-toast";
-import { fetchWishlistItems, removeFromWishlistSupabase, type WishlistItemData } from "@/lib/integrations/supabase-data";
+import { fetchSavedItems, removeFromSavedItemsSupabase, addToSavedItemsSupabase, type SavedItemData } from "@/lib/integrations/supabase-data";
+// Note: fetchSavedItems is now an alias to fetchFavoriteProducts from favorites service
 
-export const Wishlist = () => {
+export const Saved = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [items, setItems] = useState<WishlistItemData[]>([]);
+  const [items, setItems] = useState<SavedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadWishlist();
+    loadSaved();
   }, []);
 
-  const loadWishlist = async () => {
+  const loadSaved = async () => {
     setLoading(true);
     try {
-      // Load wishlist from Supabase (route is already protected by ProtectedRoute)
-      const wishlistData = await fetchWishlistItems();
-      setItems(wishlistData);
+      // Load saved items from Supabase (route is already protected by ProtectedRoute)
+      const savedData = await fetchSavedItems();
+      setItems(savedData);
     } catch (error) {
-      console.error('Failed to load wishlist:', error);
+      console.error('Failed to load favourites:', error);
       toast({
         title: "Loading error",
-        description: "Failed to load wishlist",
+        description: "Failed to load favourites",
         variant: "destructive",
       });
     } finally {
@@ -42,21 +44,21 @@ export const Wishlist = () => {
     }
   };
 
-  const handleRemoveFromWishlist = async (itemId: string) => {
+  const handleRemoveFromSaved = async (itemId: string) => {
     // Optimistic update
     setItems(items.filter(item => item.id !== itemId));
     
     // Remove from Supabase
-    const success = await removeFromWishlistSupabase(itemId);
+    const success = await removeFromSavedItemsSupabase(itemId);
     
     if (success) {
       toast({
-        title: "Removed from wishlist",
-        description: "Item removed from your wishlist",
+        title: "Removed from favourites",
+        description: "Item removed from your favourites",
       });
     } else {
       // Revert on failure
-      await checkAuthAndLoadWishlist();
+      await loadSaved();
       toast({
         title: "Error",
         description: "Failed to remove item",
@@ -72,7 +74,7 @@ export const Wishlist = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader showBackButton title="Wishlist" />
+        <CustomerMobileHeader showBackButton title="Favourites" />
         
         <main className="max-w-screen-xl mx-auto px-4 py-6">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -92,51 +94,14 @@ export const Wishlist = () => {
     );
   }
 
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader showBackButton title="Wishlist" />
-        
-        <div className="flex flex-col items-center justify-center h-[70vh] px-4">
-          <Heart className="h-20 w-20 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Sign in to save items</h2>
-          <p className="text-sm text-muted-foreground mb-6 text-center">
-            Create an account to save your favorite items
-          </p>
-          <div className="space-y-3 w-full max-w-sm">
-            <Button onClick={() => navigate(RouteMap.login())} className="w-full">
-              Sign In
-            </Button>
-            <Button
-              onClick={() => navigate(RouteMap.home())}
-              variant="outline"
-              className="w-full"
-            >
-              Browse Partners
-            </Button>
-          </div>
-        </div>
-
-        <CustomerBottomNav />
-      </div>
-    );
-  }
-
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader showBackButton title="Wishlist" />
+        <CustomerMobileHeader showBackButton title="Favourites" />
         
-        <div className="flex flex-col items-center justify-center h-[70vh] px-4">
-          <Heart className="h-20 w-20 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Your wishlist is empty</h2>
-          <p className="text-sm text-muted-foreground mb-6 text-center">
-            Save items you love for later
-          </p>
-          <Button onClick={() => navigate(RouteMap.home())} className="w-full max-w-sm">
-            Browse Partners
-          </Button>
-        </div>
+        <main className="max-w-screen-xl mx-auto px-4 py-6">
+          <EmptyStates.Favourites />
+        </main>
 
         <CustomerBottomNav />
       </div>
@@ -145,12 +110,12 @@ export const Wishlist = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <CustomerMobileHeader showBackButton title="Wishlist" />
+      <CustomerMobileHeader showBackButton title="Favourites" />
       
       <main className="max-w-screen-xl mx-auto px-4 py-6">
         <div className="mb-4">
           <p className="text-sm text-muted-foreground">
-            {items.length} {items.length === 1 ? 'item' : 'items'} saved
+            {items.length} {items.length === 1 ? 'favourite' : 'favourites'}
           </p>
         </div>
 
@@ -165,18 +130,13 @@ export const Wishlist = () => {
                 rating={item.rating}
                 badge={item.badge}
                 onClick={() => handleItemClick(item.id)}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 h-8 w-8 bg-white/90 hover:bg-white rounded-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveFromWishlist(item.id);
+                isFavourited={true}
+                onFavouriteToggle={async (itemId: string, isFavourited: boolean) => {
+                  if (!isFavourited) {
+                    await handleRemoveFromSaved(itemId);
+                  }
                 }}
-              >
-                <Heart className="h-4 w-4 fill-primary text-primary" />
-              </Button>
+              />
             </div>
           ))}
         </div>

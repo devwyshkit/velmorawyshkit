@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 interface SearchSuggestion {
   id: string;
   text: string;
-  type: "product" | "category" | "vendor" | "recent" | "trending";
+  type: "product" | "category" | "store" | "recent" | "trending" | "vendor";
   count?: number;
   image?: string;
 }
@@ -34,7 +34,7 @@ export const GlobalSearch = ({
   onChange,
   onSearch,
   onSuggestionClick,
-  placeholder = "Search for gifts, occasions, vendors...",
+  placeholder = "Search for gifts, occasions, stores...",
   showVoiceSearch = true,
   showImageSearch = true,
   className
@@ -282,7 +282,7 @@ export const GlobalSearch = ({
               <div className="p-6 text-center text-muted-foreground">
                 <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No suggestions found for "{value}"</p>
-                <p className="text-xs mt-1">Try searching for gifts, categories, or vendors</p>
+                <p className="text-xs mt-1">Try searching for gifts, categories, or stores</p>
               </div>
             )}
           </CardContent>

@@ -5,10 +5,10 @@ import { Star, Clock, Truck, Users, Heart, Eye } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-// Global E-commerce Standard Vendor Card - Following Swiggy/Zomato Pattern
-// Comprehensive vendor information with social proof and quick actions
+// Global E-commerce Standard Store Card - Following Swiggy/Zomato Pattern
+// Comprehensive store information with social proof and quick actions
 
-interface Vendor {
+interface Store {
   id: string;
   name: string;
   coverImage?: string;
@@ -27,22 +27,22 @@ interface Vendor {
   deliveryPartner?: string;
 }
 
-interface VendorCardProps {
-  vendor: Vendor;
-  onVendorClick: (vendor: Vendor) => void;
-  onQuickView?: (vendor: Vendor, e: React.MouseEvent) => void;
+interface StoreCardProps {
+  store: Store;
+  onStoreClick: (store: Store) => void;
+  onQuickView?: (store: Store, e: React.MouseEvent) => void;
   variant?: "compact" | "detailed";
   className?: string;
 }
 
-export const VendorCard = ({ 
-  vendor, 
-  onVendorClick, 
+export const StoreCard = ({ 
+  store, 
+  onStoreClick, 
   onQuickView,
   variant = "compact",
   className 
-}: VendorCardProps) => {
-  const [isFollowed, setIsFollowed] = useState(vendor.isFollowed || false);
+}: StoreCardProps) => {
+  const [isFollowed, setIsFollowed] = useState(store.isFollowed || false);
 
   const toggleFollow = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -51,20 +51,20 @@ export const VendorCard = ({
 
   const handleQuickView = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onQuickView?.(vendor, e);
+    onQuickView?.(store, e);
   };
 
   return (
     <Card 
       className={cn(
         "group cursor-pointer border transition-all duration-200 hover:shadow-lg",
-        !vendor.isOpen && "opacity-60",
+        !store.isOpen && "opacity-60",
         className
       )}
-      onClick={() => onVendorClick(vendor)}
+      onClick={() => onStoreClick(store)}
     >
       <CardContent className="p-0">
-        {/* Vendor Cover Image - Swiggy Style */}
+        {/* Store Cover Image - Swiggy Style */}
         {variant === "detailed" && (
           <div className="relative h-32 overflow-hidden rounded-t-lg">
             <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -78,7 +78,7 @@ export const VendorCard = ({
                 variant="secondary"
                 className="h-8 w-8 bg-white/90 backdrop-blur border shadow-sm"
                 onClick={toggleFollow}
-                aria-label={isFollowed ? "Unfollow vendor" : "Follow vendor"}
+                aria-label={isFollowed ? "Unfollow store" : "Follow store"}
               >
                 <Heart 
                   className={cn(
@@ -94,7 +94,7 @@ export const VendorCard = ({
                   variant="secondary"
                   className="h-8 w-8 bg-white/90 backdrop-blur border shadow-sm"
                   onClick={handleQuickView}
-                  aria-label="Quick view vendor"
+                  aria-label="Quick view store"
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -102,42 +102,42 @@ export const VendorCard = ({
             </div>
 
             {/* Promotion Banner */}
-            {vendor.promotions && vendor.promotions.length > 0 && (
+            {store.promotions && store.promotions.length > 0 && (
               <div className="absolute bottom-2 left-2">
                 <Badge variant="destructive" className="text-xs font-medium">
-                  {vendor.promotions[0]}
+                  {store.promotions[0]}
                 </Badge>
               </div>
             )}
           </div>
         )}
 
-        {/* Vendor Info Section */}
+        {/* Store Info Section */}
         <div className="p-4 space-y-3">
           {/* Header Row - Name + Status */}
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-base truncate">{vendor.name}</h3>
+              <h3 className="font-semibold text-base truncate">{store.name}</h3>
               
               {/* Key Metrics Row - Swiggy Pattern */}
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium">{vendor.rating}</span>
-                  <span>({vendor.reviewCount}+)</span>
+                  <span className="font-medium">{store.rating}</span>
+                  <span>({store.reviewCount}+)</span>
                 </div>
                 
                 <span className="text-muted-foreground/60">•</span>
                 
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  <span>{vendor.deliveryTime}</span>
+                  <span>{store.deliveryTime}</span>
                 </div>
 
-                {vendor.distance && (
+                {store.distance && (
                   <>
                     <span className="text-muted-foreground/60">•</span>
-                    <span>{vendor.distance}</span>
+                    <span>{store.distance}</span>
                   </>
                 )}
               </div>
@@ -147,20 +147,20 @@ export const VendorCard = ({
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className={cn(
                 "w-2 h-2 rounded-full",
-                vendor.isOpen ? "bg-green-500" : "bg-red-500"
+                store.isOpen ? "bg-green-500" : "bg-red-500"
               )} />
               <span className={cn(
                 "text-xs font-medium",
-                vendor.isOpen ? "text-green-600" : "text-red-600"
+                store.isOpen ? "text-green-600" : "text-red-600"
               )}>
-                {vendor.isOpen ? "Open" : "Closed"}
+                {store.isOpen ? "Open" : "Closed"}
               </span>
             </div>
           </div>
 
           {/* Categories - Horizontal scroll chips - Fixed overflow */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            {vendor.categories.slice(0, 3).map((category) => (
+            {store.categories.slice(0, 3).map((category) => (
               <Badge 
                 key={category} 
                 variant="outline" 
@@ -169,9 +169,9 @@ export const VendorCard = ({
                 {category}
               </Badge>
             ))}
-            {vendor.categories.length > 3 && (
+            {store.categories.length > 3 && (
               <Badge variant="outline" className="text-xs whitespace-nowrap flex-shrink-0">
-                +{vendor.categories.length - 3}
+                +{store.categories.length - 3}
               </Badge>
             )}
           </div>
@@ -181,18 +181,18 @@ export const VendorCard = ({
             <div className="flex items-center gap-2">
               <Truck className="h-3 w-3 text-primary" />
               <span className="text-muted-foreground">
-                {vendor.deliveryFee === 0 ? "Free delivery" : `₹${vendor.deliveryFee} delivery`}
+                {store.deliveryFee === 0 ? "Free delivery" : `₹${store.deliveryFee} delivery`}
               </span>
-              {vendor.minOrder > 0 && (
-                <span className="text-muted-foreground">• ₹{vendor.minOrder}+ min</span>
+              {store.minOrder > 0 && (
+                <span className="text-muted-foreground">• ₹{store.minOrder}+ min</span>
               )}
             </div>
           </div>
 
-          {/* Vendor Badges - Social Proof */}
-          {vendor.badges.length > 0 && (
+          {/* Store Badges - Social Proof */}
+          {store.badges.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {vendor.badges.slice(0, 2).map((badge) => (
+              {store.badges.slice(0, 2).map((badge) => (
                 <Badge 
                   key={badge} 
                   variant="secondary" 
@@ -205,7 +205,7 @@ export const VendorCard = ({
           )}
 
           {/* Product Previews - Swiggy Pattern (All Variants) */}
-          {vendor.topProducts.length > 0 && (
+          {store.topProducts.length > 0 && (
             <div className="pt-2 border-t border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-muted-foreground font-medium">Popular items</p>
@@ -213,7 +213,7 @@ export const VendorCard = ({
               </div>
               
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                {vendor.topProducts.slice(0, 4).map((productId, index) => {
+                {store.topProducts.slice(0, 4).map((productId, index) => {
                   // Mock product data - in real app, fetch from API
                   const mockProducts = [
                     { id: 'p1', name: 'Coffee Mug', price: 299, image: '/placeholder.svg' },
@@ -272,7 +272,7 @@ export const VendorCard = ({
                 className="flex-1 h-8"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onVendorClick(vendor);
+                  onStoreClick(store);
                 }}
               >
                 View Menu
@@ -294,3 +294,7 @@ export const VendorCard = ({
     </Card>
   );
 };
+
+// Legacy export for backward compatibility
+export const VendorCard = StoreCard;
+

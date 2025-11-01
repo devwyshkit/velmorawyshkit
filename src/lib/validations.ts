@@ -32,7 +32,7 @@ export const productSchema = z.object({
   description: z.string().max(2000),
   price: z.number().min(0),
   category: z.string(),
-  vendorId: z.string().uuid(),
+  storeId: z.string().uuid(),
   images: z.array(z.string().url()).min(1),
   isCustomizable: z.boolean(),
   minQuantity: z.number().min(1).optional(),
