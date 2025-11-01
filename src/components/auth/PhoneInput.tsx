@@ -45,7 +45,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
           disabled={disabled}
           required={required}
           className={cn(
-            "pl-[68px] text-base h-12", // Larger height for prominence (Swiggy pattern)
+            "pl-[68px] text-base h-14", // Larger height for prominence (Swiggy pattern)
             error && "border-destructive focus-visible:ring-destructive",
             className
           )}

@@ -156,6 +156,7 @@ export const CustomerMobileLogin = () => {
               email: '',
               name: 'User',
               phone: `+91${phone}`,
+              isEmailVerified: false,
               isPhoneVerified: true,
               role: 'customer' as const,
             };
@@ -165,10 +166,10 @@ export const CustomerMobileLogin = () => {
             // Dispatch custom event to notify AuthContext immediately
             window.dispatchEvent(new Event('mockAuthChange'));
             
-            // Small delay to let AuthContext update, then navigate
+            // Delay to let AuthContext update, then navigate
             setTimeout(() => {
               navigate(RouteMap.home());
-            }, 100);
+            }, 300);
           } else {
             throw new Error('Invalid OTP. Use 123456 for testing.');
           }
@@ -185,6 +186,7 @@ export const CustomerMobileLogin = () => {
             email: '',
             name: 'User',
             phone: `+91${phone}`,
+            isEmailVerified: false,
             isPhoneVerified: true,
             role: 'customer' as const,
           };
@@ -194,10 +196,10 @@ export const CustomerMobileLogin = () => {
           // Dispatch custom event to notify AuthContext immediately
           window.dispatchEvent(new Event('mockAuthChange'));
           
-          // Small delay to let AuthContext update, then navigate
+          // Delay to let AuthContext update, then navigate
           setTimeout(() => {
             navigate(RouteMap.home());
-          }, 100);
+          }, 300);
         } else {
           throw new Error('Invalid OTP. Use 123456 for testing.');
         }
@@ -241,6 +243,7 @@ export const CustomerMobileLogin = () => {
             email,
             name: 'User',
             phone: '',
+            isEmailVerified: false,
             isPhoneVerified: false,
             role: 'customer' as const,
           };
@@ -249,7 +252,7 @@ export const CustomerMobileLogin = () => {
           window.dispatchEvent(new Event('mockAuthChange'));
           setTimeout(() => {
             navigate(RouteMap.home());
-          }, 100);
+          }, 300);
           return;
         }
       } else {
@@ -260,6 +263,7 @@ export const CustomerMobileLogin = () => {
           email,
           name: 'User',
           phone: '',
+          isEmailVerified: false,
           isPhoneVerified: false,
           role: 'customer' as const,
         };
@@ -268,7 +272,7 @@ export const CustomerMobileLogin = () => {
         window.dispatchEvent(new Event('mockAuthChange'));
         setTimeout(() => {
           navigate(RouteMap.home());
-        }, 100);
+        }, 300);
         return;
       }
 
@@ -308,6 +312,7 @@ export const CustomerMobileLogin = () => {
           email: email || '',
           name: 'User',
           phone: '',
+          isEmailVerified: false,
           isPhoneVerified: false,
           role: 'customer' as const,
         };
@@ -316,7 +321,7 @@ export const CustomerMobileLogin = () => {
         window.dispatchEvent(new Event('mockAuthChange'));
         setTimeout(() => {
           navigate(RouteMap.home());
-        }, 100);
+        }, 300);
       }
     } catch (error: any) {
       toast({
@@ -340,7 +345,7 @@ export const CustomerMobileLogin = () => {
       <CustomerMobileHeader showBackButton title={step === 'otp' ? 'Verify OTP' : 'Sign in'} />
       <div className="flex-1 flex items-center justify-center p-4 pb-20">
         <Card className="w-full max-w-md border-0 shadow-lg">
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl text-center">
               {step === 'otp' ? 'Enter OTP' : step === 'email' ? 'Welcome back' : 'Welcome back'}
             </CardTitle>
@@ -353,7 +358,7 @@ export const CustomerMobileLogin = () => {
               }
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-8 pb-8">
             {/* Mobile OTP Flow (PRIMARY - Swiggy 2025 Pattern) */}
             {step === 'phone' && (
               <>
@@ -372,7 +377,7 @@ export const CustomerMobileLogin = () => {
                   </div>
                   <Button
                     onClick={handleSendOTP}
-                    className="w-full h-12 text-base font-semibold"
+                    className="w-full h-14 text-base font-semibold"
                     disabled={loading || phone.length !== 10}
                   >
                     {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
@@ -467,7 +472,7 @@ export const CustomerMobileLogin = () => {
                   
                   <Button
                     onClick={handleVerifyOTP}
-                    className="w-full h-12 text-base font-semibold"
+                    className="w-full h-14 text-base font-semibold"
                     disabled={loading || otp.length !== 6}
                   >
                     {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
@@ -518,8 +523,8 @@ export const CustomerMobileLogin = () => {
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" className="w-full h-14 text-base font-semibold" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                 Sign In
               </Button>
             </form>

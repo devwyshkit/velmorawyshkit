@@ -69,21 +69,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       window.addEventListener('storage', handleStorageChange);
       
-      // Also check periodically for mock auth changes (same-tab updates)
       // Use custom event to trigger immediate check when mock auth changes in same tab
       const handleMockAuthChange = () => {
         checkMockAuth();
       };
       window.addEventListener('mockAuthChange', handleMockAuthChange);
       
-      const interval = setInterval(() => {
-        checkMockAuth();
-      }, 500); // Check every 500ms for responsiveness
-      
       return () => {
         window.removeEventListener('storage', handleStorageChange);
         window.removeEventListener('mockAuthChange', handleMockAuthChange);
-        clearInterval(interval);
       };
     } else {
       // Real Supabase - use normal auth flow
