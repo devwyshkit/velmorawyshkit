@@ -11,7 +11,8 @@ import { Stepper } from "@/components/customer/shared/Stepper";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
-import { fetchStoreById } from "@/lib/integrations/supabase-data";
+import { fetchStoreById, fetchCartItems, updateCartItemSupabase, removeFromCartSupabase } from "@/lib/integrations/supabase-data";
+import { useCart } from "@/contexts/CartContext";
 
 interface CartSheetProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ interface CartItem {
 export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refreshCartCount } = useCart();
   const [items, setItems] = useState<CartItem[]>([]);
   const [gstin, setGstin] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,37 +52,30 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
       navigate(RouteMap.login());
       return;
     } else {
-      // Load from Supabase
-      // Implementation would go here
-      const mockItems: CartItem[] = [
-        {
-          id: '1',
-          name: 'Premium Gift Hamper',
-          price: 2499,
-          quantity: 2,
-          image: '/placeholder.svg',
-          store_id: '1',
-        },
-        {
-          id: '2',
-          name: 'Artisan Chocolate Box',
-          price: 1299,
-          quantity: 1,
-          image: '/placeholder.svg',
-          store_id: '1',
-        },
-      ];
-      setItems(mockItems);
-      
-      // Load store name
-      if (mockItems.length > 0 && mockItems[0].store_id) {
-        const store = await fetchStoreById(mockItems[0].store_id);
-        setStoreName(store?.name || "");
+      try {
+        const cartItems = await fetchCartItems();
+        setItems(cartItems);
+        
+        // Load store name
+        if (cartItems.length > 0 && cartItems[0].store_id) {
+          const store = await fetchStoreById(cartItems[0].store_id);
+          setStoreName(store?.name || "");
+        } else {
+          setStoreName("");
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error);
+        toast({
+          title: "Error loading cart",
+          description: "Please try again",
+          variant: "destructive",
+        });
       }
     }
   };
 
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
+    // Optimistic update
     const updatedItems = items.map(item =>
       item.id === itemId ? { ...item, quantity: newQuantity } : item
     );
@@ -90,12 +85,26 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     if (!authenticated) {
       onClose();
       navigate(RouteMap.login());
+      return;
+    }
+
+    // Update in Supabase
+    const success = await updateCartItemSupabase(itemId, newQuantity);
+    if (success) {
+      refreshCartCount();
     } else {
-      // Update in Supabase
+      // Revert on failure
+      loadCart();
+      toast({
+        title: "Update failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
   const handleRemoveItem = async (itemId: string) => {
+    // Optimistic update
     const updatedItems = items.filter(item => item.id !== itemId);
     setItems(updatedItems);
 
@@ -103,14 +112,26 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     if (!authenticated) {
       onClose();
       navigate(RouteMap.login());
-    } else {
-      // Remove from Supabase
+      return;
     }
 
-    toast({
-      title: "Item removed",
-      description: "Item removed from cart",
-    });
+    // Remove from Supabase
+    const success = await removeFromCartSupabase(itemId);
+    if (success) {
+      refreshCartCount();
+      toast({
+        title: "Item removed",
+        description: "Item removed from cart",
+      });
+    } else {
+      // Revert on failure
+      loadCart();
+      toast({
+        title: "Remove failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDownloadEstimate = () => {

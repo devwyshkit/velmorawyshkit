@@ -28,9 +28,11 @@ interface CustomerItemCardProps {
   // Removed variant prop - grid is the global e-commerce standard
   moq?: number; // NEW: Minimum order quantity
   eta?: string; // NEW: Delivery ETA
+  store_id?: string; // NEW: Store ID for cart operations
   isFavourited?: boolean;
   onFavouriteToggle?: (itemId: string, isFavourited: boolean) => void;
   onClick?: () => void;
+  onAddToCart?: (itemId: string, quantity: number, storeId: string) => void; // NEW: Direct add callback
   className?: string;
 }
 
@@ -49,9 +51,11 @@ export const CustomerItemCard = ({
   // Removed variant prop
   moq,
   eta,
+  store_id,
   isFavourited,
   onFavouriteToggle,
   onClick,
+  onAddToCart,
   className,
 }: CustomerItemCardProps) => {
   const [quantity, setQuantity] = useState(0);
@@ -211,11 +215,21 @@ export const CustomerItemCard = ({
                 className="h-8 px-4 text-sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setQuantity(1);
+                  // If customizable: open ProductSheet (via onClick)
+                  // If NOT customizable: directly add to cart
+                  if (isCustomizable) {
+                    onClick?.(); // Opens ProductSheet
+                  } else {
+                    // Direct add to cart for non-customizable items
+                    if (store_id && onAddToCart) {
+                      setQuantity(1);
+                      onAddToCart(id, 1, store_id);
+                    }
+                  }
                 }}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                ADD
+                {isCustomizable ? "ADD" : "ADD"}
               </Button>
             ) : (
               <div className="flex items-center gap-2 rounded-full border border-border bg-background px-2 py-1">
@@ -225,7 +239,14 @@ export const CustomerItemCard = ({
                   className="h-6 w-6 p-0 rounded-full"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (quantity > 0) setQuantity(quantity - 1);
+                    if (quantity > 0) {
+                      const newQuantity = quantity - 1;
+                      setQuantity(newQuantity);
+                      // Update cart if not customizable
+                      if (!isCustomizable && store_id && onAddToCart) {
+                        onAddToCart(id, newQuantity, store_id);
+                      }
+                    }
                   }}
                 >
                   <Minus className="h-3 w-3" />
@@ -239,7 +260,12 @@ export const CustomerItemCard = ({
                   className="h-6 w-6 p-0 rounded-full"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setQuantity(quantity + 1);
+                    const newQuantity = quantity + 1;
+                    setQuantity(newQuantity);
+                    // Update cart if not customizable
+                    if (!isCustomizable && store_id && onAddToCart) {
+                      onAddToCart(id, newQuantity, store_id);
+                    }
                   }}
                 >
                   <Plus className="h-3 w-3" />

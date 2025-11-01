@@ -13,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchStoreById,
   fetchItemsByStore,
+  fetchItemById,
+  addToCartSupabase,
   type Item as ItemType,
   type Store as StoreType,
 } from "@/lib/integrations/supabase-data";
@@ -29,11 +31,14 @@ import {
   addToSavedItemsSupabase,
   removeFromSavedItemsSupabase,
 } from "@/lib/integrations/supabase-data";
+import { useCart } from "@/contexts/CartContext";
+import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 
 export const Store = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currentStoreId, refreshCartCount } = useCart();
   const [store, setStore] = useState<StoreType | null>(null);
   const [items, setItems] = useState<ItemType[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,6 +57,9 @@ export const Store = () => {
   const [favouritedItems, setFavouritedItems] = useState<Set<string>>(
     new Set(),
   );
+  const [showCartReplacementModal, setShowCartReplacementModal] = useState(false);
+  const [currentStoreName, setCurrentStoreName] = useState<string>("");
+  const [newStoreName, setNewStoreName] = useState<string>("");
 
   useEffect(() => {
     const loadStoreData = async () => {
@@ -136,6 +144,46 @@ export const Store = () => {
         });
         toast({ title: "Removed from favourites" });
       }
+    }
+  };
+
+  const handleDirectAdd = async (itemId: string, quantity: number, storeId: string) => {
+    // Check store conflict
+    if (currentStoreId && currentStoreId !== storeId) {
+      const currentStore = await fetchStoreById(currentStoreId);
+      const newStore = await fetchStoreById(storeId);
+      setCurrentStoreName(currentStore?.name || "Current Store");
+      setNewStoreName(newStore?.name || "New Store");
+      setShowCartReplacementModal(true);
+      return;
+    }
+    
+    // Fetch full item data
+    const item = await fetchItemById(itemId);
+    if (!item) return;
+    
+    // Add to cart
+    const success = await addToCartSupabase({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity,
+      store_id: storeId,
+      addOns: [],
+    });
+    
+    if (success) {
+      refreshCartCount();
+      toast({ 
+        title: "Added to cart", 
+        description: `${quantity}x ${item.name}` 
+      });
+    } else {
+      toast({
+        title: "Failed to add",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
@@ -461,8 +509,10 @@ export const Store = () => {
                       isCustomizable={item.isCustomizable}
                       moq={item.moq}
                       eta={item.eta || "1-2 days"}
+                      store_id={item.store_id || id}
                       isFavourited={favouritedItems.has(item.id)}
                       onFavouriteToggle={handleFavouriteToggle}
+                      onAddToCart={handleDirectAdd}
                       onClick={() => setSelectedItemId(item.id)}
                     />
                   ))}
@@ -492,6 +542,19 @@ export const Store = () => {
             />
           </SheetContent>
         </Sheet>
+      )}
+
+      {/* Cart Replacement Modal */}
+      {showCartReplacementModal && (
+        <CartReplacementModal
+          currentStoreName={currentStoreName}
+          newStoreName={newStoreName}
+          onConfirm={() => {
+            setShowCartReplacementModal(false);
+            // Logic to clear cart and proceed will be handled in ProductSheet
+          }}
+          onCancel={() => setShowCartReplacementModal(false)}
+        />
       )}
     </>
   );

@@ -596,6 +596,9 @@ export const removeCartItemSupabase = async (itemId: string): Promise<boolean> =
   }
 };
 
+// Alias for consistency with other naming patterns
+export const removeFromCartSupabase = removeCartItemSupabase;
+
 // Note: fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase
 // are now provided by the favorites service (exported via line 5)
 

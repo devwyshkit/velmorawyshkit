@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { fetchCartItems } from "@/lib/integrations/supabase-data";
 
 interface CartContextType {
   cartCount: number;
@@ -14,9 +15,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [currentStoreId, setCurrentStoreId] = useState<string | null>(null);
 
   const refreshCartCount = async () => {
-    // Guest cart removed: default to server-backed count (not implemented yet)
+    try {
+      const items = await fetchCartItems();
+      const totalCount = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+      setCartCount(totalCount);
+      
+      // Set currentStoreId from first item
+      if (items.length > 0 && items[0].store_id) {
+        setCurrentStoreId(items[0].store_id);
+      } else {
+        setCurrentStoreId(null);
+      }
+    } catch (error) {
+      console.error('Error refreshing cart count:', error);
       setCartCount(0);
       setCurrentStoreId(null);
+    }
   };
 
   const clearCart = async () => {
