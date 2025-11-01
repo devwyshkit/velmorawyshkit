@@ -14,6 +14,7 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { ComplianceFooter } from "@/components/customer/shared/ComplianceFooter";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { DatePickerSheet } from "@/components/customer/shared/DatePickerSheet";
 import { TimeSlotSheet } from "@/components/customer/shared/TimeSlotSheet";
 import { PaymentMethodsSheet } from "@/components/customer/shared/PaymentMethodsSheet";
@@ -28,31 +29,19 @@ import {
   formatAmountForRazorpay,
   generateEstimate,
 } from "@/lib/integrations/razorpay";
-import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
+import { supabase } from "@/lib/integrations/supabase-client";
+import { fetchCartItems, type CartItemData } from "@/lib/integrations/supabase-data";
 
 export const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { refreshCartCount, clearCart } = useCart();
   const addressInputRef = useRef<HTMLInputElement>(null);
   
-  // Mock cart items for now (to be replaced with actual cart data)
-  const cartItems = [
-    {
-      id: '1',
-      name: 'Birthday Hamper XL',
-      price: 800,
-      quantity: 1,
-      customisable: false,
-    },
-    {
-      id: '2',
-      name: 'Custom T-Shirt',
-      price: 500,
-      quantity: 1,
-      customisable: true,
-    },
-  ];
+  // Real cart items from localStorage/Supabase
+  const [cartItems, setCartItems] = useState<CartItemData[]>([]);
+  const [cartLoading, setCartLoading] = useState(true);
   
   const [savedAddress, setSavedAddress] = useState(true);
   const [address, setAddress] = useState("123 MG Road, Bangalore, Karnataka - 560001");
@@ -83,14 +72,34 @@ export const Checkout = () => {
     }
   }, [savedAddress]);
 
-  // Load cart data
-  // Enforce auth: redirect if not authenticated
+  // Load cart data from localStorage/Supabase
   useEffect(() => {
-    (async () => {
-      const authed = await isAuthenticated();
-      if (!authed) navigate(RouteMap.login());
-    })();
-  }, []);
+    const loadCart = async () => {
+      try {
+        const items = await fetchCartItems();
+        setCartItems(items);
+        if (items.length === 0) {
+          toast({
+            title: "Cart is empty",
+            description: "Add items to proceed with checkout",
+            variant: "destructive",
+          });
+          navigate(RouteMap.home());
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error);
+        toast({
+          title: "Error loading cart",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      } finally {
+        setCartLoading(false);
+      }
+    };
+    loadCart();
+  }, [navigate, toast]);
+  
   const subtotal = cartItems.reduce(
     (sum: number, item: any) => sum + item.price * item.quantity,
     0
@@ -98,8 +107,10 @@ export const Checkout = () => {
   
   // Calculate campaign discounts
   useEffect(() => {
-    checkAndApplyCampaignDiscounts();
-  }, []);
+    if (cartItems.length > 0) {
+      checkAndApplyCampaignDiscounts();
+    }
+  }, [cartItems]);
 
   const checkAndApplyCampaignDiscounts = async () => {
     try {
@@ -156,19 +167,6 @@ export const Checkout = () => {
   };
   
   const total = calculateTotalWithGST(subtotal - campaignDiscount);
-
-  // Redirect if cart is empty
-  useEffect(() => {
-    if (cartItems.length === 0) {
-      toast({
-        title: "Cart is empty",
-        description: "Add items to proceed with checkout",
-        variant: "destructive",
-      });
-      // Navigate back or close
-      navigate(-1);
-    }
-  }, [cartItems.length, navigate, toast]);
 
   const handleDownloadEstimate = () => {
     const estimate = generateEstimate(cartItems, gstin);
@@ -328,6 +326,18 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
     }
   };
 
+  // Show loading state
+  if (cartLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading cart...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (cartItems.length === 0) {
     return null; // Will redirect in useEffect
   }
@@ -336,12 +346,12 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
     <div className="min-h-screen bg-background pb-20">
       <CustomerMobileHeader showBackButton title="Checkout" />
       
-      <main className="max-w-screen-xl mx-auto px-4 py-6">
-        <div className="max-w-2xl mx-auto space-y-6">
+      <main className="max-w-screen-xl mx-auto px-4 py-4">
+        <div className="max-w-2xl mx-auto space-y-4">
           {/* Delivery Address */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Delivery Address</Label>
+              <Label className="text-sm font-medium">Delivery Address</Label>
                       <div className="flex items-center gap-2">
                 <Label htmlFor="saved-address" className="text-sm text-muted-foreground">
                   Use saved
@@ -388,7 +398,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                       </div>
 
           {/* Delivery Date & Time */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-sm font-medium">
               Schedule Delivery <span className="text-destructive">*</span>
             </Label>
@@ -496,8 +506,8 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           <Separator />
 
           {/* Payment Method */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Payment Method</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Payment Method</Label>
             
             <button
               type="button"
@@ -525,8 +535,8 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           </div>
 
           {/* Order Summary */}
-          <div className="bg-card rounded-lg p-4 border border-border space-y-3">
-            <h3 className="font-semibold">Order Summary</h3>
+          <div className="bg-card rounded-lg p-4 border border-border space-y-2">
+            <h3 className="text-base font-semibold">Order Summary</h3>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>Items ({cartItems.length})</span>
@@ -557,7 +567,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
           {/* Pay Button */}
           <Button
             onClick={handlePayment}
-            className="w-full h-12 text-base sticky bottom-20 md:bottom-4 pwa-safe-bottom"
+            className="w-full h-14 text-base font-semibold sticky bottom-20 md:bottom-4 pwa-safe-bottom"
             size="lg"
             disabled={loading}
           >
