@@ -9,10 +9,11 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, isAuthenticated } from "@/lib/integrations/supabase-client";
+import { supabase } from "@/lib/integrations/supabase-client";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
 import { fetchStoreById, fetchCartItems, updateCartItemSupabase, removeFromCartSupabase } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CartSheetProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ interface CartItem {
 export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { refreshCartCount } = useCart();
   const [items, setItems] = useState<CartItem[]>([]);
   const [gstin, setGstin] = useState("");
@@ -45,32 +47,37 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   }, [isOpen]);
 
   const loadCart = async () => {
-    const authenticated = await isAuthenticated();
-
-    if (!authenticated) {
+    // Use AuthContext instead of isAuthenticated for mock auth support
+    if (!user) {
       onClose();
       navigate(RouteMap.login());
       return;
-    } else {
-      try {
-        const cartItems = await fetchCartItems();
-        setItems(cartItems);
-        
-        // Load store name
-        if (cartItems.length > 0 && cartItems[0].store_id) {
-          const store = await fetchStoreById(cartItems[0].store_id);
-          setStoreName(store?.name || "");
-        } else {
-          setStoreName("");
-        }
-      } catch (error) {
-        console.error('Error loading cart:', error);
-        toast({
-          title: "Error loading cart",
-          description: "Please try again",
-          variant: "destructive",
-        });
+    }
+    
+    try {
+      const cartItems = await fetchCartItems();
+      setItems(cartItems);
+      
+      // Load store name
+      if (cartItems.length > 0 && cartItems[0].store_id) {
+        const store = await fetchStoreById(cartItems[0].store_id);
+        setStoreName(store?.name || "");
+      } else {
+        setStoreName("");
       }
+    } catch (error) {
+      console.error('Error loading cart:', error);
+      // For mock auth, show empty cart instead of error
+      if (!user) {
+        setItems([]);
+        setStoreName("");
+        return;
+      }
+      toast({
+        title: "Error loading cart",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
@@ -81,10 +88,9 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     );
     setItems(updatedItems);
 
-    const authenticated = await isAuthenticated();
-    if (!authenticated) {
-      onClose();
-      navigate(RouteMap.login());
+    if (!user) {
+      // Just show optimistic update for mock users
+      refreshCartCount();
       return;
     }
 
@@ -108,10 +114,13 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     const updatedItems = items.filter(item => item.id !== itemId);
     setItems(updatedItems);
 
-    const authenticated = await isAuthenticated();
-    if (!authenticated) {
-      onClose();
-      navigate(RouteMap.login());
+    if (!user) {
+      // Just show optimistic update for mock users
+      refreshCartCount();
+      toast({
+        title: "Item removed",
+        description: "Item removed from cart",
+      });
       return;
     }
 
@@ -176,8 +185,7 @@ HSN Code: 9985
       return;
     }
 
-    const authenticated = await isAuthenticated();
-    if (!authenticated) {
+    if (!user) {
       toast({
         title: "Login required",
         description: "Please sign in to checkout",
