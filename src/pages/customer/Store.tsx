@@ -169,6 +169,7 @@ export const Store = () => {
       price: item.price,
       quantity,
       store_id: storeId,
+      image: item.image,
       addOns: [],
     });
     

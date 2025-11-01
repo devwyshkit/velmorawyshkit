@@ -4,6 +4,15 @@ import { ValidationSchemas } from '@/lib/validation/schemas';
 // Re-export favorites service
 export * from '@/lib/services/favorites';
 
+// Helper to check if user is using mock auth
+const isMockAuth = (): boolean => {
+  try {
+    return localStorage.getItem('mock_session') === 'true';
+  } catch {
+    return false;
+  }
+};
+
 // Type definitions
 export interface Store {
   id: string;
@@ -474,10 +483,21 @@ export const fetchItemById = async (id: string): Promise<Item | null> => {
 };
 
 export const fetchCartItems = async (): Promise<CartItemData[]> => {
+  // Check for mock auth first
+  if (isMockAuth()) {
+    try {
+      const cartData = localStorage.getItem('mock_cart');
+      if (cartData) {
+        return JSON.parse(cartData);
+      }
+    } catch (error) {
+      console.error('Error reading mock cart:', error);
+    }
+    return [];
+  }
+
   const authenticated = await isAuthenticated();
-  
   if (!authenticated) {
-    // Return empty for guests (they use localStorage)
     return [];
   }
 
@@ -519,6 +539,34 @@ export const fetchCartItems = async (): Promise<CartItemData[]> => {
 };
 
 export const addToCartSupabase = async (item: CartItemData): Promise<boolean> => {
+  // Check for mock auth first
+  if (isMockAuth()) {
+    try {
+      const existingCart = localStorage.getItem('mock_cart');
+      const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
+      
+      // For mock auth, generate unique cart item ID and include image
+      const mockCartItem: CartItemData = {
+        ...item,
+        id: `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      };
+      
+      // Check if item already exists (by product ID, not cart ID)
+      const existingIndex = cartItems.findIndex(i => i.name === item.name && i.store_id === item.store_id);
+      if (existingIndex >= 0) {
+        cartItems[existingIndex].quantity += (item.quantity || 1);
+      } else {
+        cartItems.push(mockCartItem);
+      }
+      
+      localStorage.setItem('mock_cart', JSON.stringify(cartItems));
+      return true;
+    } catch (error) {
+      console.error('Error adding to mock cart:', error);
+      return false;
+    }
+  }
+
   const authenticated = await isAuthenticated();
   if (!authenticated) return false;
 
@@ -550,6 +598,25 @@ export const addToCartSupabase = async (item: CartItemData): Promise<boolean> =>
 };
 
 export const updateCartItemSupabase = async (itemId: string, quantity: number): Promise<boolean> => {
+  // Check for mock auth first
+  if (isMockAuth()) {
+    try {
+      const existingCart = localStorage.getItem('mock_cart');
+      const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
+      
+      const itemIndex = cartItems.findIndex(i => i.id === itemId);
+      if (itemIndex >= 0) {
+        cartItems[itemIndex].quantity = quantity;
+        localStorage.setItem('mock_cart', JSON.stringify(cartItems));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error updating mock cart:', error);
+      return false;
+    }
+  }
+
   const authenticated = await isAuthenticated();
   if (!authenticated) return false;
 
@@ -579,6 +646,21 @@ export const updateCartItemSupabase = async (itemId: string, quantity: number): 
 };
 
 export const removeCartItemSupabase = async (itemId: string): Promise<boolean> => {
+  // Check for mock auth first
+  if (isMockAuth()) {
+    try {
+      const existingCart = localStorage.getItem('mock_cart');
+      const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
+      
+      const filtered = cartItems.filter(i => i.id !== itemId);
+      localStorage.setItem('mock_cart', JSON.stringify(filtered));
+      return true;
+    } catch (error) {
+      console.error('Error removing from mock cart:', error);
+      return false;
+    }
+  }
+
   const authenticated = await isAuthenticated();
   if (!authenticated) return false;
 
