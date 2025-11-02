@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyStates } from "@/components/ui/empty-state";
@@ -50,12 +50,7 @@ export const Saved = () => {
     // Remove from Supabase
     const success = await removeFromSavedItemsSupabase(itemId);
     
-    if (success) {
-      toast({
-        title: "Removed from favourites",
-        description: "Item removed from your favourites",
-      });
-    } else {
+    if (!success) {
       // Revert on failure
       await loadSaved();
       toast({
@@ -145,11 +140,15 @@ export const Saved = () => {
       
       {/* Product Sheet for items */}
       {selectedItemId && (
-        <Sheet open={!!selectedItemId} onOpenChange={(open) => !open && setSelectedItemId(null)}>
+        <Sheet open={!!selectedItemId} onOpenChange={(open) => !open && setSelectedItemId(null)} modal={false}>
           <SheetContent 
             side="bottom" 
             className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
           >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Product Details</SheetTitle>
+              <SheetDescription>View product information, customize options, and add to cart</SheetDescription>
+            </SheetHeader>
             <ProductSheet
               itemId={selectedItemId}
               onClose={() => setSelectedItemId(null)}

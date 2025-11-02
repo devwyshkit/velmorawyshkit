@@ -15,6 +15,7 @@ import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard"
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { HomeFooter } from "@/components/customer/shared/HomeFooter";
+import { StickyCartBar } from "@/components/customer/shared/StickyCartBar";
 import { OptimizedImage } from "@/components/ui/skeleton-screen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InfiniteScroll } from "@/components/ui/infinite-scroll";
@@ -1485,6 +1486,7 @@ export const CustomerHome = () => {
 
       </main>
 
+      <StickyCartBar />
       <CustomerBottomNav />
       <HomeFooter />
     </div>

@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { RouteMap } from "@/routes";
 import {
   Star,
   Heart,
@@ -13,6 +11,7 @@ import {
   CheckCircle,
   Undo,
   Gift,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,7 +26,6 @@ import {
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import { isAuthenticated } from "@/lib/integrations/supabase-client";
 import {
   addToCartSupabase,
@@ -49,7 +47,6 @@ interface ProductSheetProps {
 }
 
 export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { refreshCartCount, currentStoreId, clearCart } = useCart();
   const [quantity, setQuantity] = useState(1);
@@ -224,27 +221,10 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
       
       if (success) {
         refreshCartCount();
-        toast({
-          title: "Added to cart",
-          description: `${quantity}x ${item.name}`,
-          action: (
-            <ToastAction
-              altText="View cart"
-              onClick={() => {
-                onClose();
-                navigate(RouteMap.cart());
-              }}
-            >
-              View Cart
-            </ToastAction>
-          ),
-        });
+        // No toast - StickyCartBar provides feedback (Swiggy 2025 pattern)
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to add item to cart",
-          variant: "destructive",
-        });
+        // Show inline error instead of toast
+        console.error('Failed to add item to cart');
       }
     } else {
       // Guest cart: Save to localStorage via addToCartSupabase (handles localStorage)
@@ -252,27 +232,10 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
       
       if (success) {
         refreshCartCount();
-        toast({
-          title: "Added to cart",
-          description: `${quantity}x ${item.name}`,
-          action: (
-            <ToastAction
-              altText="View cart"
-              onClick={() => {
-                onClose();
-                navigate(RouteMap.cart());
-              }}
-            >
-              View Cart
-            </ToastAction>
-          ),
-        });
+        // No toast - StickyCartBar provides feedback (Swiggy 2025 pattern)
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to add item to cart",
-          variant: "destructive",
-        });
+        // Show inline error instead of toast
+        console.error('Failed to add item to cart');
       }
     }
 
@@ -533,6 +496,22 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
               </div>
             </div>
           </>
+        )}
+
+        {/* File Upload Notice - Show if any selected personalization requires preview (Fiverr 2025) */}
+        {selectedPersonalizations.some(id => {
+          const option = item.personalizations?.find((p: any) => p.id === id);
+          return option?.requiresPreview === true;
+        }) && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 dark:bg-blue-950 dark:border-blue-800">
+            <div className="flex items-start gap-2">
+              <Upload className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-blue-700 dark:text-blue-300">
+                <p className="font-medium">File upload required after payment</p>
+                <p className="mt-1">You'll upload your design files after checkout. Our vendor will create a preview for your approval before production.</p>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Divider */}

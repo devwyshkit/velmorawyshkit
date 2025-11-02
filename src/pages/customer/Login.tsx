@@ -366,9 +366,25 @@ export const CustomerMobileLogin = () => {
     return `+91 ${num.slice(0, 4)} XX ${num.slice(6)}`;
   };
 
+  // Smart back button handler (Swiggy 2025 pattern)
+  const handleBackClick = () => {
+    const redirect = searchParams.get('redirect');
+    // If we have a valid redirect and it's not a login/signup page, go there
+    if (redirect && redirect !== '/login' && redirect !== '/signup') {
+      navigate(redirect);
+    } else {
+      // Otherwise, go home
+      navigate(RouteMap.home());
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <CustomerMobileHeader showBackButton title={step === 'otp' ? 'Verify OTP' : 'Sign in'} />
+      <CustomerMobileHeader 
+        showBackButton 
+        title={step === 'otp' ? 'Verify OTP' : 'Sign in'}
+        onBackClick={handleBackClick}
+      />
       <div className="flex-1 flex items-center justify-center p-4 pb-20">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="space-y-1 pb-6">

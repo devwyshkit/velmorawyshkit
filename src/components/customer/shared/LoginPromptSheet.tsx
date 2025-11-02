@@ -22,7 +22,7 @@ export const LoginPromptSheet = ({ isOpen, onClose }: LoginPromptSheetProps) => 
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
       <SheetContent
         side="bottom"
         className="h-auto rounded-t-xl sm:max-w-[480px] sm:left-1/2 sm:-translate-x-1/2"

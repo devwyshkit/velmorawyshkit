@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { Trash2, Store } from "lucide-react";
+import { Trash2, Store, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Stepper } from "@/components/customer/shared/Stepper";
-import { useToast } from "@/hooks/use-toast";
+import { CheckoutCoordinator } from "@/components/customer/shared/CheckoutCoordinator";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
 import { fetchStoreById, fetchCartItems, updateCartItemSupabase, removeFromCartSupabase } from "@/lib/integrations/supabase-data";
@@ -32,13 +32,12 @@ interface CartItem {
 
 export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
   const { refreshCartCount } = useCart();
   const [items, setItems] = useState<CartItem[]>([]);
-  const [gstin, setGstin] = useState("");
   const [loading, setLoading] = useState(false);
   const [storeName, setStoreName] = useState<string>("");
+  const [showCheckout, setShowCheckout] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -47,14 +46,8 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   }, [isOpen]);
 
   const loadCart = async () => {
-    // Use AuthContext instead of isAuthenticated for mock auth support
-    if (!user) {
-      onClose();
-      navigate(RouteMap.login());
-      return;
-    }
-    
     try {
+      // fetchCartItems handles both guest (localStorage) and authenticated (Supabase)
       const cartItems = await fetchCartItems();
       setItems(cartItems);
       
@@ -67,17 +60,9 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
       }
     } catch (error) {
       console.error('Error loading cart:', error);
-      // For mock auth, show empty cart instead of error
-      if (!user) {
-        setItems([]);
-        setStoreName("");
-        return;
-      }
-      toast({
-        title: "Error loading cart",
-        description: "Please try again",
-        variant: "destructive",
-      });
+      setItems([]);
+      setStoreName("");
+      // No toast - empty state shows error (Swiggy 2025 pattern)
     }
   };
 
@@ -101,11 +86,8 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     } else {
       // Revert on failure
       loadCart();
-      toast({
-        title: "Update failed",
-        description: "Please try again",
-        variant: "destructive",
-      });
+      console.error('Failed to update cart item');
+      // No toast - optimistic update already reverted (Swiggy 2025 pattern)
     }
   };
 
@@ -117,10 +99,6 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     if (!user) {
       // Just show optimistic update for mock users
       refreshCartCount();
-      toast({
-        title: "Item removed",
-        description: "Item removed from cart",
-      });
       return;
     }
 
@@ -128,75 +106,29 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     const success = await removeFromCartSupabase(itemId);
     if (success) {
       refreshCartCount();
-      toast({
-        title: "Item removed",
-        description: "Item removed from cart",
-      });
+      // No toast - cart UI shows updated state (Swiggy 2025 pattern)
     } else {
       // Revert on failure
       loadCart();
-      toast({
-        title: "Remove failed",
-        description: "Please try again",
-        variant: "destructive",
-      });
+      console.error('Failed to remove cart item');
+      // No toast - optimistic update already reverted (Swiggy 2025 pattern)
     }
-  };
-
-  const handleDownloadEstimate = () => {
-    const estimate = generateEstimate(items, gstin);
-    
-    // Create a simple text estimate
-    const estimateText = `
-WYSHKIT - Tax Estimate
-${gstin ? `GSTIN: ${gstin}` : ''}
-${'-'.repeat(40)}
-Items:
-${items.map(item => `${item.name} x${item.quantity}: ₹${(item.price * item.quantity).toLocaleString('en-IN')}`).join('\n')}
-${'-'.repeat(40)}
-Subtotal: ₹${estimate.subtotal.toLocaleString('en-IN')}
-GST (18%): ₹${estimate.gst.toLocaleString('en-IN')}
-${'-'.repeat(40)}
-Total: ₹${estimate.total.toLocaleString('en-IN')}
-
-HSN Code: 9985
-    `;
-
-    const blob = new Blob([estimateText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'wyshkit-estimate.txt';
-    a.click();
-
-    toast({
-      title: "Estimate downloaded",
-      description: "Your tax estimate has been downloaded",
-    });
   };
 
   const handleProceedToCheckout = async () => {
     if (items.length === 0) {
-      toast({
-        title: "Cart is empty",
-        description: "Add items to proceed",
-        variant: "destructive",
-      });
+      // No toast - empty state already visible (Swiggy 2025 pattern)
       return;
     }
 
     if (!user) {
-      toast({
-        title: "Login required",
-        description: "Please sign in to checkout",
-      });
+      // Silent navigation to login (user knows they need to login)
       navigate(RouteMap.login());
       return;
     }
 
     onClose();
-    // Open checkout sheet
-    navigate(RouteMap.checkout());
+    setShowCheckout(true);
   };
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -205,11 +137,15 @@ HSN Code: 9985
 
   if (items.length === 0 && isOpen) {
     return (
-      <Sheet open={isOpen} onOpenChange={onClose}>
+      <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
         <SheetContent
           side="bottom"
           className="h-[85vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
         >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Shopping Cart</SheetTitle>
+            <SheetDescription>View and manage items in your cart</SheetDescription>
+          </SheetHeader>
           {/* Grabber */}
           <div className="flex justify-center pt-2 pb-4">
             <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
@@ -226,11 +162,15 @@ HSN Code: 9985
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
       <SheetContent
         side="bottom"
         className="h-[85vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
       >
+        <SheetHeader className="sr-only">
+          <SheetTitle>Shopping Cart</SheetTitle>
+          <SheetDescription>View and manage items in your cart</SheetDescription>
+        </SheetHeader>
         {/* Grabber */}
         <div className="flex justify-center pt-2">
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
@@ -285,33 +225,24 @@ HSN Code: 9985
 
           <Separator className="my-4" />
 
-          {/* MAKE IT SPECIAL Section */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm">🎁 Make It Special</h3>
-            <div className="space-y-2">
-              <label className="flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm">🎁 Gift Box</span>
+          {/* File Upload Notice - Show if any cart item requires preview (Fiverr 2025) */}
+          {items.some((item: any) => 
+            item.personalizations?.some((p: any) => p.requiresPreview === true)
+          ) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-950 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <Upload className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                <div className="flex-1 text-sm">
+                  <p className="font-semibold text-blue-900 dark:text-blue-100">
+                    File Upload After Payment
+                  </p>
+                  <p className="text-blue-700 dark:text-blue-300 mt-1">
+                    Your order includes custom items. You'll upload design files after checkout, and we'll create a preview for your approval.
+                  </p>
                 </div>
-                <span className="text-sm font-medium">+₹80</span>
-              </label>
-              <label className="flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm">💌 Greeting Card</span>
-                </div>
-                <span className="text-sm font-medium">+₹50</span>
-              </label>
-              <label className="flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm">🎀 Gift Wrap</span>
-                </div>
-                <span className="text-sm font-medium">+₹30</span>
-              </label>
+              </div>
             </div>
-          </div>
+          )}
 
           <Separator className="my-4" />
 
@@ -326,32 +257,6 @@ HSN Code: 9985
               />
               <Button variant="outline">Apply</Button>
             </div>
-          </div>
-
-          <Separator className="my-4" />
-
-          {/* GSTIN Input */}
-          <div className="space-y-2">
-            <Label htmlFor="gstin" className="text-sm">
-              GSTIN (Optional - for business purchases)
-            </Label>
-            <Input
-              id="gstin"
-              placeholder="Enter GSTIN"
-              value={gstin}
-              onChange={(e) => setGstin(e.target.value)}
-              className="text-sm"
-            />
-            {gstin && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadEstimate}
-                className="w-full"
-              >
-                Download Tax Estimate
-              </Button>
-            )}
           </div>
         </div>
 
@@ -383,6 +288,7 @@ HSN Code: 9985
           </Button>
         </div>
       </SheetContent>
+      <CheckoutCoordinator isOpen={showCheckout} onClose={() => setShowCheckout(false)} />
     </Sheet>
   );
 };

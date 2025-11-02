@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Info, Star, MapPin, Clock, Store as StoreIcon } from "lucide-react";
+import { ArrowLeft, Info, Star, MapPin, Clock, Store as StoreIcon, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { HorizontalScroll } from "@/components/ui/horizontal-scroll";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { StickyCartBar } from "@/components/customer/shared/StickyCartBar";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { RouteMap } from "@/routes";
@@ -17,7 +21,7 @@ import { EmptyStates } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type { Store, Item } from "@/lib/integrations/supabase-data";
 
-export const StoreCatalog = () => {
+export const PartnerCatalog = () => {
   const { storeId } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -25,6 +29,22 @@ export const StoreCatalog = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  
+  // Search & Category filters (Swiggy 2025 pattern)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // Get unique categories from items
+  const categories = Array.from(new Set(items.map(i => i.category).filter(Boolean)));
+  
+  // Filter items by search and category
+  const filteredItems = items.filter(item => {
+    const matchesSearch = !searchQuery || 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.shortDesc?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   // Load store and items
   useEffect(() => {
@@ -93,7 +113,7 @@ export const StoreCatalog = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader />
+        <CustomerMobileHeader showBackButton={true} title={store?.name || "Loading..."} />
         <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6 space-y-6">
           {/* Store Header Skeleton */}
           <div className="space-y-4">
@@ -118,7 +138,7 @@ export const StoreCatalog = () => {
   if (!store) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader />
+        <CustomerMobileHeader showBackButton={true} title="Store not found" />
         <EmptyStates.NoResults
           title="Store not found"
           description="This store doesn't exist or has been removed."
@@ -134,7 +154,7 @@ export const StoreCatalog = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <CustomerMobileHeader />
+      <CustomerMobileHeader showBackButton={true} title={store.name} />
       
       {/* Store Header - Swiggy 2025 Pattern (No Overlap) */}
       <div className="bg-card border-b border-border">
@@ -210,6 +230,63 @@ export const StoreCatalog = () => {
         </div>
       </div>
 
+      {/* Search Bar - Swiggy 2025 Pattern */}
+      {items.length > 0 && (
+        <div className="sticky top-14 z-30 bg-background px-3 md:px-4 py-3 border-b">
+          <div className="relative max-w-7xl mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={`Search in ${store.name}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Category Navigation - Swiggy 2025 Pattern */}
+      {items.length > 0 && categories.length > 0 && (
+        <div className="bg-background border-b border-border">
+          <HorizontalScroll 
+            cardType="category" 
+            showArrows={false} 
+            className="py-2"
+            gap="sm"
+            paddingX="md"
+          >
+            <Button
+              variant={!selectedCategory ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(null)}
+              className="flex-shrink-0"
+            >
+              All
+            </Button>
+            {categories.map(cat => (
+              <Button
+                key={cat}
+                variant={selectedCategory === cat ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(cat)}
+                className="flex-shrink-0"
+              >
+                {cat}
+              </Button>
+            ))}
+          </HorizontalScroll>
+        </div>
+      )}
+
       {/* Items Grid */}
       <main className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
         {items.length === 0 ? (
@@ -221,17 +298,32 @@ export const StoreCatalog = () => {
               onClick: () => navigate(RouteMap.home()),
             }}
           />
+        ) : filteredItems.length === 0 ? (
+          <EmptyStates.NoResults
+            title="No items found"
+            description={searchQuery || selectedCategory 
+              ? "Try adjusting your search or category filter."
+              : "No items available in this store."
+            }
+            action={{
+              label: searchQuery || selectedCategory ? "Clear filters" : "Explore Stores",
+              onClick: () => {
+                setSearchQuery("");
+                setSelectedCategory(null);
+              },
+            }}
+          />
         ) : (
           <>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Products</h2>
               <span className="text-sm text-muted-foreground">
-                {items.length} {items.length === 1 ? 'item' : 'items'}
+                {filteredItems.length} of {items.length} {items.length === 1 ? 'item' : 'items'}
               </span>
             </div>
             
             <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <CustomerItemCard
                   key={item.id}
                   id={item.id}
@@ -257,15 +349,27 @@ export const StoreCatalog = () => {
         )}
       </main>
 
+      <CustomerBottomNav />
+      <StickyCartBar />
+      
       {/* Product Sheet */}
       {selectedItemId && (
-        <ProductSheet
-          itemId={selectedItemId}
-          onClose={() => setSelectedItemId(null)}
-        />
+        <Sheet open={!!selectedItemId} onOpenChange={(open) => !open && setSelectedItemId(null)} modal={false}>
+          <SheetContent 
+            side="bottom" 
+            className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Product Details</SheetTitle>
+              <SheetDescription>View product information, customize options, and add to cart</SheetDescription>
+            </SheetHeader>
+            <ProductSheet
+              itemId={selectedItemId}
+              onClose={() => setSelectedItemId(null)}
+            />
+          </SheetContent>
+        </Sheet>
       )}
-
-      <CustomerBottomNav />
     </div>
   );
 };

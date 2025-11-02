@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { RouteMap } from "@/routes";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ type SignupStep = 'phone' | 'otp' | 'profile' | 'email';
 
 export const CustomerMobileSignup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { theme } = useTheme();
   const [step, setStep] = useState<SignupStep>('phone');
@@ -365,6 +366,18 @@ export const CustomerMobileSignup = () => {
     return `+91 ${num.slice(0, 4)} XX ${num.slice(6)}`;
   };
 
+  // Smart back button handler (Swiggy 2025 pattern)
+  const handleBackClick = () => {
+    const redirect = searchParams.get('redirect');
+    // If we have a valid redirect and it's not a login/signup page, go there
+    if (redirect && redirect !== '/login' && redirect !== '/signup') {
+      navigate(redirect);
+    } else {
+      // Otherwise, go home
+      navigate(RouteMap.home());
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <CustomerMobileHeader 
@@ -374,7 +387,8 @@ export const CustomerMobileSignup = () => {
           step === 'profile' ? 'Complete Profile' : 
           step === 'email' ? 'Create account' : 
           'Create account'
-        } 
+        }
+        onBackClick={handleBackClick}
       />
       <div className="flex-1 flex items-center justify-center p-4 pb-20">
         <Card className="w-full max-w-md border-0 shadow-lg">

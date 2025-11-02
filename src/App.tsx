@@ -1,7 +1,5 @@
 
 import { Suspense } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -12,6 +10,7 @@ import { DeliveryProvider } from "@/contexts/DeliveryContext";
 import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
+import { PreviewNotificationBanner } from "@/components/customer/shared/PreviewNotificationBanner";
 
 // Lazy Loaded Pages - Code Splitting
 import * as LazyPages from "./components/LazyRoutes";
@@ -25,10 +24,10 @@ const App = () => (
         <CartProvider>
           <DeliveryProvider>
             <TooltipProvider>
-              <Toaster />
-              <Sonner />
               <OfflineBanner />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                {/* Preview Notification Banner - Persistent across all pages (Fiverr 2025 pattern) */}
+                <PreviewNotificationBanner />
                 <Suspense fallback={<SkeletonComponents.Dashboard />}>
                   <Routes>
                     {/* Root is consumer home */}
@@ -38,21 +37,11 @@ const App = () => (
                     <Route path="/login" element={<LazyPages.Login />} />
                     <Route path="/signup" element={<LazyPages.Signup />} />
                     <Route path="/search" element={<LazyPages.Search />} />
-                    <Route path="/catalog/:storeId" element={<LazyPages.StoreCatalog />} />
+                    <Route path="/catalog/:storeId" element={<LazyPages.PartnerCatalog />} />
                     {/* Protected Consumer Routes */}
                     <Route path="/favorites" element={
                         <ProtectedRoute requiredRole="customer">
                           <LazyPages.Favorites />
-                        </ProtectedRoute>
-                      } />
-                    <Route path="/checkout" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Checkout />
-                        </ProtectedRoute>
-                      } />
-                    <Route path="/order/:id/confirmed" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Confirmation />
                         </ProtectedRoute>
                       } />
                     <Route path="/order/:id/track" element={
@@ -94,7 +83,7 @@ const App = () => (
                     <Route path="/customer/signup" element={<Navigate to="/signup" replace />} />
                     <Route path="/customer/favorites" element={<Navigate to="/favorites" replace />} />
                     <Route path="/customer/saved" element={<Navigate to="/favorites" replace />} />
-                    <Route path="/customer/checkout" element={<Navigate to="/checkout" replace />} />
+                    <Route path="/customer/checkout" element={<Navigate to="/" replace />} />
                     <Route path="/customer/profile" element={<Navigate to="/profile" replace />} />
                     <Route path="/customer/wishlist" element={<Navigate to="/favorites" replace />} />
                     <Route path="/saved" element={<Navigate to="/favorites" replace />} />

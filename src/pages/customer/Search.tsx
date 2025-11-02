@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { StickyCartBar } from "@/components/customer/shared/StickyCartBar";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { searchItems, fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase } from "@/lib/integrations/supabase-data";
 import { EmptyStates } from "@/components/ui/empty-state";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 
 interface SearchResult {
@@ -133,7 +134,6 @@ export const CustomerMobileSearch = () => {
       const success = await addToSavedItemsSupabase(itemId);
       if (success) {
         setFavouritedItems(prev => new Set([...prev, itemId]));
-        toast({ title: "Added to favourites" });
       }
     } else {
       const success = await removeFromSavedItemsSupabase(itemId);
@@ -143,7 +143,6 @@ export const CustomerMobileSearch = () => {
           next.delete(itemId);
           return next;
         });
-        toast({ title: "Removed from favourites" });
       }
     }
   };
@@ -248,15 +247,20 @@ export const CustomerMobileSearch = () => {
         )}
       </main>
 
+      <StickyCartBar />
       <CustomerBottomNav />
       
       {/* Product Sheet for items */}
       {selectedItemId && (
-        <Sheet open={!!selectedItemId} onOpenChange={(open) => !open && setSelectedItemId(null)}>
+        <Sheet open={!!selectedItemId} onOpenChange={(open) => !open && setSelectedItemId(null)} modal={false}>
           <SheetContent 
             side="bottom" 
             className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 p-0"
           >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Product Details</SheetTitle>
+              <SheetDescription>View product information, customize options, and add to cart</SheetDescription>
+            </SheetHeader>
             <ProductSheet
               itemId={selectedItemId}
               onClose={() => setSelectedItemId(null)}

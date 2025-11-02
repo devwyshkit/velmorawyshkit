@@ -20,7 +20,7 @@ export const PaymentMethodsSheet = ({ isOpen, onClose, totalAmount, onPaymentMet
   };
   
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
       <SheetContent side="bottom" className="h-auto rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2">
         {/* Grabber */}
         <div className="flex justify-center pt-2">
@@ -63,18 +63,6 @@ export const PaymentMethodsSheet = ({ isOpen, onClose, totalAmount, onPaymentMet
                     <span className="font-medium text-sm">Wallets</span>
                     <p className="text-xs text-muted-foreground">
                       Paytm • PhonePe • Amazon Pay
-                    </p>
-                  </div>
-                </div>
-              </Label>
-              
-              <Label className="flex items-center p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-2 flex-1">
-                  <RadioGroupItem value="cod" id="cod" />
-                  <div>
-                    <span className="font-medium text-sm">Cash on Delivery</span>
-                    <p className="text-xs text-muted-foreground">
-                      Extra ₹20 handling fee
                     </p>
                   </div>
                 </div>

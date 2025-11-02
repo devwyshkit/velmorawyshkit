@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { CheckCircle, Circle, Package, Truck, Home as HomeIcon, Phone, HelpCircle, RotateCcw, FileText, MessageCircle } from "lucide-react";
+import { CheckCircle, Circle, Package, Truck, Home as HomeIcon, Phone, HelpCircle, RotateCcw, FileText, MessageCircle, Upload, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { FileUploadSheet } from "@/components/customer/shared/FileUploadSheet";
 import { useToast } from "@/hooks/use-toast";
 import { getETAEstimate } from "@/lib/integrations/openai";
 import { supabase } from "@/lib/integrations/supabase-client";
@@ -34,6 +35,10 @@ export const Track = () => {
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [hasCustomItems, setHasCustomItems] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
+  const [orderStatus, setOrderStatus] = useState<string>('confirmed');
+  const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
+  const [selectedOrderItemForUpload, setSelectedOrderItemForUpload] = useState<any>(null);
   
   // Fetch order data on mount
   useEffect(() => {
@@ -41,29 +46,45 @@ export const Track = () => {
       if (!user && !localStorage.getItem('mock_session')) return;
       
       try {
-        // Try to fetch from Supabase
-        const { data, error } = await supabase
+        // Fetch order first to get status
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .select('id, status, created_at, order_number')
+          .eq('id', orderId)
+          .single();
+
+        if (orderError && !order) {
+          console.error('Error loading order:', orderError);
+          return;
+        }
+
+        if (order) {
+          setOrderStatus(order.status || 'confirmed');
+        }
+
+        // Fetch order items with preview status
+        const { data: items, error: itemsError } = await supabase
           .from('order_items')
           .select(`
             *,
             order_id (
               id,
               order_number,
-              status
+              status,
+              created_at
             )
           `)
-          .eq('order_id', orderId)
-          .limit(10);
+          .eq('order_id', orderId);
         
-        if (data && !error) {
-          // Check if any item has customization files
-          const hasCustom = data.some((item: any) => 
-            item.customization_files && 
-            Array.isArray(item.customization_files) && 
-            item.customization_files.length > 0
+        if (items && !itemsError) {
+          setOrderItems(items);
+          setOrderData(items);
+          
+          // Check if any item needs preview (preview_status exists)
+          const hasPreview = items.some((item: any) => 
+            item.preview_status !== null && item.preview_status !== undefined
           );
-          setHasCustomItems(hasCustom);
-          setOrderData(data);
+          setHasCustomItems(hasPreview);
         }
       } catch (error) {
         console.error('Error loading order data:', error);
@@ -73,90 +94,153 @@ export const Track = () => {
     loadOrderData();
   }, [orderId, user]);
 
-  // Real-time order tracking with Supabase subscriptions
-  useEffect(() => {
-    if (!orderId) return;
+  // Build dynamic timeline based on actual order status
+  const buildTimeline = useCallback((): TimelineStep[] => {
+    const timeline: TimelineStep[] = [];
+    const now = new Date();
 
-    // Build timeline based on whether order has custom items
-    const buildTimeline = (): TimelineStep[] => {
-      const baseTimeline: TimelineStep[] = [
-        {
-          id: 'confirmed',
-          label: 'Order Confirmed',
-          time: 'Today, 2:30 PM',
-          completed: true,
-          active: false,
-        },
-      ];
+    // Helper to format time
+    const formatTime = (date: Date | string | null) => {
+      if (!date) return 'Just now';
+      const d = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(d.getTime())) return 'Just now';
+      return d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+    };
 
-      // Only add preview steps for custom items
-      if (hasCustomItems) {
-        baseTimeline.push(
-          {
-            id: 'design_creation',
-            label: 'Design Creation',
-            time: 'Today, 2:45 PM',
-            completed: true,
-            active: false,
-          },
-          {
-            id: 'design_ready',
-            label: 'Design Ready for Review',
-            time: 'Today, 3:00 PM',
-            completed: true,
-            active: false,
-          },
-          {
-            id: 'design_approved',
-            label: 'Design Approved',
-            time: 'Today, 3:15 PM',
-            completed: true,
-            active: false,
-          }
-        );
-      }
+    // Always start with confirmed
+    const orderCreated = orderItems[0]?.order_id?.created_at || null;
+    timeline.push({
+      id: 'confirmed',
+      label: 'Order Confirmed',
+      time: orderCreated ? formatTime(orderCreated) : 'Just now',
+      completed: true,
+      active: false,
+    });
 
-      // Add rest of timeline
-      baseTimeline.push(
-        {
-          id: 'preparing',
-          label: 'Preparing Your Order',
-          time: 'Today, 3:30 PM',
-          completed: true,
-          active: false,
-        },
-        {
-          id: 'packed',
-          label: 'Packed & Ready',
-          time: 'Today, 3:45 PM',
-          completed: true,
-          active: false,
-        },
-        {
-          id: 'shipped',
-          label: 'Shipped',
-          time: 'Today, 4:00 PM',
-          completed: true,
-          active: false,
-        },
-        {
-          id: 'out_for_delivery',
-          label: 'Out for Delivery',
-          time: 'Today, 4:30 PM',
+    // Check if order has preview items
+    const hasPreviewItems = orderItems.some((item: any) => item.preview_status !== null && item.preview_status !== undefined);
+    
+    if (hasPreviewItems) {
+      // Preview pending - waiting for files
+      const needsFiles = orderItems.some((item: any) => item.preview_status === 'pending');
+      if (needsFiles) {
+        timeline.push({
+          id: 'preview_pending',
+          label: 'Waiting for Files',
+          time: 'Upload your design files',
           completed: false,
           active: true,
-        },
-        {
-          id: 'delivered',
-          label: 'Delivered',
-          time: 'Expected: Today, 5:00 PM',
-          completed: false,
-          active: false,
-        }
-      );
+        });
+      }
 
-      return baseTimeline;
-    };
+      // Preview ready - waiting for approval
+      const previewReady = orderItems.some((item: any) => item.preview_status === 'preview_ready');
+      if (previewReady) {
+        const previewItem = orderItems.find((item: any) => item.preview_status === 'preview_ready');
+        timeline.push({
+          id: 'preview_ready',
+          label: 'Preview Ready for Review',
+          time: previewItem?.preview_generated_at ? formatTime(previewItem.preview_generated_at) : 'Ready now',
+          completed: true,
+          active: true,
+        });
+      }
+
+      // Revision requested
+      const hasRevision = orderItems.some((item: any) => item.preview_status === 'revision_requested');
+      if (hasRevision) {
+        const revisionItem = orderItems.find((item: any) => item.preview_status === 'revision_requested');
+        timeline.push({
+          id: 'revision_requested',
+          label: 'Revision in Progress',
+          time: revisionItem?.revision_requested_at ? formatTime(revisionItem.revision_requested_at) : 'In progress',
+          completed: false,
+          active: true,
+        });
+      }
+
+      // Preview approved - production starts
+      const previewApproved = orderItems.some((item: any) => item.preview_status === 'preview_approved');
+      if (previewApproved) {
+        const approvedItem = orderItems.find((item: any) => item.preview_status === 'preview_approved');
+        timeline.push({
+          id: 'preview_approved',
+          label: 'Production Started',
+          time: approvedItem?.preview_approved_at ? formatTime(approvedItem.preview_approved_at) : 'Started',
+          completed: true,
+          active: false,
+        });
+      }
+    }
+
+    // Standard production/delivery steps
+    const statusOrder = [
+      'confirmed',
+      'preview_pending',
+      'preview_ready',
+      'preview_approved',
+      'revision_requested',
+      'in_production',
+      'production_complete',
+      'ready_for_pickup',
+      'picked_up',
+      'out_for_delivery',
+      'delivery_attempted',
+      'delivered',
+    ];
+
+    const currentStatusIndex = statusOrder.indexOf(orderStatus);
+    
+    // In production
+    if (['in_production', 'production_complete', 'ready_for_pickup', 'picked_up'].includes(orderStatus)) {
+      timeline.push({
+        id: 'in_production',
+        label: 'In Production',
+        time: 'Making your order',
+        completed: true,
+        active: orderStatus === 'in_production',
+      });
+    }
+
+    // Packed
+    if (['production_complete', 'ready_for_pickup', 'picked_up', 'out_for_delivery', 'delivered'].includes(orderStatus)) {
+      timeline.push({
+        id: 'packed',
+        label: 'Packed & Ready',
+        time: 'Ready for delivery',
+        completed: true,
+        active: orderStatus === 'production_complete' || orderStatus === 'ready_for_pickup',
+      });
+    }
+
+    // Out for delivery
+    if (['out_for_delivery', 'delivery_attempted', 'delivered'].includes(orderStatus)) {
+      timeline.push({
+        id: 'out_for_delivery',
+        label: 'Out for Delivery',
+        time: 'On the way',
+        completed: orderStatus === 'delivered',
+        active: orderStatus === 'out_for_delivery',
+      });
+    }
+
+    // Delivered
+    if (orderStatus === 'delivered') {
+      timeline.push({
+        id: 'delivered',
+        label: 'Delivered',
+        time: 'Completed',
+        completed: true,
+        active: false,
+      });
+    }
+
+    return timeline;
+  }, [orderStatus, orderItems]);
+
+  // Real-time order tracking with Supabase subscriptions
+  useEffect(() => {
+    if (!orderId || orderItems.length === 0) return;
 
     setTimeline(buildTimeline());
 
@@ -171,23 +255,26 @@ export const Track = () => {
           table: 'orders',
           filter: `id=eq.${orderId}`,
         },
-        (payload) => {
-          // Update timeline based on order status
+        async (payload) => {
           const newStatus = payload.new.status;
-          setTimeline(prevTimeline => 
-            prevTimeline.map(step => {
-              if (step.id === newStatus) {
-                return { ...step, completed: true, active: false };
-              }
-              if (step.id === getNextStep(newStatus)) {
-                return { ...step, active: true };
-              }
-              return step;
-            })
-          );
+          setOrderStatus(newStatus);
+          
+          // Reload order items to get latest preview_status
+          const { data: items } = await supabase
+            .from('order_items')
+            .select('*')
+            .eq('order_id', orderId);
+          
+          if (items) {
+            setOrderItems(items);
+            setOrderData(items);
+          }
+          
+          // Rebuild timeline with new data
+          setTimeline(buildTimeline());
 
           // Send push notification for specific status updates
-          if (['design_ready', 'shipped', 'delivered', 'out_for_delivery'].includes(newStatus)) {
+          if (['preview_ready', 'out_for_delivery', 'delivered'].includes(newStatus)) {
             notificationService.sendOrderNotification(newStatus, orderId);
           }
 
@@ -195,14 +282,41 @@ export const Track = () => {
           if (newStatus === 'delivered') {
             setTimeout(() => {
               setIsRatingSheetOpen(true);
-            }, 2000); // 2 second delay to let user see the delivered status
+            }, 2000);
           }
-
-          // Show toast notification for status updates
-          toast({
-            title: "Order Update",
-            description: `Your order status has been updated to: ${newStatus}`,
-          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'order_items',
+          filter: `order_id=eq.${orderId}`,
+        },
+        async (payload) => {
+          // Reload order items when preview_status changes
+          const { data: items } = await supabase
+            .from('order_items')
+            .select('*')
+            .eq('order_id', orderId);
+          
+          if (items) {
+            setOrderItems(items);
+            setOrderData(items);
+            
+            // Check if preview became ready
+            const previewReady = items.some((item: any) => item.preview_status === 'preview_ready');
+            if (previewReady) {
+              toast({
+                title: "Preview Ready! 🎨",
+                description: "Your design preview is ready for review",
+              });
+            }
+            
+            // Rebuild timeline
+            setTimeline(buildTimeline());
+          }
         }
       )
       .subscribe((status) => {
@@ -213,14 +327,8 @@ export const Track = () => {
     return () => {
       orderSubscription.unsubscribe();
     };
-  }, [orderId, toast, hasCustomItems]);
+  }, [orderId, buildTimeline]);
 
-  // Helper function to get next step based on current status
-  const getNextStep = (currentStatus: string): string => {
-    const statusFlow = ['confirmed', 'design_creation', 'design_ready', 'design_approved', 'preparing', 'packed', 'shipped', 'out_for_delivery', 'delivered'];
-    const currentIndex = statusFlow.indexOf(currentStatus);
-    return currentIndex < statusFlow.length - 1 ? statusFlow[currentIndex + 1] : '';
-  };
 
 
   const orderDetails = {
@@ -306,6 +414,121 @@ export const Track = () => {
             <span className="sm:hidden">Help</span>
           </Button>
         </div>
+
+        {/* Preview Ready Card - Show when preview is ready for review */}
+        {orderItems.some((item: any) => item.preview_status === 'preview_ready') && (() => {
+          const previewItem = orderItems.find((item: any) => item.preview_status === 'preview_ready');
+          const revisionCount = previewItem?.revision_count || 0;
+          const freeRevisionsLeft = Math.max(0, 2 - revisionCount);
+          const previewDeadline = previewItem?.preview_deadline ? new Date(previewItem.preview_deadline) : null;
+          const now = new Date();
+          const daysUntilAutoApprove = previewDeadline ? Math.ceil((previewDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+          
+          return (
+            <Card className="p-6 bg-primary/5 border-2 border-primary/20">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-1">Preview Ready for Review</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Your design preview is ready. Review and approve to start production.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Preview Image */}
+                {previewItem?.preview_url && (
+                  <div className="rounded-lg overflow-hidden border border-border">
+                    <img 
+                      src={previewItem.preview_url} 
+                      alt="Design preview" 
+                      className="w-full h-auto"
+                    />
+                  </div>
+                )}
+                
+                {/* Revision Count & Auto-approval */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm font-medium">Free changes left</span>
+                    <span className="text-sm font-semibold text-primary">
+                      {freeRevisionsLeft} {freeRevisionsLeft === 1 ? 'change' : 'changes'}
+                    </span>
+                  </div>
+                  
+                  {previewDeadline && daysUntilAutoApprove !== null && daysUntilAutoApprove > 0 && (
+                    <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                      <Clock className="h-4 w-4 text-warning" />
+                      <p className="text-sm text-warning-foreground">
+                        Auto-approving in {daysUntilAutoApprove} {daysUntilAutoApprove === 1 ? 'day' : 'days'} if no response
+                      </p>
+                    </div>
+                  )}
+                  
+                  {previewDeadline && daysUntilAutoApprove !== null && daysUntilAutoApprove <= 0 && (
+                    <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <p className="text-sm text-green-700">
+                        Auto-approved • Production has started
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <Button
+                  onClick={() => navigate(RouteMap.preview(orderId))}
+                  variant="default"
+                  className="w-full"
+                  size="lg"
+                >
+                  Review & Approve
+                </Button>
+              </div>
+            </Card>
+          );
+        })()}
+
+        {/* File Upload Section - Vendor-defined uploads (Swiggy Model) */}
+        {orderItems.some((item: any) => item.preview_status === 'pending') && (() => {
+          const pendingItem = orderItems.find((item: any) => item.preview_status === 'pending');
+          const personalizationsNeedingUpload = pendingItem?.personalizations?.filter((p: any) => p.requiresPreview) || [];
+          const uploadCount = personalizationsNeedingUpload.length;
+
+          if (uploadCount === 0) return null;
+
+          return (
+            <Card className="p-6 bg-blue-50 border-2 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Upload className="h-6 w-6 text-blue-600 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                      Upload Your Design Files
+                    </h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      Upload {uploadCount} design file{uploadCount > 1 ? 's' : ''} for {pendingItem?.store_items?.name || 'your order'}. Our vendor will create a preview for your approval before production starts.
+                    </p>
+                  </div>
+                </div>
+                
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    setSelectedOrderItemForUpload(pendingItem);
+                    setIsFileUploadOpen(true);
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload {uploadCount} Design File{uploadCount > 1 ? 's' : ''}
+                </Button>
+                
+                <p className="text-xs text-center text-muted-foreground">
+                  2 free changes included. After submission, vendor will create a preview within 24-48 hours.
+                </p>
+              </div>
+            </Card>
+          );
+        })()}
 
         {/* Timeline */}
         <Card>
@@ -491,6 +714,32 @@ export const Track = () => {
           quantity: item.quantity,
         }))}
       />
+
+      {/* File Upload Sheet - Vendor-defined uploads (Swiggy Model) */}
+      {selectedOrderItemForUpload && (
+        <FileUploadSheet
+          isOpen={isFileUploadOpen}
+          onClose={() => {
+            setIsFileUploadOpen(false);
+            setSelectedOrderItemForUpload(null);
+          }}
+          orderItemId={selectedOrderItemForUpload.id}
+          personalizations={selectedOrderItemForUpload?.personalizations || []}
+          onUploadComplete={async () => {
+            // Refresh order data after upload
+            const { data: items } = await supabase
+              .from('order_items')
+              .select('*')
+              .eq('order_id', orderId);
+            
+            if (items) {
+              setOrderItems(items);
+              setTimeline(buildTimeline());
+            }
+            // Silent success - FileUploadSheet shows success state
+          }}
+        />
+      )}
     </div>
   );
 };

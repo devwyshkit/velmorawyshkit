@@ -19,6 +19,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { updateOrderStatus } from "@/lib/integrations/order-status";
+import { initiatePayment, formatAmountForRazorpay } from "@/lib/integrations/razorpay";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PreviewApprovalSheetProps {
   isOpen: boolean;
@@ -45,9 +47,11 @@ export const PreviewApprovalSheet = ({
 }: PreviewApprovalSheetProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [revisions, setRevisions] = useState<string[]>([]);
   const [feedback, setFeedback] = useState("");
   const [loading, setLoading] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
@@ -200,6 +204,144 @@ export const PreviewApprovalSheet = ({
     }
   };
 
+  // Handle paid revision payment
+  const handlePaidRevisionPayment = async (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setPaymentProcessing(true);
+      
+      // Create Razorpay order via backend (or use direct payment for simplicity)
+      // For now, we'll use a simplified flow that creates payment and processes it
+      fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: formatAmountForRazorpay(revisionCost),
+          currency: 'INR',
+          receipt: `REV-${orderItemId}-${Date.now()}`,
+          notes: {
+            type: 'revision',
+            order_item_id: orderItemId,
+            order_id: orderId,
+          }
+        })
+      })
+      .then(res => res.json())
+      .then(async (razorpayOrder) => {
+        if (!razorpayOrder.id) {
+          throw new Error('Failed to create payment order');
+        }
+
+        // Initiate Razorpay payment
+        await initiatePayment({
+          key: import.meta.env.VITE_RAZORPAY_KEY || '',
+          amount: formatAmountForRazorpay(revisionCost),
+          currency: 'INR',
+          name: 'Wyshkit',
+          description: `Additional revision for order ${orderId}`,
+          order_id: razorpayOrder.id,
+          handler: async (response: any) => {
+            // Payment successful - verify on backend
+            try {
+              const verifyRes = await fetch('/api/payments/verify', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: razorpayOrder.id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                })
+              });
+
+              if (verifyRes.ok) {
+                // Payment verified - proceed with revision submission
+                await submitRevisionRequest(true);
+                resolve(true);
+              } else {
+                throw new Error('Payment verification failed');
+              }
+            } catch (error) {
+              console.error('Payment verification error:', error);
+              toast({
+                title: "Payment verification failed",
+                description: "Please contact support",
+                variant: "destructive",
+              });
+              resolve(false);
+            } finally {
+              setPaymentProcessing(false);
+            }
+          },
+          prefill: {
+            email: user?.email || '',
+            name: user?.full_name || '',
+          },
+          theme: {
+            color: '#CD1C18', // Wyshkit red
+          }
+        });
+      })
+      .catch((error) => {
+        console.error('Payment initiation error:', error);
+        toast({
+          title: "Payment failed",
+          description: "Please try again",
+          variant: "destructive",
+        });
+        setPaymentProcessing(false);
+        resolve(false);
+      });
+    });
+  };
+
+  // Submit revision request (called after payment if needed)
+  const submitRevisionRequest = async (isPaid: boolean = false) => {
+    if (!orderItemId) {
+      throw new Error('Order item ID missing');
+    }
+
+    // Update order item with revision request
+    const { data: orderItem } = await supabase
+      .from('order_items')
+      .select('order_id, revision_count')
+      .eq('id', orderItemId)
+      .single();
+
+    if (!orderItem) throw new Error('Order item not found');
+
+    const newRevisionCount = (orderItem.revision_count || 0) + 1;
+
+    const { error: updateError } = await supabase
+      .from('order_items')
+      .update({
+        preview_status: 'revision_requested',
+        revision_count: newRevisionCount,
+        revision_notes: feedback || null,
+        revision_requested_at: new Date().toISOString()
+      })
+      .eq('id', orderItemId);
+
+    if (updateError) throw updateError;
+
+    // Update order status
+    await updateOrderStatus(orderItem.order_id, 'revision_requested', {
+      changedBy: { type: 'user', id: user?.id || '' },
+      notes: isPaid ? 'Paid revision requested by customer' : 'Revision requested by customer'
+    });
+
+    toast({
+      title: isPaid ? "Payment successful" : "Changes requested",
+      description: isPaid 
+        ? "Payment completed. Partner will send updated preview within 24h"
+        : "Partner will send updated preview within 24h",
+    });
+
+    onClose();
+  };
+
   const handleSubmitRevisions = async () => {
     if (revisions.length === 0 && !feedback && !uploadedFile) {
       toast({
@@ -210,48 +352,25 @@ export const PreviewApprovalSheet = ({
       return;
     }
 
-    setLoading(true);
-
-    try {
-      if (!orderItemId) {
-        throw new Error('Order item ID missing');
+    // Check if this is a paid revision
+    if (freeRevisionsLeft === 0) {
+      // Paid revision - trigger payment flow
+      setLoading(true);
+      const paymentSuccess = await handlePaidRevisionPayment();
+      setLoading(false);
+      
+      if (!paymentSuccess) {
+        // Payment failed or cancelled - don't proceed
+        return;
       }
+      // Payment successful - submission handled in payment handler
+      return;
+    }
 
-      // Update order item with revision request
-      const { data: orderItem } = await supabase
-        .from('order_items')
-        .select('order_id, revision_count')
-        .eq('id', orderItemId)
-        .single();
-
-      if (!orderItem) throw new Error('Order item not found');
-
-      const newRevisionCount = (orderItem.revision_count || 0) + 1;
-
-      const { error: updateError } = await supabase
-        .from('order_items')
-        .update({
-          preview_status: 'revision_requested',
-          revision_count: newRevisionCount,
-          revision_notes: feedback || null,
-          revision_requested_at: new Date().toISOString()
-        })
-        .eq('id', orderItemId);
-
-      if (updateError) throw updateError;
-
-      // Update order status
-      await updateOrderStatus(orderItem.order_id, 'revision_requested', {
-        changedBy: { type: 'user', id: '' },
-        notes: 'Revision requested by customer'
-      });
-
-      toast({
-        title: "Changes requested",
-        description: "Partner will send updated preview within 24h",
-      });
-
-      onClose();
+    // Free revision - proceed directly
+    setLoading(true);
+    try {
+      await submitRevisionRequest(false);
     } catch (error) {
       console.error('Revision submission error:', error);
       toast({
@@ -276,7 +395,7 @@ export const PreviewApprovalSheet = ({
 
   return (
     <>
-      <Sheet open={isOpen} onOpenChange={onClose}>
+      <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
         <SheetContent
           side="bottom"
           className="h-[90vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
@@ -369,11 +488,23 @@ export const PreviewApprovalSheet = ({
           <div>
               <div className="flex justify-between items-center mb-3">
                 <Label className="text-sm font-medium">Request Changes (Optional)</Label>
-                <Badge variant="secondary">{freeRevisionsLeft} free revisions left</Badge>
+                {freeRevisionsLeft > 0 && (
+                  <Badge variant="secondary">{freeRevisionsLeft} free {freeRevisionsLeft === 1 ? 'change' : 'changes'} left</Badge>
+                )}
               </div>
+              {freeRevisionsLeft === 0 && (
+                <div className="p-3 bg-muted/50 border border-border rounded-lg mb-3">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    All free changes used
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Additional changes cost ₹{revisionCost} each. Or approve now to start production.
+                  </p>
+                </div>
+              )}
               {freeRevisionsLeft > 0 && (
                 <p className="text-xs text-muted-foreground mb-2">
-                  Additional revisions: ₹{revisionCost} each
+                  Additional changes after free ones: ₹{revisionCost} each
                 </p>
               )}
             <div className="space-y-3">
@@ -472,12 +603,18 @@ export const PreviewApprovalSheet = ({
                 {(revisions.length > 0 || feedback || uploadedFile) && (
             <Button
               onClick={handleSubmitRevisions}
-              variant="outline"
-              className="w-full h-12"
+              variant={freeRevisionsLeft === 0 ? "default" : "outline"}
+              className={`w-full h-12 ${freeRevisionsLeft === 0 ? 'bg-primary' : ''}`}
               size="lg"
-              disabled={loading}
+              disabled={loading || paymentProcessing}
             >
-                    {loading ? "Submitting..." : "Request Changes"}
+              {loading || paymentProcessing ? (
+                "Processing..."
+              ) : freeRevisionsLeft === 0 ? (
+                `Pay ₹${revisionCost} & Request Changes`
+              ) : (
+                "Request Changes"
+              )}
             </Button>
                 )}
           <Button

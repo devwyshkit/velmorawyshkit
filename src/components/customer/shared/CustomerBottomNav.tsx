@@ -7,18 +7,19 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
 import { CartSheet } from "@/components/customer/shared/CartSheet";
+import { AccountSheet } from "@/components/customer/shared/AccountSheet";
 
 export const CustomerBottomNav = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { cartCount } = useCart();
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
 
   const navItems = [
     { icon: Home, label: "Home", path: RouteMap.home() },
     { icon: Search, label: "Search", path: RouteMap.search() },
     { icon: Heart, label: "Favourites", path: RouteMap.favorites() },
-    { icon: User, label: "Account", path: RouteMap.profile() },
   ];
 
   // Scroll-aware hide/reveal (hooks must be unconditional)
@@ -100,11 +101,31 @@ export const CustomerBottomNav = () => {
               </div>
             <span className="text-xs font-medium">Cart</span>
           </button>
+          
+          {/* Account button - opens bottom sheet (Swiggy 2025 pattern) */}
+          <button
+            onClick={() => setIsAccountOpen(true)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+              isAccountOpen
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            aria-label="Account"
+          >
+            <div className="relative">
+              <User className="h-6 w-6" />
+            </div>
+            <span className="text-xs font-medium">Account</span>
+          </button>
       </div>
     </nav>
       
       {/* Cart Sheet Modal */}
       <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      
+      {/* Account Sheet Modal (Swiggy 2025 pattern - bottom sheet) */}
+      <AccountSheet isOpen={isAccountOpen} onClose={() => setIsAccountOpen(false)} />
     </>
   );
 };

@@ -10,6 +10,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useDelivery } from "@/contexts/DeliveryContext";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { CartSheet } from "@/components/customer/shared/CartSheet";
+import { AccountSheet } from "@/components/customer/shared/AccountSheet";
 import { loadGooglePlaces, initAutocomplete, formatAddress, reverseGeocode, extractAreaAndCity } from "@/lib/integrations/google-places";
 
 interface CustomerMobileHeaderProps {
@@ -28,6 +29,7 @@ export const CustomerMobileHeader = ({
   const { location, setLocation } = useDelivery();
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [locationInput, setLocationInput] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,12 +53,15 @@ export const CustomerMobileHeader = ({
     if (onBackClick) {
       onBackClick();
     } else {
-      // Smart back: Go back if history exists, otherwise go to home (Swiggy pattern)
-      if (window.history.length > 2) {
-        navigate(-1);
-      } else {
-        navigate(RouteMap.home());
-      }
+      // Smart back: Try browser back, fallback to home if no navigation (Swiggy 2025 pattern)
+      const currentPath = window.location.pathname;
+      navigate(-1);
+      // If path didn't change after 100ms, navigate to home
+      setTimeout(() => {
+        if (window.location.pathname === currentPath) {
+          navigate(RouteMap.home());
+        }
+      }, 100);
     }
   };
 
@@ -178,7 +183,7 @@ export const CustomerMobileHeader = ({
             variant="ghost"
             size="icon"
             className="h-11 w-11"
-              onClick={() => navigate(RouteMap.profile())}
+            onClick={() => setIsAccountOpen(true)}
             aria-label="Account"
           >
             <User className="h-6 w-6" />
@@ -189,7 +194,7 @@ export const CustomerMobileHeader = ({
       </div>
 
       {/* Location Selection Sheet */}
-      <Sheet open={isLocationSheetOpen} onOpenChange={setIsLocationSheetOpen}>
+      <Sheet open={isLocationSheetOpen} onOpenChange={setIsLocationSheetOpen} modal={false}>
         <SheetContent
           side="bottom"
           className="h-[80vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
@@ -312,6 +317,9 @@ export const CustomerMobileHeader = ({
       
       {/* Cart Sheet Modal for Desktop */}
       <CartSheet isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      
+      {/* Account Sheet Modal (Swiggy 2025 pattern - bottom sheet) */}
+      <AccountSheet isOpen={isAccountOpen} onClose={() => setIsAccountOpen(false)} />
     </header>
   );
 };

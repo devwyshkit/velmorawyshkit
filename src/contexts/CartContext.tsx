@@ -4,6 +4,7 @@ import { isAuthenticated } from "@/lib/integrations/supabase-client";
 
 interface CartContextType {
   cartCount: number;
+  cartTotal: number;
   currentStoreId: string | null;
   refreshCartCount: () => void;
   clearCart: () => void;
@@ -13,6 +14,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartCount, setCartCount] = useState(0);
+  const [cartTotal, setCartTotal] = useState(0);
   const [currentStoreId, setCurrentStoreId] = useState<string | null>(null);
 
   const refreshCartCount = async () => {
@@ -21,6 +23,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const items = await fetchCartItems();
       const totalCount = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
       setCartCount(totalCount);
+      
+      // Calculate total price
+      const total = items.reduce((sum, item) => sum + (item.price * (item.quantity || 0)), 0);
+      setCartTotal(total);
       
       // Set currentStoreId from first item
       if (items.length > 0 && items[0].store_id) {
@@ -31,6 +37,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error refreshing cart count:', error);
       setCartCount(0);
+      setCartTotal(0);
       setCurrentStoreId(null);
     }
   };
@@ -43,6 +50,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error clearing cart from localStorage:', error);
     }
     setCartCount(0);
+    setCartTotal(0);
     setCurrentStoreId(null);
   };
 
@@ -53,7 +61,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <CartContext.Provider value={{ cartCount, currentStoreId, refreshCartCount, clearCart }}>
+    <CartContext.Provider value={{ cartCount, cartTotal, currentStoreId, refreshCartCount, clearCart }}>
       {children}
     </CartContext.Provider>
   );

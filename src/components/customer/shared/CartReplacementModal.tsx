@@ -18,7 +18,7 @@ export const CartReplacementModal = ({
   onCancel,
 }: CartReplacementModalProps) => {
   return (
-    <Sheet open={isOpen} onOpenChange={onCancel}>
+    <Sheet open={isOpen} onOpenChange={onCancel} modal={false}>
       <SheetContent side="bottom" className="h-auto rounded-t-xl sm:max-w-[480px] sm:left-1/2 sm:-translate-x-1/2">
         {/* Grabber */}
         <div className="flex justify-center pt-2 pb-4">

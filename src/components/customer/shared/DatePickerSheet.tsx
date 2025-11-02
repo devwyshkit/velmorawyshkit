@@ -54,7 +54,7 @@ export const DatePickerSheet = ({ isOpen, onClose, onDateSelect, minDate }: Date
   };
   
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
       <SheetContent side="bottom" className="h-auto rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2">
         {/* Grabber */}
         <div className="flex justify-center pt-2">

@@ -44,8 +44,12 @@ export const HelpCenter = () => {
             <AccordionItem value="refund" className="border rounded-lg px-4">
               <AccordionTrigger>Refund and return policy</AccordionTrigger>
               <AccordionContent>
-                You can return items within 7 days of delivery. Approved custom items 
-                cannot be returned once production starts. Contact support for assistance.
+                <div className="space-y-2 text-sm">
+                  <p><strong>Personalized/Custom Items:</strong></p>
+                  <p className="text-muted-foreground">No returns accepted unless item is damaged or wrong. Full refund including delivery charges for damaged/wrong items.</p>
+                  <p className="mt-3"><strong>Non-Personalized Items:</strong></p>
+                  <p className="text-muted-foreground">Return within 7 days of delivery. Returns cost delivery charges which will be deducted from refund amount.</p>
+                </div>
               </AccordionContent>
             </AccordionItem>
             
