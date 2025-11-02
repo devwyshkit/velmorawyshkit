@@ -141,7 +141,8 @@ export const CustomerMobileSearch = () => {
     if (item.type === 'item') {
       setSelectedItemId(item.id);
     } else if (item.type === 'store') {
-      navigate(RouteMap.store(item.id));
+      // Navigate to search with store filter (Swiggy pattern - no direct store pages)
+      navigate(RouteMap.search(`store=${item.id}`));
     }
   };
 

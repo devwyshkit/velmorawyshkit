@@ -38,7 +38,6 @@ const App = () => (
                     <Route path="/login" element={<LazyPages.Login />} />
                     <Route path="/signup" element={<LazyPages.Signup />} />
                     <Route path="/search" element={<LazyPages.Search />} />
-                    <Route path="/store/:id" element={<LazyPages.Store />} />
                     {/* Protected Consumer Routes */}
                     <Route path="/favorites" element={
                         <ProtectedRoute requiredRole="customer">
@@ -99,9 +98,6 @@ const App = () => (
                     <Route path="/customer/wishlist" element={<Navigate to="/favorites" replace />} />
                     <Route path="/saved" element={<Navigate to="/favorites" replace />} />
                     <Route path="/favourites" element={<Navigate to="/favorites" replace />} />
-                    {/* Legacy /partners route */}
-                    <Route path="/partners/:id" element={<Navigate to="/store/:id" replace />} />
-                    <Route path="/customer/partners/:id" element={<Navigate to="/store/:id" replace />} />
 
                     {/* Partner Routes - Business Dashboard */}
                     <Route path="/partner">

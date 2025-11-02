@@ -903,7 +903,7 @@ export const CustomerHome = () => {
                             onClick={() =>
                               navigate(
                                 item.cta_link || item.link || item.store_id
-                                  ? RouteMap.store(item.store_id)
+                                  ? RouteMap.search(`store=${item.store_id}`)
                                   : "/",
                               )
                             }
@@ -1110,7 +1110,7 @@ export const CustomerHome = () => {
                 <Card
                       key={store.id}
                       className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
-                      onClick={() => navigate(RouteMap.store(store.id))}
+                      onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
                     >
                       <CardContent className="p-2.5">
                         {/* Image - Square 1:1 (Swiggy pattern for store cards) */}
@@ -1223,7 +1223,7 @@ export const CustomerHome = () => {
                 <Card
                   key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.store(store.id))}
+                  onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
                 >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
@@ -1316,7 +1316,7 @@ export const CustomerHome = () => {
                 <Card
                   key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.store(store.id))}
+                  onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
                 >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
@@ -1409,7 +1409,7 @@ export const CustomerHome = () => {
                 <Card
                   key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.store(store.id))}
+                  onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
                 >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
@@ -1502,7 +1502,7 @@ export const CustomerHome = () => {
               <Card
                   key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.store(store.id))}
+                  onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
                 >
                   <CardContent className="p-2.5">
                     <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">

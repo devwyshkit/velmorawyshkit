@@ -1,7 +1,6 @@
 export const RouteMap = {
   home: () => `/`,
   search: (query?: string) => (query ? `/search?${query}` : `/search`),
-  store: (id: string) => `/store/${id}`,
   login: () => `/login`,
   signup: () => `/signup`,
   favorites: () => `/favorites`,
