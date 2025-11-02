@@ -31,7 +31,8 @@ export const Confirmation = () => {
             order_items (
               item_name,
               quantity,
-              total_price
+              total_price,
+              customization_files
             )
           `)
           .eq('id', orderId)

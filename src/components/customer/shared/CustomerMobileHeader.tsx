@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { useCart } from "@/contexts/CartContext";
 import { useDelivery } from "@/contexts/DeliveryContext";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
-import { CartSheet } from "@/pages/customer/CartSheet";
+import { CartSheet } from "@/components/customer/shared/CartSheet";
 import { loadGooglePlaces, initAutocomplete, formatAddress, reverseGeocode, extractAreaAndCity } from "@/lib/integrations/google-places";
 
 interface CustomerMobileHeaderProps {

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/contexts/CartContext";
-import { CartSheet } from "@/pages/customer/CartSheet";
+import { CartSheet } from "@/components/customer/shared/CartSheet";
 
 export const CustomerBottomNav = () => {
   const location = useLocation();

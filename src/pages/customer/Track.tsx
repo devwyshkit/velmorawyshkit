@@ -12,6 +12,7 @@ import { supabase } from "@/lib/integrations/supabase-client";
 import { notificationService } from "@/services/notificationService";
 import { RatingSheet } from "@/components/customer/RatingSheet";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TimelineStep {
   id: string;
@@ -25,86 +26,139 @@ export const Track = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const orderId = id || 'ORD-' + Date.now();
   const [eta, setEta] = useState<string>('');
   const [isRatingSheetOpen, setIsRatingSheetOpen] = useState(false);
   const [timeline, setTimeline] = useState<TimelineStep[]>([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+  const [hasCustomItems, setHasCustomItems] = useState(false);
+  const [orderData, setOrderData] = useState<any>(null);
   
-  // Mock: Determine if order has custom items requiring proof
-  const hasCustomItems = true; // In real app, fetch from order data
+  // Fetch order data on mount
+  useEffect(() => {
+    const loadOrderData = async () => {
+      if (!user && !localStorage.getItem('mock_session')) return;
+      
+      try {
+        // Try to fetch from Supabase
+        const { data, error } = await supabase
+          .from('order_items')
+          .select(`
+            *,
+            order_id (
+              id,
+              order_number,
+              status
+            )
+          `)
+          .eq('order_id', orderId)
+          .limit(10);
+        
+        if (data && !error) {
+          // Check if any item has customization files
+          const hasCustom = data.some((item: any) => 
+            item.customization_files && 
+            Array.isArray(item.customization_files) && 
+            item.customization_files.length > 0
+          );
+          setHasCustomItems(hasCustom);
+          setOrderData(data);
+        }
+      } catch (error) {
+        console.error('Error loading order data:', error);
+      }
+    };
+    
+    loadOrderData();
+  }, [orderId, user]);
 
   // Real-time order tracking with Supabase subscriptions
   useEffect(() => {
     if (!orderId) return;
 
-    // Initial timeline data with design approval steps
-    const initialTimeline: TimelineStep[] = [
-      {
-        id: 'confirmed',
-        label: 'Order Confirmed',
-        time: 'Today, 2:30 PM',
-        completed: true,
-        active: false,
-      },
-      {
-        id: 'design_creation',
-        label: 'Design Creation',
-        time: 'Today, 2:45 PM',
-        completed: true,
-        active: false,
-      },
-      {
-        id: 'design_ready',
-        label: 'Design Ready for Review',
-        time: 'Today, 3:00 PM',
-        completed: true,
-        active: false,
-      },
-      {
-        id: 'design_approved',
-        label: 'Design Approved',
-        time: 'Today, 3:15 PM',
-        completed: true,
-        active: false,
-      },
-      {
-        id: 'preparing',
-        label: 'Preparing Your Order',
-        time: 'Today, 3:30 PM',
-        completed: true,
-        active: false,
-      },
-      {
-        id: 'packed',
-        label: 'Packed & Ready',
-        time: 'Today, 3:45 PM',
-        completed: true,
-        active: false,
-      },
-      {
-        id: 'shipped',
-        label: 'Shipped',
-        time: 'Today, 4:00 PM',
-        completed: true,
-        active: false,
-      },
-      {
-        id: 'out_for_delivery',
-        label: 'Out for Delivery',
-        time: 'Today, 4:30 PM',
-        completed: false,
-        active: true,
-      },
-      {
-        id: 'delivered',
-        label: 'Delivered',
-        time: 'Expected: Today, 5:00 PM',
-        completed: false,
-        active: false,
-      },
-    ];
-    setTimeline(initialTimeline);
+    // Build timeline based on whether order has custom items
+    const buildTimeline = (): TimelineStep[] => {
+      const baseTimeline: TimelineStep[] = [
+        {
+          id: 'confirmed',
+          label: 'Order Confirmed',
+          time: 'Today, 2:30 PM',
+          completed: true,
+          active: false,
+        },
+      ];
+
+      // Only add preview steps for custom items
+      if (hasCustomItems) {
+        baseTimeline.push(
+          {
+            id: 'design_creation',
+            label: 'Design Creation',
+            time: 'Today, 2:45 PM',
+            completed: true,
+            active: false,
+          },
+          {
+            id: 'design_ready',
+            label: 'Design Ready for Review',
+            time: 'Today, 3:00 PM',
+            completed: true,
+            active: false,
+          },
+          {
+            id: 'design_approved',
+            label: 'Design Approved',
+            time: 'Today, 3:15 PM',
+            completed: true,
+            active: false,
+          }
+        );
+      }
+
+      // Add rest of timeline
+      baseTimeline.push(
+        {
+          id: 'preparing',
+          label: 'Preparing Your Order',
+          time: 'Today, 3:30 PM',
+          completed: true,
+          active: false,
+        },
+        {
+          id: 'packed',
+          label: 'Packed & Ready',
+          time: 'Today, 3:45 PM',
+          completed: true,
+          active: false,
+        },
+        {
+          id: 'shipped',
+          label: 'Shipped',
+          time: 'Today, 4:00 PM',
+          completed: true,
+          active: false,
+        },
+        {
+          id: 'out_for_delivery',
+          label: 'Out for Delivery',
+          time: 'Today, 4:30 PM',
+          completed: false,
+          active: true,
+        },
+        {
+          id: 'delivered',
+          label: 'Delivered',
+          time: 'Expected: Today, 5:00 PM',
+          completed: false,
+          active: false,
+        }
+      );
+
+      return baseTimeline;
+    };
+
+    setTimeline(buildTimeline());
 
     // Subscribe to real-time order updates
     const orderSubscription = supabase
@@ -159,7 +213,7 @@ export const Track = () => {
     return () => {
       orderSubscription.unsubscribe();
     };
-  }, [orderId, toast]);
+  }, [orderId, toast, hasCustomItems]);
 
   // Helper function to get next step based on current status
   const getNextStep = (currentStatus: string): string => {

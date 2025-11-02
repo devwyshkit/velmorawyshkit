@@ -34,6 +34,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = async () => {
+    // Clear both localStorage and state
+    try {
+      localStorage.removeItem('mock_cart');
+    } catch (error) {
+      console.error('Error clearing cart from localStorage:', error);
+    }
     setCartCount(0);
     setCurrentStoreId(null);
   };

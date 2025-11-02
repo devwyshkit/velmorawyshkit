@@ -483,199 +483,218 @@ export const fetchItemById = async (id: string): Promise<Item | null> => {
 };
 
 export const fetchCartItems = async (): Promise<CartItemData[]> => {
-  // Check for mock auth first
-  if (isMockAuth()) {
-    try {
-      const cartData = localStorage.getItem('mock_cart');
-      if (cartData) {
-        return JSON.parse(cartData);
-      }
-    } catch (error) {
-      console.error('Error reading mock cart:', error);
-    }
-    return [];
-  }
-
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    return [];
-  }
-
+  // Always check localStorage first (works for both guest and logged-in users)
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('cart_items')
-      .select(`
-        *,
-        store_items (
-          name,
-          image,
-          price,
-          add_ons
-        )
-      `)
-      .eq('user_id', user.id);
-
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      return data.map(item => ({
-        id: item.id,
-        name: item.store_items?.name || 'Product',
-        price: item.unit_price || 0,
-        quantity: item.quantity || 1,
-        image: item.store_items?.image || '/placeholder.svg',
-        addOns: item.personalizations || [],
-        store_id: item.store_id,
-      }));
+    const cartData = localStorage.getItem('mock_cart');
+    if (cartData) {
+      const localCart = JSON.parse(cartData);
+      // If we have local cart, return it immediately
+      if (localCart && localCart.length > 0) {
+        return localCart;
+      }
     }
   } catch (error) {
-    // Handle error silently in production
+    console.error('Error reading localStorage cart:', error);
+  }
+
+  // If logged in, try to fetch from Supabase and merge
+  const authenticated = await isAuthenticated();
+  if (authenticated) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('cart_items')
+        .select(`
+          *,
+          store_items (
+            name,
+            image,
+            price,
+            add_ons
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const supabaseCart = data.map(item => ({
+          id: item.id,
+          name: item.store_items?.name || 'Product',
+          price: item.unit_price || 0,
+          quantity: item.quantity || 1,
+          image: item.store_items?.image || '/placeholder.svg',
+          addOns: item.personalizations || [],
+          store_id: item.store_id,
+        }));
+        
+        // Merge with localStorage cart if exists
+        const localCart = localStorage.getItem('mock_cart');
+        if (localCart) {
+          const parsedLocalCart = JSON.parse(localCart);
+          // Merge logic: combine both carts, prefer Supabase for conflicts
+          const mergedCart = [...parsedLocalCart, ...supabaseCart];
+          localStorage.setItem('mock_cart', JSON.stringify(mergedCart));
+          return mergedCart;
+        }
+        
+        return supabaseCart;
+      }
+    } catch (error) {
+      // Handle error silently in production
+    }
   }
   
   return [];
 };
 
 export const addToCartSupabase = async (item: CartItemData): Promise<boolean> => {
-  // Check for mock auth first
-  if (isMockAuth()) {
-    try {
-      const existingCart = localStorage.getItem('mock_cart');
-      const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
-      
-      // For mock auth, generate unique cart item ID and include image
-      const mockCartItem: CartItemData = {
-        ...item,
-        id: `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      };
-      
-      // Check if item already exists (by product ID, not cart ID)
-      const existingIndex = cartItems.findIndex(i => i.name === item.name && i.store_id === item.store_id);
-      if (existingIndex >= 0) {
-        cartItems[existingIndex].quantity += (item.quantity || 1);
-      } else {
-        cartItems.push(mockCartItem);
-      }
-      
-      localStorage.setItem('mock_cart', JSON.stringify(cartItems));
-      return true;
-    } catch (error) {
-      console.error('Error adding to mock cart:', error);
-      return false;
-    }
-  }
-
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return false;
-
+  // Always save to localStorage first (works for both guest and logged-in users)
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
-    const unitPrice = item.price;
-    const totalPrice = unitPrice * (item.quantity || 1);
-
-    const { error } = await supabase
-      .from('cart_items')
-      .insert({
-        user_id: user.id,
-        item_id: item.id,
-        store_id: item.store_id!,
-        quantity: item.quantity || 1,
-        personalizations: item.addOns || [],
-        unit_price: unitPrice,
-        total_price: totalPrice,
-      });
-
-    if (error) throw error;
-    return true;
+    const existingCart = localStorage.getItem('mock_cart');
+    const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
+    
+    // Generate unique cart item ID
+    const cartItem: CartItemData = {
+      ...item,
+      id: `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    };
+    
+    // Check if item already exists (by product ID, not cart ID)
+    const existingIndex = cartItems.findIndex(i => i.name === item.name && i.store_id === item.store_id);
+    if (existingIndex >= 0) {
+      cartItems[existingIndex].quantity += (item.quantity || 1);
+    } else {
+      cartItems.push(cartItem);
+    }
+    
+    localStorage.setItem('mock_cart', JSON.stringify(cartItems));
   } catch (error) {
-    // Handle error silently in production
+    console.error('Error adding to localStorage cart:', error);
     return false;
   }
+
+  // If logged in, also save to Supabase in background
+  const authenticated = await isAuthenticated();
+  if (authenticated) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return true; // Return true since localStorage save succeeded
+
+      const unitPrice = item.price;
+      const totalPrice = unitPrice * (item.quantity || 1);
+
+      const { error } = await supabase
+        .from('cart_items')
+        .insert({
+          user_id: user.id,
+          item_id: item.id,
+          store_id: item.store_id!,
+          quantity: item.quantity || 1,
+          personalizations: item.addOns || [],
+          unit_price: unitPrice,
+          total_price: totalPrice,
+        });
+
+      if (error) {
+        console.error('Error syncing to Supabase:', error);
+        // Still return true since localStorage save succeeded
+      }
+    } catch (error) {
+      console.error('Error syncing to Supabase:', error);
+      // Still return true since localStorage save succeeded
+    }
+  }
+  
+  return true;
 };
 
 export const updateCartItemSupabase = async (itemId: string, quantity: number): Promise<boolean> => {
-  // Check for mock auth first
-  if (isMockAuth()) {
-    try {
-      const existingCart = localStorage.getItem('mock_cart');
-      const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
-      
-      const itemIndex = cartItems.findIndex(i => i.id === itemId);
-      if (itemIndex >= 0) {
-        cartItems[itemIndex].quantity = quantity;
-        localStorage.setItem('mock_cart', JSON.stringify(cartItems));
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error updating mock cart:', error);
+  // Always update localStorage first
+  try {
+    const existingCart = localStorage.getItem('mock_cart');
+    const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
+    
+    const itemIndex = cartItems.findIndex(i => i.id === itemId);
+    if (itemIndex >= 0) {
+      cartItems[itemIndex].quantity = quantity;
+      localStorage.setItem('mock_cart', JSON.stringify(cartItems));
+    } else {
       return false;
     }
-  }
-
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return false;
-
-  try {
-    // Need to fetch current unit_price to recalculate total_price
-    const { data: cartItem } = await supabase
-      .from('cart_items')
-      .select('unit_price')
-      .eq('id', itemId)
-      .single();
-
-    if (!cartItem) return false;
-
-    const totalPrice = cartItem.unit_price * quantity;
-
-    const { error } = await supabase
-      .from('cart_items')
-      .update({ quantity, total_price: totalPrice })
-      .eq('id', itemId);
-
-    if (error) throw error;
-    return true;
   } catch (error) {
-    // Handle error silently in production
+    console.error('Error updating localStorage cart:', error);
     return false;
   }
+
+  // If logged in, also update Supabase in background
+  const authenticated = await isAuthenticated();
+  if (authenticated) {
+    try {
+      // Need to fetch current unit_price to recalculate total_price
+      const { data: cartItem } = await supabase
+        .from('cart_items')
+        .select('unit_price')
+        .eq('id', itemId)
+        .single();
+
+      if (!cartItem) return true; // Return true since localStorage update succeeded
+
+      const totalPrice = cartItem.unit_price * quantity;
+
+      const { error } = await supabase
+        .from('cart_items')
+        .update({ quantity, total_price: totalPrice })
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Error syncing to Supabase:', error);
+        // Still return true since localStorage update succeeded
+      }
+    } catch (error) {
+      console.error('Error syncing to Supabase:', error);
+      // Still return true since localStorage update succeeded
+    }
+  }
+  
+  return true;
 };
 
 export const removeCartItemSupabase = async (itemId: string): Promise<boolean> => {
-  // Check for mock auth first
-  if (isMockAuth()) {
-    try {
-      const existingCart = localStorage.getItem('mock_cart');
-      const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
-      
-      const filtered = cartItems.filter(i => i.id !== itemId);
-      localStorage.setItem('mock_cart', JSON.stringify(filtered));
-      return true;
-    } catch (error) {
-      console.error('Error removing from mock cart:', error);
-      return false;
-    }
-  }
-
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return false;
-
+  // Always remove from localStorage first
   try {
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('id', itemId);
-
-    if (error) throw error;
-    return true;
+    const existingCart = localStorage.getItem('mock_cart');
+    const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
+    
+    const filtered = cartItems.filter(i => i.id !== itemId);
+    localStorage.setItem('mock_cart', JSON.stringify(filtered));
   } catch (error) {
-    // Handle error silently in production
+    console.error('Error removing from localStorage cart:', error);
     return false;
   }
+
+  // If logged in, also remove from Supabase in background
+  const authenticated = await isAuthenticated();
+  if (authenticated) {
+    try {
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Error syncing to Supabase:', error);
+        // Still return true since localStorage remove succeeded
+      }
+    } catch (error) {
+      console.error('Error syncing to Supabase:', error);
+      // Still return true since localStorage remove succeeded
+    }
+  }
+  
+  return true;
 };
 
 // Alias for consistency with other naming patterns
