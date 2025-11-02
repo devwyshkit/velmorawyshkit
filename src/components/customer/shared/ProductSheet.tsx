@@ -197,32 +197,31 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
 
   const proceedWithAddToCart = async () => {
     const authenticated = await isAuthenticated();
+    
+    // Always allow add to cart (guest or authenticated)
+    const personalizationsList = selectedPersonalizations
+      .map((id) => item.personalizations?.find((p: any) => p.id === id))
+      .filter(Boolean);
+    const personalizationsTotal = personalizationsList.reduce(
+      (sum: number, p: any) => sum + (p?.price || 0),
+      0,
+    );
 
-    if (!authenticated) {
-      onClose();
-      navigate(RouteMap.login());
-      return;
-    } else {
+    const cartItem = {
+      id: item.id,
+      name: item.name,
+      price: item.price + personalizationsTotal, // Include personalizations in price
+      quantity,
+      store_id: item.store_id,
+      addOns: personalizationsList,
+      isCustomizable: item.isCustomizable || false,
+      personalizations: personalizationsList,
+    };
+
+    if (authenticated) {
       // Authenticated: save to Supabase
-      const personalizationsList = selectedPersonalizations
-        .map((id) => item.personalizations?.find((p: any) => p.id === id))
-        .filter(Boolean);
-      const personalizationsTotal = personalizationsList.reduce(
-        (sum: number, p: any) => sum + (p?.price || 0),
-        0,
-      );
-
-      const cartItem = {
-        id: item.id,
-        name: item.name,
-        price: item.price + personalizationsTotal, // Include personalizations in price
-        quantity,
-        store_id: item.store_id,
-        addOns: personalizationsList,
-      };
-
       const success = await addToCartSupabase(cartItem);
-
+      
       if (success) {
         refreshCartCount();
         toast({
@@ -247,9 +246,37 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           variant: "destructive",
         });
       }
-
-      onClose();
+    } else {
+      // Guest cart: Save to localStorage via addToCartSupabase (handles localStorage)
+      const success = await addToCartSupabase(cartItem);
+      
+      if (success) {
+        refreshCartCount();
+        toast({
+          title: "Added to cart",
+          description: `${quantity}x ${item.name}`,
+          action: (
+            <ToastAction
+              altText="View cart"
+              onClick={() => {
+                onClose();
+                navigate(RouteMap.cart());
+              }}
+            >
+              View Cart
+            </ToastAction>
+          ),
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add item to cart",
+          variant: "destructive",
+        });
+      }
     }
+
+    onClose();
   };
 
   const handleReplaceCart = async () => {

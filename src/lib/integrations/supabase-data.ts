@@ -70,6 +70,8 @@ export interface CartItemData {
   image?: string;
   addOns?: Array<{ id: string; name: string; price: number }>;
   store_id?: string;
+  isCustomizable?: boolean; // NEW: Track if item has customizations
+  personalizations?: Array<{ id: string; label: string; price: number; instructions?: string }>; // NEW: Store personalization data
 }
 
 export interface SavedItemData {

@@ -33,13 +33,18 @@ export const Confirmation = () => {
               item_name,
               quantity,
               total_price,
-              customization_files
+              customization_files,
+              preview_status
             )
           `)
           .eq('id', orderId)
           .maybeSingle();
 
         if (data && !error) {
+          const hasPreviewPending = data.order_items?.some((item: any) => 
+            item.preview_status && item.preview_status !== 'approved' && item.preview_status !== 'cancelled'
+          ) || false;
+          
           setOrder({
             id: data.order_number || orderId,
             items: data.order_items || [],
@@ -50,7 +55,8 @@ export const Confirmation = () => {
               : `${data.delivery_address?.street || ''}, ${data.delivery_address?.city || ''}`,
             hasCustomItems: data.order_items?.some((item: any) => 
               item.customization_files && item.customization_files.length > 0
-            ) || false
+            ) || false,
+            needsPreview: hasPreviewPending
           });
           // Set invoice URL if available
           if (data.refrens_invoice_url) {
@@ -110,6 +116,11 @@ export const Confirmation = () => {
           <CheckCircle2 className="h-20 w-20 mx-auto mb-4 animate-pulse" />
           <h1 className="text-2xl font-bold mb-2">Order Confirmed!</h1>
           <p className="text-sm opacity-90">Order ID: {order?.id || orderId}</p>
+          {order?.needsPreview && (
+            <p className="text-sm opacity-90 mt-2">
+              We'll send you a preview for approval within 24 hours
+            </p>
+          )}
         </div>
       </div>
 

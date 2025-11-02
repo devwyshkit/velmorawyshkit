@@ -837,13 +837,13 @@ export const CustomerHome = () => {
       <div className="min-h-screen bg-background pb-20">
         <CustomerMobileHeader />
         <main className="max-w-screen-xl mx-auto space-y-4 pt-4">
-          {/* Hero Skeleton - Matches actual h-40 banner height */}
-          <section className="px-4">
-            <Skeleton className="h-40 w-full rounded-xl" />
+          {/* Hero Skeleton - Matches actual h-32 md:h-40 banner height */}
+          <section className="px-3 md:px-4">
+            <Skeleton className="h-32 md:h-40 w-full rounded-xl" />
           </section>
           
           {/* Occasions Skeleton */}
-          <div className="flex gap-4 overflow-hidden">
+          <div className="flex gap-3 overflow-hidden px-3 md:px-4">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex flex-col items-center gap-2">
                 <Skeleton className="w-20 h-20 rounded-full" />
@@ -853,10 +853,10 @@ export const CustomerHome = () => {
           </div>
 
           {/* Stores Skeleton - Matches actual store card structure */}
-          <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 px-3 md:px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="space-y-1.5 p-2.5 bg-card rounded-xl">
-                <Skeleton className="aspect-square rounded-lg mb-2.5 bg-card" />
+              <div key={i} className="space-y-1.5 p-2 md:p-2.5 bg-card rounded-xl">
+                <Skeleton className="aspect-square rounded-lg mb-2 md:mb-2.5 bg-card" />
                 <Skeleton className="h-4 w-3/4" /> {/* Name: text-base */}
                 <Skeleton className="h-3 w-1/2" /> {/* Category: text-xs */}
                 <Skeleton className="h-3 w-2/3" /> {/* Rating + Delivery */}
@@ -877,7 +877,7 @@ export const CustomerHome = () => {
       {/* Main Content */}
       <main className="max-w-screen-xl mx-auto space-y-6 pt-4">
         {/* Hero Banners - Always show section to prevent layout shift */}
-        <section className="px-4">
+        <section className="px-3 md:px-4">
           {banners.length === 0 ? (
             <Skeleton className="h-40 w-full rounded-xl" />
           ) : (
@@ -899,7 +899,7 @@ export const CustomerHome = () => {
                       <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] border-0 overflow-hidden">
                         <CardContent className="p-0">
                           <div
-                            className="relative h-40 md:h-48" // 160px mobile, 192px desktop (Swiggy standard)
+                            className="relative h-32 md:h-40" // 128px mobile, 160px desktop (Swiggy 2025 standard)
                             onClick={() =>
                               navigate(
                                 item.cta_link || item.link || item.store_id
@@ -914,7 +914,7 @@ export const CustomerHome = () => {
                                 src={item.image_url}
                                 alt={item.title}
                                 width={400}
-                                height={160}
+                                height={128}
                                 className="absolute inset-0 w-full h-full object-cover md:hidden"
                               />
                             )}
@@ -923,7 +923,7 @@ export const CustomerHome = () => {
                                 src={item.image_url}
                                 alt={item.title}
                                 width={800}
-                                height={192}
+                                height={160}
                                 className="absolute inset-0 w-full h-full object-cover hidden md:block"
                               />
                             )}
@@ -958,7 +958,7 @@ export const CustomerHome = () => {
               
               {/* Dot Indicators - Below carousel, left-aligned (Modern Ecommerce Pattern) */}
               {banners.length > 1 && (
-                <div className="flex justify-start mt-3 px-4">
+                <div className="flex justify-start mt-3 px-3 md:px-4">
                 <div className="flex gap-1">
                   {banners.map((_, idx) => (
                     <button
@@ -982,7 +982,7 @@ export const CustomerHome = () => {
 
         {/* Occasions - Swiggy pattern */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between px-4">
+          <div className="flex items-center justify-between px-3 md:px-4">
             <h2 className="text-lg font-semibold">Shop by Occasion</h2>
             <Button
               variant="link"
@@ -993,7 +993,7 @@ export const CustomerHome = () => {
             </Button>
           </div>
           {/* Single row horizontal scroll (optimized for store card visibility) */}
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-3 md:px-4 lg:overflow-visible lg:px-0 lg:gap-4 lg:justify-start">
             {occasions.map((occasion) => (
               <button
                 key={occasion.id}
@@ -1024,7 +1024,7 @@ export const CustomerHome = () => {
         {/* Featured Offers - Swiggy 2025 pattern */}
         {offers.length > 0 && (
           <section className="space-y-4">
-            <div className="flex items-center justify-between px-4">
+            <div className="flex items-center justify-between px-3 md:px-4">
               <h2 className="text-lg font-semibold">Featured Offers</h2>
               <Button
                 variant="link"
@@ -1035,7 +1035,7 @@ export const CustomerHome = () => {
               </Button>
             </div>
             {/* Horizontal scroll */}
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-2 px-3 md:px-4 lg:overflow-visible lg:px-0 lg:gap-4 lg:justify-start">
               {offers.map((offer) => (
                 <OfferCard
                   key={offer.id}
@@ -1050,7 +1050,7 @@ export const CustomerHome = () => {
         {/* Top Rated Stores - Single unified section (Swiggy pattern) */}
         {!loading && stores.length === 0 ? (
           /* Empty State when no stores available */
-          <section className="px-4 py-8">
+          <section className="px-3 md:px-4 py-8">
             <EmptyStates.Products
               title="No stores available"
               description={`We couldn't find any stores in ${location}. Try changing your location or check back later.`}
@@ -1084,7 +1084,7 @@ export const CustomerHome = () => {
               stickyTop="top-0"
             />
 
-            <div className="flex items-center justify-between px-4">
+            <div className="flex items-center justify-between px-3 md:px-4">
               <h2 className="text-lg font-semibold">Top Rated • {location}</h2>
               <Button
                 variant="link"
@@ -1105,16 +1105,16 @@ export const CustomerHome = () => {
                 onLoadMore={loadMoreStores}
                 threshold={100}
               >
-                <div className="grid grid-cols-2 gap-4 px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 px-3 md:px-4 md:grid-cols-3 lg:grid-cols-4 bg-background">
                   {displayedStores.map((store) => (
                 <Card
                       key={store.id}
                       className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow"
-                      onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
+                      onClick={() => navigate(RouteMap.catalog(store.id))}
                     >
-                      <CardContent className="p-2.5">
+                      <CardContent className="p-2 md:p-2.5">
                         {/* Image - Square 1:1 (Swiggy pattern for store cards) */}
-                        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
+                        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2 md:mb-2.5">
                       <OptimizedImage
                             src={store.image}
                             alt={store.name}
@@ -1207,7 +1207,7 @@ export const CustomerHome = () => {
         {/* Trending Stores - Swiggy 2025 pattern */}
         {trendingStores.length > 0 && (
           <section className="space-y-4">
-            <div className="flex items-center justify-between px-4">
+            <div className="flex items-center justify-between px-3 md:px-4">
               <h2 className="text-lg font-semibold">Trending</h2>
               <Button
                 variant="link"
@@ -1218,15 +1218,15 @@ export const CustomerHome = () => {
               </Button>
             </div>
             {/* Horizontal scroll */}
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-3 md:px-4 lg:overflow-visible lg:px-0 lg:gap-4 lg:justify-start">
               {trendingStores.map((store) => (
                 <Card
                   key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
+                  onClick={() => navigate(RouteMap.catalog(store.id))}
                 >
-                  <CardContent className="p-2.5">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
+                  <CardContent className="p-2 md:p-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2 md:mb-2.5">
                       <OptimizedImage
                         src={store.image}
                         alt={store.name}
@@ -1300,7 +1300,7 @@ export const CustomerHome = () => {
         {/* New Launches - Swiggy 2025 pattern */}
         {newLaunches.length > 0 && (
           <section className="space-y-4">
-            <div className="flex items-center justify-between px-4">
+            <div className="flex items-center justify-between px-3 md:px-4">
               <h2 className="text-lg font-semibold">New on Wyshkit</h2>
               <Button
                 variant="link"
@@ -1311,15 +1311,15 @@ export const CustomerHome = () => {
               </Button>
             </div>
             {/* Horizontal scroll */}
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-3 md:px-4 lg:overflow-visible lg:px-0 lg:gap-4 lg:justify-start">
               {newLaunches.map((store) => (
                 <Card
                   key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
+                  onClick={() => navigate(RouteMap.catalog(store.id))}
                 >
-                  <CardContent className="p-2.5">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
+                  <CardContent className="p-2 md:p-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2 md:mb-2.5">
                       <OptimizedImage
                         src={store.image}
                         alt={store.name}
@@ -1393,7 +1393,7 @@ export const CustomerHome = () => {
         {/* Personalized Recommendations - Swiggy 2025 pattern */}
         {recommendedStores.length > 0 && user && (
           <section className="space-y-4">
-            <div className="flex items-center justify-between px-4">
+            <div className="flex items-center justify-between px-3 md:px-4">
               <h2 className="text-lg font-semibold">Recommended for You</h2>
               <Button
                 variant="link"
@@ -1404,15 +1404,15 @@ export const CustomerHome = () => {
               </Button>
             </div>
             {/* Horizontal scroll */}
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-4 lg:overflow-visible lg:px-0 lg:gap-6 lg:justify-start">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth pb-3 px-3 md:px-4 lg:overflow-visible lg:px-0 lg:gap-4 lg:justify-start">
               {recommendedStores.map((store) => (
                 <Card
                   key={store.id}
                   className="cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[150px] md:w-[180px]"
-                  onClick={() => navigate(RouteMap.search(`store=${store.id}`))}
+                  onClick={() => navigate(RouteMap.catalog(store.id))}
                 >
-                  <CardContent className="p-2.5">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2.5">
+                  <CardContent className="p-2 md:p-2.5">
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-card mb-2 md:mb-2.5">
                       <OptimizedImage
                         src={store.image}
                         alt={store.name}

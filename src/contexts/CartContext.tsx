@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { fetchCartItems } from "@/lib/integrations/supabase-data";
+import { isAuthenticated } from "@/lib/integrations/supabase-client";
 
 interface CartContextType {
   cartCount: number;
@@ -16,6 +17,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshCartCount = async () => {
     try {
+      // fetchCartItems handles both guest (localStorage) and authenticated (Supabase) carts
       const items = await fetchCartItems();
       const totalCount = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
       setCartCount(totalCount);
@@ -34,7 +36,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = async () => {
-    // Clear both localStorage and state
+    // Clear localStorage and state
     try {
       localStorage.removeItem('mock_cart');
     } catch (error) {

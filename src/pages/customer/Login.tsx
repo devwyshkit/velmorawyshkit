@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { RouteMap } from "@/routes";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,13 @@ import { useTheme } from "@/components/theme-provider";
 import { Loader2, Mail, Lock, Eye, EyeOff, Smartphone } from "lucide-react";
 import { PhoneInput } from "@/components/auth/PhoneInput";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { addToCartSupabase } from "@/lib/integrations/supabase-data";
 
 type LoginStep = 'phone' | 'otp' | 'email';
 
 export const CustomerMobileLogin = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { theme } = useTheme();
   const [step, setStep] = useState<LoginStep>('phone');
@@ -57,6 +59,20 @@ export const CustomerMobileLogin = () => {
       }, 100);
     }
   }, [step]);
+
+  // Migrate guest cart after login
+  const migrateGuestCart = async () => {
+    try {
+      const guestCart = JSON.parse(localStorage.getItem('mock_cart') || '[]');
+      if (guestCart.length > 0) {
+        // Cart is already in mock_cart, addToCartSupabase will handle Supabase sync
+        // No need to manually migrate since fetchCartItems already merges
+      }
+    } catch (error) {
+      console.error('Error migrating guest cart:', error);
+      // Non-critical, continue with login
+    }
+  };
 
   // Send OTP (Mock implementation until Supabase connected)
   const handleSendOTP = async () => {
@@ -138,11 +154,17 @@ export const CustomerMobileLogin = () => {
           if (error) throw error;
           
           // Success - Supabase auth state will update automatically
+          // Migrate guest cart
+          await migrateGuestCart();
+          
           toast({
             title: "Welcome back!",
             description: "You've successfully logged in.",
           });
-          navigate(RouteMap.home());
+          
+          // Navigate to redirect URL or home
+          const redirect = searchParams.get('redirect');
+          navigate(redirect || RouteMap.home());
         } catch (supabaseError: any) {
           console.warn('Supabase verify failed, using mock auth:', supabaseError);
           // Fall through to mock verification
@@ -166,9 +188,13 @@ export const CustomerMobileLogin = () => {
             // Dispatch custom event to notify AuthContext immediately
             window.dispatchEvent(new Event('mockAuthChange'));
             
+            // Migrate guest cart
+            await migrateGuestCart();
+            
             // Delay to let AuthContext update, then navigate
             setTimeout(() => {
-              navigate(RouteMap.home());
+              const redirect = searchParams.get('redirect');
+              navigate(redirect || RouteMap.home());
             }, 300);
           } else {
             throw new Error('Invalid OTP. Use 123456 for testing.');
@@ -228,12 +254,12 @@ export const CustomerMobileLogin = () => {
 
     try {
       if (hasRealCredentials) {
-        try {
-          const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
         } catch (supabaseError: any) {
           console.warn('Supabase email login failed, using mock auth:', supabaseError);
           // Fall through to mock implementation

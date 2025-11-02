@@ -31,12 +31,14 @@ import {
 import { supabase } from "@/lib/integrations/supabase-client";
 import { fetchCartItems, type CartItemData } from "@/lib/integrations/supabase-data";
 import { refrensService } from "@/lib/integrations/refrens";
+import { verifyGST } from "@/lib/api/idfy-real";
+import { Loader2, CheckCircle, XCircle } from "lucide-react";
 
 export const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { refreshCartCount, clearCart } = useCart();
+  const { refreshCartCount, clearCart, currentStoreId } = useCart();
   const addressInputRef = useRef<HTMLInputElement>(null);
   
   // Real cart items from localStorage/Supabase
@@ -47,6 +49,9 @@ export const Checkout = () => {
   const [address, setAddress] = useState("123 MG Road, Bangalore, Karnataka - 560001");
   const [instructions, setInstructions] = useState("");
   const [gstin, setGstin] = useState("");
+  const [gstinVerifying, setGstinVerifying] = useState(false);
+  const [gstinValid, setGstinValid] = useState<boolean | null>(null);
+  const [gstinDetails, setGstinDetails] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState("upi");
   const [loading, setLoading] = useState(false);
   const [contactlessDelivery, setContactlessDelivery] = useState(false);
@@ -71,6 +76,19 @@ export const Checkout = () => {
       });
     }
   }, [savedAddress]);
+
+  // Require login at checkout (Swiggy pattern)
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { isAuthenticated } = await import("@/lib/integrations/supabase-client");
+      const authenticated = await isAuthenticated();
+      if (!authenticated) {
+        // Redirect to login, preserve cart
+        navigate(RouteMap.login() + '?redirect=/checkout');
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   // Load cart data from localStorage/Supabase
   useEffect(() => {
@@ -99,6 +117,30 @@ export const Checkout = () => {
     };
     loadCart();
   }, [navigate, toast]);
+
+  // Debounced GSTIN verification
+  useEffect(() => {
+    const verifyGSTIN = async () => {
+      if (gstin.length === 15) {
+        setGstinVerifying(true);
+        try {
+          const result = await verifyGST(gstin);
+          setGstinValid(result.verified);
+          setGstinDetails(result);
+        } catch (error) {
+          console.error('GSTIN verification failed:', error);
+          setGstinValid(false);
+        } finally {
+          setGstinVerifying(false);
+        }
+      } else {
+        setGstinValid(null);
+      }
+    };
+
+    const timer = setTimeout(verifyGSTIN, 800); // Debounce 800ms
+    return () => clearTimeout(timer);
+  }, [gstin]);
   
   const subtotal = cartItems.reduce(
     (sum: number, item: any) => sum + item.price * item.quantity,
@@ -236,11 +278,13 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
       
       // Create order in database
       const orderNumber = `ORD-${Date.now()}`;
+      const storeId = cartItems[0]?.store_id || currentStoreId || '00000000-0000-0000-0000-000000000000'; // Fallback store ID
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
           order_number: orderNumber,
-          customer_id: null, // Guest checkout
+          customer_id: user?.id || null,
+          store_id: storeId,
           status: 'pending',
           items: cartItems.map((item: any) => ({
             id: item.id,
@@ -249,11 +293,13 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
             price: item.price,
           })),
           subtotal: subtotal,
-          campaign_discount: campaignDiscount,
-          tax: calculateTotalWithGST(subtotal - campaignDiscount) - (subtotal - campaignDiscount),
-          total: total,
+          discount_amount: campaignDiscount,
+          tax_amount: calculateTotalWithGST(subtotal - campaignDiscount) - (subtotal - campaignDiscount),
+          total_amount: total,
           delivery_address: address,
+          delivery_date: selectedDate || null,
           delivery_instructions: instructions,
+          delivery_slot: deliveryTimeSlot,
           delivery_time_slot: deliveryTimeSlot,
           contactless_delivery: contactlessDelivery,
           gstin: gstin || null,
@@ -274,6 +320,35 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
       }
 
       const orderId = orderData.id;
+
+      // Check if any items need preview and create order_items if needed
+      const needsPreview = cartItems.some(item => 
+        item.isCustomizable && 
+        (item.personalizations?.length > 0 || item.addOns?.length > 0)
+      );
+
+      if (needsPreview) {
+        // Create order_items with preview_status = 'pending'
+        await supabase.from('order_items').insert(
+          cartItems
+            .filter(item => item.isCustomizable && (item.personalizations?.length > 0 || item.addOns?.length > 0))
+            .map(item => ({
+              order_id: orderId,
+              item_id: item.id,
+              item_name: item.name,
+              item_image_url: item.image,
+              quantity: item.quantity,
+              unit_price: item.price,
+              total_price: item.price * item.quantity,
+              personalizations: item.personalizations || item.addOns || [],
+              customization_files: [],
+              preview_status: 'pending', // Will trigger preview generation
+            }))
+        ).catch(err => {
+          console.error('Error creating order_items:', err);
+          // Non-blocking, continue with checkout
+        });
+      }
 
       // Generate Refrens invoice after order creation (non-blocking)
       try {
@@ -531,13 +606,30 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
             <Label htmlFor="gstin-checkout" className="text-sm font-medium">
               GSTIN (Optional - for business purchases)
             </Label>
-                  <Input
-              id="gstin-checkout"
-              placeholder="Enter GSTIN"
-                    value={gstin}
-                    onChange={(e) => setGstin(e.target.value)}
-              className="text-sm"
-            />
+            <div className="relative">
+              <Input
+                id="gstin-checkout"
+                placeholder="22AAAAA0000A1Z5"
+                value={gstin}
+                onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                maxLength={15}
+                className="text-sm"
+              />
+              {gstinVerifying && (
+                <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              {gstinValid === true && (
+                <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-600" />
+              )}
+              {gstinValid === false && gstin.length === 15 && (
+                <XCircle className="absolute right-3 top-3 h-4 w-4 text-red-600" />
+              )}
+            </div>
+            {gstinValid && gstinDetails && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {gstinDetails.business_name}
+              </p>
+            )}
             {gstin && (
               <Button
                 variant="outline"
@@ -548,7 +640,7 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
                 Download Invoice Estimate
               </Button>
             )}
-                </div>
+          </div>
 
           <Separator />
 

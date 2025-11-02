@@ -74,9 +74,9 @@ export const CustomerItemCard = ({
         }
       }}
     >
-      <CardContent className="p-3">
+      <CardContent className="p-2 md:p-2.5">
         {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
-        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-3">
+        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2 md:mb-2.5">
           <img
             src={image}
             alt={name}
@@ -171,7 +171,7 @@ export const CustomerItemCard = ({
         </div>
 
         {/* Content */}
-        <div className="space-y-1.5">
+        <div className="space-y-1 md:space-y-1.5">
           {/* Name - 16px bold per spec */}
           <h3 className="text-base font-bold line-clamp-1 leading-tight">
             {name}

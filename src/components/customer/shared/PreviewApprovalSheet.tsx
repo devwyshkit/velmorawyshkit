@@ -52,7 +52,7 @@ export const PreviewApprovalSheet = ({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>("");
-  
+
   // Mock proof data
   const proof = {
     orderId: orderId || 'ORD-123',
@@ -281,27 +281,27 @@ export const PreviewApprovalSheet = ({
           side="bottom"
           className="h-[90vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
         >
-          {/* Grabber */}
-          <div className="flex justify-center pt-2">
-            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
-          </div>
+        {/* Grabber */}
+        <div className="flex justify-center pt-2">
+          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
 
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Review Your Design</h2>
             </div>
-          </div>
+        </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            {/* Item Info */}
-            <div>
-              <h3 className="font-semibold mb-1">{proof.itemName}</h3>
-              <p className="text-sm text-muted-foreground">
-                Order ID: {proof.orderId}
-              </p>
-            </div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* Item Info */}
+          <div>
+            <h3 className="font-semibold mb-1">{proof.itemName}</h3>
+            <p className="text-sm text-muted-foreground">
+              Order ID: {proof.orderId}
+            </p>
+          </div>
 
             {/* Deadline Warning */}
             <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning rounded-lg">
@@ -326,7 +326,7 @@ export const PreviewApprovalSheet = ({
             </div>
 
             {/* Mockup Carousel with Download */}
-            <div>
+          <div>
               <div className="flex justify-between items-center mb-3">
                 <Label className="text-sm font-medium">Design Mockups</Label>
                 <Button variant="ghost" size="sm" onClick={handleDownloadAll}>
@@ -334,39 +334,39 @@ export const PreviewApprovalSheet = ({
                   Download All
                 </Button>
               </div>
-              <Carousel className="w-full">
-                <CarouselContent>
-                  {proof.mockups.map((mockup, index) => (
-                    <CarouselItem key={index}>
+            <Carousel className="w-full">
+              <CarouselContent>
+                {proof.mockups.map((mockup, index) => (
+                  <CarouselItem key={index}>
                       <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-muted">
-                        <img
-                          src={mockup}
-                          alt={`Mockup ${index + 1}`}
+                      <img
+                        src={mockup}
+                        alt={`Mockup ${index + 1}`}
                           className="w-full h-full object-cover cursor-pointer"
                           onClick={() => setFullscreenImage(mockup)}
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                        {/* Fallback icon */}
-                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
-                          <FileImage className="w-16 h-16" />
-                        </div>
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      {/* Fallback icon */}
+                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
+                        <FileImage className="w-16 h-16" />
+                      </div>
                         {/* Zoom indicator */}
                         <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1.5">
                           <ZoomIn className="h-4 w-4 text-white" />
                         </div>
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="left-2" />
-                <CarouselNext className="right-2" />
-              </Carousel>
-            </div>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-2" />
+              <CarouselNext className="right-2" />
+            </Carousel>
+          </div>
 
             {/* Revision Options with Count */}
-            <div>
+          <div>
               <div className="flex justify-between items-center mb-3">
                 <Label className="text-sm font-medium">Request Changes (Optional)</Label>
                 <Badge variant="secondary">{freeRevisionsLeft} free revisions left</Badge>
@@ -376,24 +376,24 @@ export const PreviewApprovalSheet = ({
                   Additional revisions: ₹{revisionCost} each
                 </p>
               )}
-              <div className="space-y-3">
-                {revisionOptions.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={option.id}
-                      checked={revisions.includes(option.id)}
-                      onCheckedChange={() => handleRevisionToggle(option.id)}
-                    />
-                    <Label
-                      htmlFor={option.id}
-                      className="text-sm font-normal cursor-pointer flex-1"
-                    >
-                      {option.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-3">
+              {revisionOptions.map((option) => (
+                <div key={option.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={option.id}
+                    checked={revisions.includes(option.id)}
+                    onCheckedChange={() => handleRevisionToggle(option.id)}
+                  />
+                  <Label
+                    htmlFor={option.id}
+                    className="text-sm font-normal cursor-pointer flex-1"
+                  >
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
             </div>
+          </div>
 
             {/* File Upload */}
             <div>
@@ -417,33 +417,33 @@ export const PreviewApprovalSheet = ({
               </p>
             </div>
 
-            {/* Feedback */}
-            <div>
-              <Label htmlFor="feedback" className="text-sm font-medium mb-2 block">
-                Additional Feedback (Optional)
-              </Label>
-              <Textarea
-                id="feedback"
-                placeholder="Provide specific details about changes you'd like..."
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                className="resize-none"
-                rows={4}
-              />
-            </div>
-
-            {/* Non-refundable Warning */}
-            <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning rounded-lg">
-              <AlertCircle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-warning-foreground">
-                <strong>Important:</strong> Once you approve this design, the item will be produced and 
-                cannot be refunded or modified.
-              </p>
-            </div>
+          {/* Feedback */}
+          <div>
+            <Label htmlFor="feedback" className="text-sm font-medium mb-2 block">
+              Additional Feedback (Optional)
+            </Label>
+            <Textarea
+              id="feedback"
+              placeholder="Provide specific details about changes you'd like..."
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              className="resize-none"
+              rows={4}
+            />
           </div>
 
-          {/* Footer with Action Buttons */}
-          <div className="sticky bottom-0 bg-white border-t border-border p-4 space-y-3">
+          {/* Non-refundable Warning */}
+          <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning rounded-lg">
+            <AlertCircle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-warning-foreground">
+                <strong>Important:</strong> Once you approve this design, the item will be produced and 
+              cannot be refunded or modified.
+            </p>
+          </div>
+        </div>
+
+        {/* Footer with Action Buttons */}
+        <div className="sticky bottom-0 bg-white border-t border-border p-4 space-y-3">
             {showConfirm ? (
               <div className="p-3 bg-muted rounded-lg space-y-3">
                 <p className="font-medium text-sm">Start production?</p>
@@ -470,29 +470,29 @@ export const PreviewApprovalSheet = ({
             ) : (
               <>
                 {(revisions.length > 0 || feedback || uploadedFile) && (
-                  <Button
-                    onClick={handleSubmitRevisions}
-                    variant="outline"
-                    className="w-full h-12"
-                    size="lg"
-                    disabled={loading}
-                  >
+            <Button
+              onClick={handleSubmitRevisions}
+              variant="outline"
+              className="w-full h-12"
+              size="lg"
+              disabled={loading}
+            >
                     {loading ? "Submitting..." : "Request Changes"}
-                  </Button>
+            </Button>
                 )}
-                <Button
-                  onClick={handleApprove}
-                  className="w-full h-12"
-                  size="lg"
-                  disabled={loading}
-                >
-                  {loading ? "Approving..." : "Approve & Proceed"}
-                </Button>
+          <Button
+            onClick={handleApprove}
+            className="w-full h-12"
+            size="lg"
+            disabled={loading}
+          >
+            {loading ? "Approving..." : "Approve & Proceed"}
+          </Button>
               </>
             )}
-          </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </SheetContent>
+    </Sheet>
 
       {/* Fullscreen Image Viewer */}
       {fullscreenImage && (

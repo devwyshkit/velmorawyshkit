@@ -1,5 +1,6 @@
 export const RouteMap = {
   home: () => `/`,
+  catalog: (storeId: string) => `/catalog/${storeId}`,
   search: (query?: string) => (query ? `/search?${query}` : `/search`),
   login: () => `/login`,
   signup: () => `/signup`,

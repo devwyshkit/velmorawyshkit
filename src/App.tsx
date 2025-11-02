@@ -38,6 +38,7 @@ const App = () => (
                     <Route path="/login" element={<LazyPages.Login />} />
                     <Route path="/signup" element={<LazyPages.Signup />} />
                     <Route path="/search" element={<LazyPages.Search />} />
+                    <Route path="/catalog/:storeId" element={<LazyPages.StoreCatalog />} />
                     {/* Protected Consumer Routes */}
                     <Route path="/favorites" element={
                         <ProtectedRoute requiredRole="customer">

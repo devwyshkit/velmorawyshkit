@@ -4,6 +4,7 @@ import { lazy } from 'react';
 export const Login = lazy(() => import('../pages/customer/Login').then(m => ({ default: m.CustomerMobileLogin })));
 export const Signup = lazy(() => import('../pages/customer/Signup').then(m => ({ default: m.CustomerMobileSignup })));
 export const Home = lazy(() => import('../pages/customer/CustomerHome').then(m => ({ default: m.CustomerHome })));
+export const StoreCatalog = lazy(() => import('../pages/customer/StoreCatalog').then(m => ({ default: m.StoreCatalog })));
 export const Saved = lazy(() => import('../pages/customer/Saved').then(m => ({ default: m.Saved })));
 export const Checkout = lazy(() => import('../pages/customer/Checkout').then(m => ({ default: m.Checkout })));
 export const Confirmation = lazy(() => import('../pages/customer/Confirmation').then(m => ({ default: m.Confirmation })));
