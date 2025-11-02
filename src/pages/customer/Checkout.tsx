@@ -30,6 +30,7 @@ import {
 } from "@/lib/integrations/razorpay";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { fetchCartItems, type CartItemData } from "@/lib/integrations/supabase-data";
+import { refrensService } from "@/lib/integrations/refrens";
 
 export const Checkout = () => {
   const navigate = useNavigate();
@@ -273,6 +274,53 @@ ${contactlessDelivery ? 'Contactless Delivery Requested' : ''}
       }
 
       const orderId = orderData.id;
+
+      // Generate Refrens invoice after order creation (non-blocking)
+      try {
+        const invoicePayload = {
+          invoiceTitle: 'Tax Invoice',
+          invoiceNumber: orderNumber,
+          invoiceDate: new Date().toISOString(),
+          invoiceType: 'INVOICE' as const,
+          currency: 'INR',
+          billedTo: {
+            name: 'Customer',
+            country: 'IN',
+            street: address,
+            ...(gstin && { gstin }),
+          },
+          billedBy: {
+            name: 'Wyshkit',
+            street: 'Velomara Labs Private Limited',
+            city: 'Bangalore',
+            pincode: '560001',
+            gstState: '29', // Karnataka
+            country: 'IN',
+            gstin: '29ABCDE1234F1Z5', // Wyshkit GSTIN
+          },
+          items: cartItems.map((item: any) => ({
+            name: item.name,
+            rate: item.price,
+            quantity: item.quantity,
+            gstRate: 18,
+          })),
+        };
+
+        const invoiceResponse = await refrensService.createInvoice(invoicePayload);
+        
+        // Store invoice metadata in order
+        await supabase
+          .from('orders')
+          .update({
+            refrens_invoice_id: invoiceResponse._id,
+            refrens_invoice_url: invoiceResponse.share.pdf,
+            invoice_generated_at: new Date().toISOString(),
+          })
+          .eq('id', orderId);
+      } catch (invoiceError) {
+        console.error('Invoice generation error (non-critical):', invoiceError);
+        // Don't block checkout if invoice generation fails
+      }
 
       await initiatePayment({
         key: razorpayKey,

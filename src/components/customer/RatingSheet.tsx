@@ -6,13 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { submitReview } from "@/lib/services/reviews";
 
 interface RatingSheetProps {
   isOpen: boolean;
   onClose: () => void;
   orderId: string;
-  partnerName: string;
-  items: Array<{
+  orderItems: Array<{
+    id: string;
     name: string;
     image: string;
     quantity: number;
@@ -29,7 +30,7 @@ interface RatingData {
   tags: string[];
 }
 
-export const RatingSheet = ({ isOpen, onClose, orderId, partnerName, items }: RatingSheetProps) => {
+export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingSheetProps) => {
   const { toast } = useToast();
   const [ratingData, setRatingData] = useState<RatingData>({
     overallRating: 0,
@@ -73,8 +74,17 @@ export const RatingSheet = ({ isOpen, onClose, orderId, partnerName, items }: Ra
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Submit review for each item in the order
+      for (const item of orderItems) {
+        await submitReview({
+          reviewable_type: 'product',
+          reviewable_id: item.id,
+          order_id: orderId,
+          rating: ratingData.overallRating,
+          title: ratingData.tags.join(', ') || undefined,
+          comment: ratingData.feedback || undefined,
+        });
+      }
       
       toast({
         title: "Thank you for your feedback!",
@@ -83,6 +93,7 @@ export const RatingSheet = ({ isOpen, onClose, orderId, partnerName, items }: Ra
       
       onClose();
     } catch (error) {
+      console.error('Review submission error:', error);
       toast({
         title: "Error",
         description: "Failed to submit rating. Please try again.",

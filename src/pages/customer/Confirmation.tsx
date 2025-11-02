@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { CheckCircle2, Package, Clock, MapPin } from "lucide-react";
+import { CheckCircle2, Package, Clock, MapPin, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
@@ -18,6 +18,7 @@ export const Confirmation = () => {
   const orderId = id || 'ORD-' + Date.now();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -51,6 +52,10 @@ export const Confirmation = () => {
               item.customization_files && item.customization_files.length > 0
             ) || false
           });
+          // Set invoice URL if available
+          if (data.refrens_invoice_url) {
+            setInvoiceUrl(data.refrens_invoice_url);
+          }
         }
       } catch (error) {
         console.error('Failed to load order:', error);
@@ -184,6 +189,17 @@ export const Confirmation = () => {
           >
             Track Order
           </Button>
+          {invoiceUrl && (
+            <Button
+              onClick={() => window.open(invoiceUrl, '_blank')}
+              variant="outline"
+              className="w-full h-12 gap-2"
+              size="lg"
+            >
+              <FileText className="h-5 w-5" />
+              Download Invoice
+            </Button>
+          )}
           <Button
             onClick={() => navigate(RouteMap.home())}
             variant="outline"

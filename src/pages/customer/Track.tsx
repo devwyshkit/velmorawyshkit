@@ -484,8 +484,8 @@ export const Track = () => {
         isOpen={isRatingSheetOpen}
         onClose={() => setIsRatingSheetOpen(false)}
         orderId={orderId}
-        partnerName="Artisan Gifts Co."
-        items={orderDetails.items.map(item => ({
+        orderItems={orderDetails.items.map(item => ({
+          id: `item_${item.name.replace(/\s+/g, '_').toLowerCase()}`,
           name: item.name,
           image: "https://picsum.photos/seed/item/100/100",
           quantity: item.quantity,

@@ -40,6 +40,8 @@ import {
 } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
+import { fetchReviews } from "@/lib/services/reviews";
+import { formatDistanceToNow } from "date-fns";
 
 interface ProductSheetProps {
   itemId: string;
@@ -66,6 +68,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isFavourited, setIsFavourited] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
 
   // Load item and partner data
   useEffect(() => {
@@ -114,6 +117,15 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
         // Check if item is favourited
         const savedItems = await fetchSavedItems();
         setIsFavourited(savedItems.some((w) => w.id === itemId));
+
+        // Load reviews for this item
+        try {
+          const reviewsData = await fetchReviews('product', itemId);
+          setReviews(reviewsData);
+        } catch (reviewError) {
+          console.error('Error loading reviews:', reviewError);
+          // Reviews are non-critical, continue silently
+        }
       } catch (error) {
         // Fallback to mock on error
         const items = getMockItems();
@@ -596,6 +608,92 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           )}
         </div>
       </div>
+
+      {/* Reviews Section */}
+      {reviews.length > 0 && (
+        <div className="px-4 py-6 space-y-4 border-t border-border">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-base">Customer Reviews</h3>
+            <Button variant="link" className="text-sm p-0 h-auto">
+              View All ({reviews.length})
+            </Button>
+          </div>
+          
+          {/* Rating Summary */}
+          <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+            <div className="text-center">
+              <div className="text-3xl font-bold">
+                {(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)}
+              </div>
+              <div className="flex items-center gap-1 mt-1">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <span className="text-xs text-muted-foreground">
+                  {reviews.length} rating{reviews.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+            <div className="flex-1">
+              {[5, 4, 3, 2, 1].map(rating => {
+                const count = reviews.filter(r => r.rating === rating).length;
+                const percentage = (count / reviews.length) * 100;
+                return (
+                  <div key={rating} className="flex items-center gap-2 text-xs">
+                    <span className="w-8">{rating}★</span>
+                    <div className="flex-1 h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-yellow-400" 
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <span className="w-8 text-muted-foreground">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Recent Reviews */}
+          <div className="space-y-3">
+            {reviews.slice(0, 3).map((review: any) => (
+              <div key={review.id} className="p-3 border border-border rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "h-3 w-3",
+                            i < review.rating
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-muted-foreground"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    {review.is_verified && (
+                      <Badge variant="secondary" className="text-xs">
+                        Verified Purchase
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
+                  </span>
+                </div>
+                {review.title && (
+                  <h4 className="font-medium text-sm mb-1">{review.title}</h4>
+                )}
+                {review.comment && (
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {review.comment}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Footer with Add Button */}
       <div className="sticky bottom-0 bg-background border-t border-border px-4 py-4">
