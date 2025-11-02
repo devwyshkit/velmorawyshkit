@@ -86,7 +86,6 @@ export const API_TERMS = {
 
 export const ROUTES = {
   HOME: "/",
-  STORE: (id: string) => `/store/${id}`,
   FAVORITES: "/favorites",
   SAVED: "/saved", // Legacy
   CART: "/cart",
