@@ -8,7 +8,7 @@ import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobil
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
-import { searchItems, searchStores, fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase } from "@/lib/integrations/supabase-data";
+import { searchItems, fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase } from "@/lib/integrations/supabase-data";
 import { EmptyStates } from "@/components/ui/empty-state";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
@@ -76,11 +76,8 @@ export const CustomerMobileSearch = () => {
     const performSearch = async () => {
       if (searchQuery.trim() && searchQuery.length > 2) {
         try {
-          // Search both items and stores
-          const [itemResults, storeResults] = await Promise.all([
-            searchItems(searchQuery),
-            searchStores(searchQuery),
-          ]);
+          // Search items only (Swiggy pattern - no direct store pages)
+          const itemResults = await searchItems(searchQuery);
           
           // Transform items to search results
           const itemSearchResults: SearchResult[] = itemResults.map(item => ({
@@ -96,22 +93,7 @@ export const CustomerMobileSearch = () => {
             sponsored: item.sponsored,
           }));
           
-          // Transform stores to search results
-          const storeSearchResults: SearchResult[] = storeResults.map(store => ({
-            id: store.id,
-            name: store.name,
-            image: store.image,
-            price: -1, // Use -1 to indicate "no price" for stores (will be hidden in UI)
-            rating: store.rating,
-            ratingCount: store.ratingCount,
-            type: 'store' as const,
-            badge: store.badge,
-            shortDesc: store.tagline,
-            sponsored: store.sponsored,
-          }));
-          
-          // Combine results: stores first (if any), then items
-          setResults([...storeSearchResults, ...itemSearchResults]);
+          setResults(itemSearchResults);
         } catch (error) {
           // Handle error silently in production
           setResults([]);
