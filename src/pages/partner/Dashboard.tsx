@@ -128,12 +128,12 @@ export const PartnerHome = () => {
 
   if (loading) {
     return (
-      <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+      <div className="space-y-4 pb-20 md:pb-6">
         <div>
           <Skeleton className="h-8 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
         </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
             <Skeleton key={i} className="h-32" />
           ))}
@@ -144,19 +144,19 @@ export const PartnerHome = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6">
       {/* Page Header - Mobile optimized */}
       <div>
-        <h1 className="text-xl md:text-xl md:text-2xl font-bold tracking-tight">
+        <h1 className="text-xl font-bold tracking-tight">
           Welcome back, {user?.name || 'Partner'}!
         </h1>
-        <p className="text-sm md:text-base text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Here's what's happening with your business today
         </p>
       </div>
 
       {/* Stats Cards (Swiggy/Zomato pattern) - Mobile: 2 col, Desktop: 4 col */}
-      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatsCard
           title="Today's Orders"
           value={stats.todayOrders}
@@ -277,7 +277,7 @@ export const PartnerHome = () => {
                           className="h-8"
                           onClick={() => navigate(`/partner/orders?id=${order.id}`)}
                         >
-                          Accept
+                          View Details
                         </Button>
                       </div>
                     </div>

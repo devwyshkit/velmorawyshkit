@@ -9,7 +9,8 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { StickyCartBar } from "@/components/customer/shared/StickyCartBar";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
-import { searchItems, fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase } from "@/lib/integrations/supabase-data";
+import { searchItems, fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase, getTrendingSearches, saveSearchHistory } from "@/lib/integrations/supabase-data";
+import { useAuth } from "@/contexts/AuthContext";
 import { EmptyStates } from "@/components/ui/empty-state";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
@@ -30,25 +31,20 @@ interface SearchResult {
 export const CustomerMobileSearch = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [favouritedItems, setFavouritedItems] = useState<Set<string>>(new Set());
+  const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
 
   // Get query params
   const occasionParam = searchParams.get('occasion');
   const viewParam = searchParams.get('view');
   const queryParam = searchParams.get('q');
 
-  // Mock trending searches
-  const trendingSearches = [
-    'Birthday Gifts',
-    'Chocolate Hampers',
-    'Custom Mugs',
-    'Corporate Gifts',
-    'Wedding Favors',
-  ];
+  // Swiggy 2025: Fetch real trending searches from backend (not fake mock data)
 
   // Handle query parameters (occasion or view=stores or q=)
   useEffect(() => {
@@ -72,10 +68,19 @@ export const CustomerMobileSearch = () => {
     loadFavourites();
   }, []);
 
-  // Backend search with debouncing
+  // Swiggy 2025: Load real trending searches from backend
+  useEffect(() => {
+    const loadTrending = async () => {
+      const trending = await getTrendingSearches(10);
+      setTrendingSearches(trending);
+    };
+    loadTrending();
+  }, []);
+
+  // Swiggy 2025: Backend search with 200ms debounce, 1+ character threshold
   useEffect(() => {
     const performSearch = async () => {
-      if (searchQuery.trim() && searchQuery.length > 2) {
+      if (searchQuery.trim() && searchQuery.length >= 1) {
         try {
           // Search items only (Swiggy pattern - no direct store pages)
           const itemResults = await searchItems(searchQuery);
@@ -95,6 +100,13 @@ export const CustomerMobileSearch = () => {
           }));
           
           setResults(itemSearchResults);
+          
+          // Swiggy 2025: Save search to history (sync across devices)
+          const sessionId = user ? undefined : `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          await saveSearchHistory(searchQuery, user?.id || null, sessionId, {
+            searchSource: 'search_bar',
+            resultCount: itemSearchResults.length,
+          });
         } catch (error) {
           // Handle error silently in production
           setResults([]);
@@ -104,10 +116,10 @@ export const CustomerMobileSearch = () => {
       }
     };
 
-    // Debounce search by 300ms
-    const timeoutId = setTimeout(performSearch, 300);
+    // Swiggy 2025: Debounce search by 200ms (not 300ms)
+    const timeoutId = setTimeout(performSearch, 200);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, user]);
 
   // Handle search from SearchBar component
   const handleSearch = (query: string) => {
@@ -231,18 +243,6 @@ export const CustomerMobileSearch = () => {
               </div>
             </div>
 
-            {/* Search Tips */}
-            <div className="mt-8 p-4 bg-primary/5 rounded-lg">
-              <h3 className="text-sm font-semibold mb-2 text-primary">
-                Search Tips
-              </h3>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• Try searching for occasions like "birthday" or "wedding"</li>
-                <li>• Search by product type like "chocolates" or "hampers"</li>
-                <li>• Look for stores by name</li>
-                <li>• Use keywords like "custom" or "personalized"</li>
-              </ul>
-            </div>
           </div>
         )}
       </main>

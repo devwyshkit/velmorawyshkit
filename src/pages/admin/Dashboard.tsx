@@ -192,7 +192,7 @@ export const AdminDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         {/* Pending Partner Approvals */}
         {stats.pendingApprovals > 0 && (
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/partners")}>
+          <Card className="cursor-pointer hover:shadow-lg" onClick={() => navigate("/admin/partners")}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Pending Approvals</CardTitle>
@@ -213,7 +213,7 @@ export const AdminDashboard = () => {
 
         {/* Escalated Disputes */}
         {stats.escalatedDisputes > 0 && (
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow border-destructive/50" onClick={() => navigate("/admin/disputes")}>
+          <Card className="cursor-pointer hover:shadow-lg border-destructive/50" onClick={() => navigate("/admin/disputes")}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Escalated Disputes</CardTitle>
@@ -234,7 +234,7 @@ export const AdminDashboard = () => {
 
         {/* Due Payouts */}
         {stats.duePayouts > 0 && (
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/payouts")}>
+          <Card className="cursor-pointer hover:shadow-lg" onClick={() => navigate("/admin/payouts")}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Due Payouts</CardTitle>

@@ -10,13 +10,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyStates } from "@/components/ui/empty-state";
-import { useToast } from "@/hooks/use-toast";
 import { fetchSavedItems, removeFromSavedItemsSupabase, addToSavedItemsSupabase, type SavedItemData } from "@/lib/integrations/supabase-data";
 // Note: fetchSavedItems is now an alias to fetchFavoriteProducts from favorites service
 
 export const Saved = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [items, setItems] = useState<SavedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -33,11 +31,8 @@ export const Saved = () => {
       setItems(savedData);
     } catch (error) {
       console.error('Failed to load favourites:', error);
-      toast({
-        title: "Loading error",
-        description: "Failed to load favourites",
-        variant: "destructive",
-      });
+      // Swiggy 2025: Silent error - show empty state instead of toast
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -51,13 +46,8 @@ export const Saved = () => {
     const success = await removeFromSavedItemsSupabase(itemId);
     
     if (!success) {
-      // Revert on failure
+      // Swiggy 2025: Silent error - revert optimistically, no toast
       await loadSaved();
-      toast({
-        title: "Error",
-        description: "Failed to remove item",
-        variant: "destructive",
-      });
     }
   };
 

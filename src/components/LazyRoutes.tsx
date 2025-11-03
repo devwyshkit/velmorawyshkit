@@ -7,8 +7,8 @@ export const Home = lazy(() => import('../pages/customer/CustomerHome').then(m =
 export const PartnerCatalog = lazy(() => import('../pages/customer/PartnerCatalog').then(m => ({ default: m.PartnerCatalog })));
 export const Saved = lazy(() => import('../pages/customer/Saved').then(m => ({ default: m.Saved })));
 export const Track = lazy(() => import('../pages/customer/Track').then(m => ({ default: m.Track })));
-export const PreviewApproval = lazy(() => import('../pages/customer/PreviewApproval').then(m => ({ default: m.PreviewApproval })));
-export const Profile = lazy(() => import('../pages/customer/Profile').then(m => ({ default: m.Profile })));
+// PreviewApproval removed - functionality moved to inline bottom sheet in Track.tsx (Swiggy 2025 pattern)
+// Profile removed - functionality moved to AccountSheet bottom sheet (Swiggy 2025 pattern)
 export const Search = lazy(() => import('../pages/customer/Search').then(m => ({ default: m.CustomerMobileSearch })));
 export const Orders = lazy(() => import('../pages/customer/Orders').then(m => ({ default: m.Orders })));
 export const AddressBook = lazy(() => import('../pages/customer/AddressBook').then(m => ({ default: m.AddressBook })));
@@ -18,24 +18,20 @@ export const HelpCenter = lazy(() => import('../pages/customer/HelpCenter').then
 // Primary export
 export const Favorites = Saved;
 
-// Partner Pages - Business Dashboard
-export { PartnerLogin } from '../pages/partner/Login';
-export { PartnerSignup } from '../pages/partner/Signup';
-export { PartnerVerifyEmail } from '../pages/partner/VerifyEmail';
-export { PartnerOnboarding } from '../pages/partner/Onboarding';
-export { PartnerLayout } from '../components/partner/PartnerLayout';
-export { PartnerHome } from '../pages/partner/Dashboard';
-export { PartnerProducts } from '../pages/partner/Products';
-export { PartnerOrders } from '../pages/partner/Orders';
-export { PartnerEarnings } from '../pages/partner/Earnings';
-export { ReviewsManagement as PartnerReviews } from '../pages/partner/ReviewsManagement';
-export { CampaignManager as PartnerCampaigns } from '../pages/partner/CampaignManager';
-export { ReferralProgram as PartnerReferrals } from '../pages/partner/ReferralProgram';
-export { DisputeResolution as PartnerDisputes } from '../pages/partner/DisputeResolution';
-export { Returns as PartnerReturns } from '../pages/partner/Returns';
-export { HelpCenter as PartnerHelp } from '../pages/partner/HelpCenter';
-export { PartnerProfile } from '../pages/partner/Profile';
-export { PartnerBadges } from '../pages/partner/Badges';
+// Partner Pages - Business Dashboard (Lazy loaded for code splitting)
+export const PartnerLogin = lazy(() => import('../pages/partner/Login').then(m => ({ default: m.PartnerLogin })));
+export const PartnerSignup = lazy(() => import('../pages/partner/Signup').then(m => ({ default: m.PartnerSignup })));
+export const PartnerVerifyEmail = lazy(() => import('../pages/partner/VerifyEmail').then(m => ({ default: m.PartnerVerifyEmail })));
+export const PartnerOnboarding = lazy(() => import('../pages/partner/Onboarding').then(m => ({ default: m.PartnerOnboarding })));
+export const PartnerLayout = lazy(() => import('../components/partner/PartnerLayout').then(m => ({ default: m.PartnerLayout })));
+export const PartnerHome = lazy(() => import('../pages/partner/Dashboard').then(m => ({ default: m.PartnerHome })));
+export const PartnerProducts = lazy(() => import('../pages/partner/Products').then(m => ({ default: m.PartnerProducts })));
+export const PartnerProductCreate = lazy(() => import('../pages/partner/ProductCreate').then(m => ({ default: m.ProductCreate })));
+export const PartnerOrders = lazy(() => import('../pages/partner/Orders').then(m => ({ default: m.PartnerOrders })));
+export const PartnerEarnings = lazy(() => import('../pages/partner/Earnings').then(m => ({ default: m.PartnerEarnings })));
+export const PartnerReviews = lazy(() => import('../pages/partner/ReviewsManagement').then(m => ({ default: m.ReviewsManagement })));
+export const PartnerHelp = lazy(() => import('../pages/partner/HelpCenter').then(m => ({ default: m.HelpCenter })));
+export const PartnerProfile = lazy(() => import('../pages/partner/Profile').then(m => ({ default: m.PartnerProfile })));
 
 // Admin Pages - Internal Console
 export { AdminLogin } from '../pages/admin/Login';

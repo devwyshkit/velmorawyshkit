@@ -11,6 +11,7 @@ import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
 import { PreviewNotificationBanner } from "@/components/customer/shared/PreviewNotificationBanner";
+import { NavigationInitializer } from "@/components/system/NavigationInitializer";
 
 // Lazy Loaded Pages - Code Splitting
 import * as LazyPages from "./components/LazyRoutes";
@@ -26,6 +27,8 @@ const App = () => (
             <TooltipProvider>
               <OfflineBanner />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                {/* Initialize navigation service */}
+                <NavigationInitializer />
                 {/* Preview Notification Banner - Persistent across all pages (Fiverr 2025 pattern) */}
                 <PreviewNotificationBanner />
                 <Suspense fallback={<SkeletonComponents.Dashboard />}>
@@ -49,11 +52,8 @@ const App = () => (
                           <LazyPages.Track />
                         </ProtectedRoute>
                       } />
-                    <Route path="/order/:orderId/preview" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.PreviewApproval />
-                        </ProtectedRoute>
-                      } />
+                    {/* Preview Approval removed - now inline bottom sheet in Track page (Swiggy 2025 pattern) */}
+                    <Route path="/order/:orderId/preview" element={<Navigate to="/orders" replace />} />
                     <Route path="/orders" element={
                         <ProtectedRoute requiredRole="customer">
                           <LazyPages.Orders />
@@ -70,11 +70,8 @@ const App = () => (
                         </ProtectedRoute>
                       } />
                     <Route path="/help" element={<LazyPages.HelpCenter />} />
-                    <Route path="/profile" element={
-                        <ProtectedRoute requiredRole="customer">
-                          <LazyPages.Profile />
-                        </ProtectedRoute>
-                      } />
+                    {/* Profile page removed - AccountSheet (bottom sheet) replaces it (Swiggy 2025 pattern) */}
+                    <Route path="/profile" element={<Navigate to="/" replace />} />
 
                     {/* Legacy redirects from /customer/* */}
                     <Route path="/customer/home" element={<Navigate to="/" replace />} />
@@ -105,14 +102,10 @@ const App = () => (
                       }>
                         <Route index element={<LazyPages.PartnerHome />} />
                         <Route path="products" element={<LazyPages.PartnerProducts />} />
+                        <Route path="products/create" element={<LazyPages.PartnerProductCreate />} />
                         <Route path="orders" element={<LazyPages.PartnerOrders />} />
                         <Route path="earnings" element={<LazyPages.PartnerEarnings />} />
                         <Route path="reviews" element={<LazyPages.PartnerReviews />} />
-                        <Route path="campaigns" element={<LazyPages.PartnerCampaigns />} />
-                        <Route path="referrals" element={<LazyPages.PartnerReferrals />} />
-                        <Route path="badges" element={<LazyPages.PartnerBadges />} />
-                        <Route path="disputes" element={<LazyPages.PartnerDisputes />} />
-                        <Route path="returns" element={<LazyPages.PartnerReturns />} />
                         <Route path="help" element={<LazyPages.PartnerHelp />} />
                         <Route path="profile" element={<LazyPages.PartnerProfile />} />
                       </Route>

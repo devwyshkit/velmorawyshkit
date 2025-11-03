@@ -7,14 +7,11 @@
 import { useState, useEffect } from "react";
 import { Star, MessageSquare, ThumbsUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { ReviewsList } from "@/components/reviews/ReviewsList";
-import { ReviewAnalytics } from "@/components/reviews/ReviewAnalytics";
-import { calculateSentimentDistribution } from "@/lib/reviews/sentiment";
 import type { Review, ReviewStats } from "@/types/reviews";
 
 export const ReviewsManagement = () => {
@@ -140,25 +137,22 @@ export const ReviewsManagement = () => {
       distribution[r.rating]++;
     });
 
-    // Calculate sentiment
-    const sentiment = calculateSentimentDistribution(reviewsData);
-
     setStats({
       overall_rating: overallRating,
       total_reviews: reviewsData.length,
       response_rate: 85, // TODO: Calculate from actual responses
       avg_response_time_hours: 4, // TODO: Calculate from timestamps
       rating_distribution: distribution,
-      sentiment,
-      top_keywords: [], // TODO: Extract from reviews
+      sentiment: { positive: 0, neutral: 0, negative: 0 },
+      top_keywords: [],
     });
   };
 
   if (loading) {
     return (
-      <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+      <div className="space-y-4 pb-20 md:pb-6">
         <Skeleton className="h-12 w-64" />
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -169,17 +163,17 @@ export const ReviewsManagement = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Reviews & Ratings</h1>
+        <h1 className="text-xl font-bold tracking-tight">Reviews & Ratings</h1>
         <p className="text-muted-foreground">
           Manage customer reviews and respond to feedback
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatsCard
           title="Overall Rating"
           value={stats.overall_rating > 0 ? `${stats.overall_rating.toFixed(1)}★` : "No reviews yet"}
@@ -208,28 +202,12 @@ export const ReviewsManagement = () => {
         />
       </div>
 
-      {/* Tabs: Reviews List & Analytics */}
-      <Tabs defaultValue="reviews" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="reviews" className="space-y-4 mt-6">
-          <ReviewsList 
-            reviews={reviews} 
-            stats={stats}
-            onReviewUpdate={loadReviews}
-          />
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-4 mt-6">
-          <ReviewAnalytics 
-            reviews={reviews}
-            stats={stats}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Reviews List - View-only with respond capability (Swiggy/Fiverr pattern) */}
+      <ReviewsList 
+        reviews={reviews} 
+        stats={stats}
+        onReviewUpdate={loadReviews}
+      />
     </div>
   );
 };

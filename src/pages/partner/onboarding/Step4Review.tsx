@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, CheckCircle2, Edit2, Loader2, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Edit2, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/integrations/supabase-client";
 // Zoho Sign removed; define a minimal local shape for UI state only
 type SigningRequest = {
@@ -140,7 +140,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
   const requiresFSSAI = ['food', 'perishables', 'beverages'].includes(data.category || '');
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold mb-2">Review & Submit</h2>
         <p className="text-sm text-muted-foreground">
@@ -243,7 +243,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
         <CardContent className="space-y-4">
           {contractSigned ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="font-medium">Contract Signed ✓</span>
               </div>
@@ -303,10 +303,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
                 className="w-full gap-2"
               >
                 {contractLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sending Contract...
-                  </>
+                  "Sending Contract..."
                 ) : (
                   <>
                     <FileText className="h-4 w-4" />
@@ -370,10 +367,7 @@ export const Step4Review = ({ data, onSubmit, onBack }: Step4ReviewProps) => {
           className="gap-2"
         >
           {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Submitting...
-            </>
+            "Submitting..."
           ) : (
             <>
               Submit for Approval

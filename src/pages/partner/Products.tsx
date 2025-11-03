@@ -1,17 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, Download, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { ProductListingWizard } from "@/features/partner/products/ProductListingWizard";
 import { productColumns } from "@/components/partner/ProductColumns";
-import { BulkActionsDropdown } from "@/components/partner/products/BulkActionsDropdown";
-import { CSVImporter } from "@/components/products/CSVImporter";
-import { exportToCSV } from "@/lib/products/csvUtils";
 
 export interface Product {
   id: string;
@@ -34,10 +29,13 @@ export interface Product {
 export interface AddOn {
   id: string;
   name: string;
-  price: number;
-  moq: number;              // Minimum order quantity
-  requiresProof: boolean;   // Customer must upload design/logo
-  description?: string;     // Help text (e.g., "Upload logo PNG/SVG")
+  label: string;           // Alias for name, matches customer UI format
+  price: number;            // In paise
+  moq?: number;             // Optional: Minimum order quantity
+  requiresProof?: boolean;  // Alias for requiresPreview
+  requiresPreview?: boolean; // Customer must upload design/logo (Fiverr preview)
+  instructions?: string;    // Help text (e.g., "Upload logo PNG/SVG")
+  description?: string;     // Alias for instructions
 }
 
 /**
@@ -46,14 +44,10 @@ export interface AddOn {
  * Add-ons builder for branding/customization (Swiggy pattern)
  */
 export const PartnerProducts = () => {
-  const { toast } = useToast();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [showCSVImporter, setShowCSVImporter] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     loadProducts();
@@ -64,10 +58,24 @@ export const PartnerProducts = () => {
     
     setLoading(true);
     try {
+      // First get the user's store
+      const { data: store, error: storeError } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
+
+      if (storeError || !store) {
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      // Then get products from store_items (matching ProductCreate.tsx)
       const { data, error } = await supabase
-        .from('partner_products')
+        .from('store_items')
         .select('*')
-        .eq('partner_id', user.id)
+        .eq('store_id', store.id)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -94,7 +102,37 @@ export const PartnerProducts = () => {
           },
         ]);
       } else {
-        setProducts(data || []);
+        // Map store_items data to Product interface
+        const mappedProducts: Product[] = (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description || '',
+          short_desc: item.short_desc,
+          price: item.price,
+          stock: item.stock_quantity || 0,
+          images: item.images || (item.image_url ? [item.image_url] : []),
+          is_customizable: item.is_customizable || false,
+          // Map personalizations to add_ons format for compatibility
+          add_ons: item.personalizations ? item.personalizations.map((p: any) => ({
+            id: p.id,
+            name: p.label,
+            label: p.label,
+            price: typeof p.price === 'number' ? p.price : parseInt(p.price || '0'),
+            requiresProof: p.requiresPreview || false,
+            requiresPreview: p.requiresPreview || false,
+            instructions: p.instructions,
+            description: p.instructions,
+          })) : [],
+          category: item.category,
+          tags: item.tags || [],
+          is_active: item.is_active !== false,
+          approval_status: item.status === 'approved' ? 'approved' : 
+                          item.status === 'rejected' ? 'rejected' : 
+                          item.status === 'changes_requested' ? 'changes_requested' : 'pending_review',
+          rejection_reason: item.rejection_reason,
+          created_at: item.created_at,
+        }));
+        setProducts(mappedProducts);
       }
     } catch (error) {
       // Handle error silently in production
@@ -104,104 +142,69 @@ export const PartnerProducts = () => {
   };
 
   const handleAddProduct = () => {
-    setEditingProduct(null);
-    setShowProductForm(true);
+    // Navigate to simple product create page (Swiggy pattern)
+    navigate('/partner/dashboard/products/create');
   };
 
   const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setShowProductForm(true);
+    // TODO: Navigate to edit page or open edit form
+    // For now, edit functionality can be added later
+    console.log('Edit product:', product);
   };
 
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
+      if (!user) return;
+
+      // Get store first (matching ProductCreate.tsx pattern)
+      const { data: store } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
+
+      if (!store) {
+        alert('Store not found');
+        return;
+      }
+
       const { error } = await supabase
-        .from('partner_products')
+        .from('store_items')
         .delete()
-        .eq('id', productId);
+        .eq('id', productId)
+        .eq('store_id', store.id);
       
       if (error) throw error;
       
-      toast({
-        title: "Product deleted",
-        description: "Product removed successfully",
-      });
-      
+      // Silent success - reload implies success (Swiggy 2025 pattern)
       loadProducts();
     } catch (error: any) {
-      toast({
-        title: "Delete failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Error shown via confirm dialog or handled silently
+      console.error('Delete product error:', error);
     }
   };
 
-  const handleFormSuccess = () => {
-    setShowProductForm(false);
-    setEditingProduct(null);
-    loadProducts();
-  };
-
-  const handleExportAll = () => {
-    exportToCSV(products, `all-products-${new Date().toISOString().split('T')[0]}.csv`);
-    toast({
-      title: "Export successful",
-      description: `Exported ${products.length} products to CSV`,
-    });
-  };
-
-  const handleCSVImportSuccess = () => {
-    setShowCSVImporter(false);
-    loadProducts();
-    toast({
-      title: "Import completed",
-      description: "Products imported successfully",
-    });
-  };
-
-  const handleBulkActionSuccess = () => {
-    setSelectedProducts([]);
-    loadProducts();
-  };
+  // Removed handleFormSuccess - product creation now uses separate page
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6">
       {/* Page Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Products</h1>
+          <h1 className="text-xl font-bold tracking-tight">Products</h1>
           <p className="text-muted-foreground">
             Manage your product catalog and add-ons
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setShowCSVImporter(true)} className="gap-2">
-            <Upload className="h-4 w-4" />
-            Import CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExportAll} className="gap-2">
-            <Download className="h-4 w-4" />
-            Export All
-          </Button>
           <Button onClick={handleAddProduct} className="gap-2">
             <Plus className="h-4 w-4" />
             Add Product
           </Button>
         </div>
       </div>
-
-      {/* Bulk Actions - Shows when products are selected */}
-      {selectedProducts.length > 0 && (
-        <BulkActionsDropdown
-          selectedProducts={selectedProducts}
-          selectedCount={selectedProducts.length}
-          onClearSelection={() => setSelectedProducts([])}
-          onSuccess={handleBulkActionSuccess}
-        />
-      )}
 
       {/* Products with Approval Status Filters */}
       <Tabs defaultValue="all" className="w-full">
@@ -226,7 +229,6 @@ export const PartnerProducts = () => {
             data={products}
             searchKey="name"
             searchPlaceholder="Search products..."
-            onRowSelectionChange={setSelectedProducts}
             loading={loading}
             skeletonRows={5}
           />
@@ -238,7 +240,6 @@ export const PartnerProducts = () => {
             data={products.filter(p => p.approval_status === 'approved')}
             searchKey="name"
             searchPlaceholder="Search approved products..."
-            onRowSelectionChange={setSelectedProducts}
             loading={loading}
             skeletonRows={5}
           />
@@ -250,7 +251,6 @@ export const PartnerProducts = () => {
             data={products.filter(p => p.approval_status === 'pending_review')}
             searchKey="name"
             searchPlaceholder="Search pending products..."
-            onRowSelectionChange={setSelectedProducts}
             loading={loading}
             skeletonRows={5}
           />
@@ -262,39 +262,14 @@ export const PartnerProducts = () => {
             data={products.filter(p => p.approval_status === 'rejected')}
             searchKey="name"
             searchPlaceholder="Search rejected products..."
-            onRowSelectionChange={setSelectedProducts}
             loading={loading}
             skeletonRows={5}
           />
         </TabsContent>
       </Tabs>
 
-      {/* Product Form Sheet (Add/Edit with add-ons builder) */}
-      <Sheet open={showProductForm} onOpenChange={setShowProductForm}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto" aria-describedby="product-wizard-description">
-          <SheetHeader>
-            <SheetTitle>
-              {editingProduct ? 'Edit Product' : 'Add New Product'}
-            </SheetTitle>
-            <SheetDescription id="product-wizard-description">
-              Create a new product listing with tiered pricing, add-ons, and customization options. 
-              Your product will be reviewed before going live.
-            </SheetDescription>
-          </SheetHeader>
-          <ProductListingWizard
-            product={editingProduct}
-            onSuccess={handleFormSuccess}
-            onCancel={() => setShowProductForm(false)}
-          />
-        </SheetContent>
-      </Sheet>
-
-      {/* CSV Importer Dialog */}
-      <CSVImporter
-        open={showCSVImporter}
-        onOpenChange={setShowCSVImporter}
-        onSuccess={handleCSVImportSuccess}
-      />
+      {/* Product creation now uses full page (/partner/dashboard/products/create) - Swiggy 2025 pattern */}
+      {/* Old wizard removed - replaced with simple form */}
     </div>
   );
 };

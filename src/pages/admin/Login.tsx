@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { useTheme } from "@/components/theme-provider";
 
 /**
  * Admin Login Page
@@ -19,14 +18,11 @@ import { useTheme } from "@/components/theme-provider";
 export const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,16 +89,13 @@ export const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
-      
-      <Card className="w-full max-w-md relative z-10 shadow-2xl border-slate-700">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-3 text-center pb-6">
           {/* Logo */}
           <div className="flex justify-center mb-4">
             <img
-              src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
+              src="/wyshkit-logo.png"
               alt="Wyshkit Admin"
               className="h-12"
               width="200"
@@ -112,7 +105,7 @@ export const AdminLogin = () => {
           
           <div>
             <CardTitle className="text-2xl font-bold">Admin Console</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription>
               Sign in to access the admin dashboard
             </CardDescription>
           </div>
@@ -122,7 +115,7 @@ export const AdminLogin = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Error Alert */}
             {error && (
-              <Alert variant="destructive" className="animate-in slide-in-from-top-2">
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -167,7 +160,7 @@ export const AdminLogin = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground"
                   disabled={loading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

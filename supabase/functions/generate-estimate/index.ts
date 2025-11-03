@@ -43,11 +43,12 @@ serve(async (req) => {
       )
     }
 
-    // Prepare Refrens API payload
-    const refrensApiKey = Deno.env.get('REFRENS_API_KEY')
-    const refrensCompanyId = Deno.env.get('REFRENS_COMPANY_ID')
+    // Refrens API credentials from environment
+    const refrensApiKey = Deno.env.get('REFRENS_APP_SECRET') || 'dhfDagwaTH-zXg0xpe3mTgf3'
+    const refrensUrlKey = Deno.env.get('REFRENS_URL_KEY') || 'velmora-labs-private-limited'
+    const refrensAppId = Deno.env.get('REFRENS_APP_ID') || 'velmora-labs-private-limited-EfzaJ'
 
-    if (!refrensApiKey || !refrensCompanyId) {
+    if (!refrensApiKey || !refrensUrlKey) {
       // Mock response for development
       const mockPdfUrl = `https://storage.example.com/estimates/${orderId}.pdf`
       
@@ -66,48 +67,75 @@ serve(async (req) => {
       )
     }
 
-    // Build line items for Refrens
-    const lineItems = cartItems.map((item: any) => ({
-      description: item.name,
-      quantity: item.quantity,
-      unit_price: item.price,
-      tax_rate: 18, // GST rate
+    // Build items for Refrens API (matches Refrens documentation format)
+    const items = cartItems.map((item: any) => ({
+      name: item.name || 'Item',
+      rate: item.price || 0,
+      quantity: item.quantity || 1,
+      gstRate: 18, // 18% GST
     }))
 
-    // Call Refrens API to create estimate
-    const refrensResponse = await fetch(`https://api.refrens.com/v1/estimates`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${refrensApiKey}`
-      },
-      body: JSON.stringify({
-        company_id: refrensCompanyId,
-        customer: {
-          name: customerInfo?.name || 'Customer',
-          email: customerInfo?.email || '',
-          gstin: gstin || null,
+    // Calculate totals
+    const subtotal = items.reduce((sum, item) => sum + (item.rate * item.quantity), 0)
+    const gstAmount = subtotal * 0.18
+    const total = subtotal + gstAmount
+
+    // Get customer address from order
+    const deliveryAddress = typeof order.delivery_address === 'object' 
+      ? order.delivery_address 
+      : JSON.parse(order.delivery_address || '{}')
+
+    // Call Refrens API to create estimate (Bill of Supply for estimates)
+    const refrensResponse = await fetch(
+      `https://api.refrens.com/businesses/${refrensUrlKey}/invoices`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${refrensApiKey}`
         },
-        line_items: lineItems,
-        subtotal: order.subtotal,
-        tax_amount: order.tax_amount,
-        total: order.total_amount,
-        currency: 'INR',
-        metadata: {
-          order_id: orderId,
-          order_number: order.order_number
-        }
-      })
-    })
+        body: JSON.stringify({
+          invoiceTitle: 'Estimate',
+          invoiceType: 'BOS', // Bill of Supply for estimates
+          currency: 'INR',
+          billedTo: {
+            name: customerInfo?.name || deliveryAddress.name || 'Customer',
+            email: customerInfo?.email || '',
+            phone: deliveryAddress.phone || '',
+            street: deliveryAddress.house || '',
+            city: deliveryAddress.city || '',
+            pincode: deliveryAddress.pincode || '',
+            gstin: gstin || undefined,
+            country: 'India',
+          },
+          billedBy: {
+            name: 'Velmora Labs Private Limited',
+            street: '123 Business Address',
+            city: 'Bangalore',
+            pincode: '560001',
+            gstin: Deno.env.get('WYSHKIT_GSTIN') || undefined,
+            country: 'India',
+          },
+          items: items,
+          invoiceDate: new Date().toISOString().split('T')[0],
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+        })
+      }
+    )
 
     if (!refrensResponse.ok) {
-      throw new Error('Refrens API call failed')
+      const errorText = await refrensResponse.text()
+      console.error('Refrens API error:', errorText)
+      throw new Error(`Refrens API failed: ${refrensResponse.status} - ${errorText}`)
     }
 
     const refrensData = await refrensResponse.json()
-    const pdfUrl = refrensData?.pdf_url || refrensData?.document_url
+    
+    // Refrens returns PDF in share.pdf field
+    const pdfUrl = refrensData?.share?.pdf || refrensData?.pdf_url || refrensData?.document_url
 
     if (!pdfUrl) {
+      console.error('Refrens response:', JSON.stringify(refrensData, null, 2))
       throw new Error('No PDF URL returned from Refrens')
     }
 
@@ -116,7 +144,7 @@ serve(async (req) => {
       .from('orders')
       .update({ 
         estimate_url: pdfUrl,
-        invoice_number: refrensData?.estimate_number,
+        invoice_number: refrensData?.invoiceNumber || refrensData?.invoice_number,
         gstin_verified_at: gstin ? new Date().toISOString() : null
       })
       .eq('id', orderId)
@@ -124,7 +152,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         pdf_url: pdfUrl,
-        estimate_number: refrensData?.estimate_number
+        estimate_number: refrensData?.invoiceNumber || refrensData?.invoice_number,
+        invoice_id: refrensData?._id || refrensData?.id,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

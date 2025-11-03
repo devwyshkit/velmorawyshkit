@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Star, ThumbsUp, ThumbsDown, MessageSquare, Package, Clock } from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, MessageSquare, Package, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { useToast } from "@/hooks/use-toast";
 import { submitReview } from "@/lib/services/reviews";
+import { cn } from "@/lib/utils";
 
 interface RatingSheetProps {
   isOpen: boolean;
@@ -31,7 +31,6 @@ interface RatingData {
 }
 
 export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingSheetProps) => {
-  const { toast } = useToast();
   const [ratingData, setRatingData] = useState<RatingData>({
     overallRating: 0,
     qualityRating: 0,
@@ -42,6 +41,8 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
     tags: [],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleStarClick = (category: keyof RatingData, rating: number) => {
     if (typeof ratingData[category] === 'number') {
@@ -62,16 +63,17 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
   };
 
   const handleSubmit = async () => {
+    // Clear previous errors
+    setValidationError(null);
+    setSubmitError(null);
+
     if (ratingData.overallRating === 0) {
-      toast({
-        title: "Rating Required",
-        description: "Please provide an overall rating before submitting.",
-        variant: "destructive",
-      });
+      setValidationError("Please provide an overall rating before submitting.");
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     
     try {
       // Submit review for each item in the order
@@ -86,19 +88,11 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
         });
       }
       
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Your rating helps us improve our service.",
-      });
-      
+      // Swiggy 2025: Silent operation - closing sheet confirms successful submission
       onClose();
     } catch (error) {
       console.error('Review submission error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit rating. Please try again.",
-        variant: "destructive",
-      });
+      setSubmitError("Failed to submit rating. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -184,7 +178,7 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
           {/* Order Items */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Order Items</Label>
-            {items.map((item, index) => (
+            {orderItems.map((item, index) => (
               <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <img
                   src={item.image}
@@ -200,11 +194,20 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
           </div>
 
           {/* Overall Rating */}
-          <StarRating
-            category="overallRating"
-            label="Overall Experience *"
-            value={ratingData.overallRating}
-          />
+          <div className="space-y-2">
+            <StarRating
+              category="overallRating"
+              label="Overall Experience *"
+              value={ratingData.overallRating}
+            />
+            {/* Inline validation error */}
+            {validationError && (
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4" />
+                <span>{validationError}</span>
+              </div>
+            )}
+          </div>
 
           {/* Detailed Ratings */}
           <div className="space-y-4">
@@ -229,7 +232,7 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
 
           {/* Would Recommend */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Would you recommend {partnerName}?</Label>
+            <Label className="text-sm font-medium">Would you recommend this store?</Label>
             <RadioGroup
               value={ratingData.wouldRecommend.toString()}
               onValueChange={(value) => setRatingData(prev => ({
@@ -317,6 +320,14 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
               className="resize-none"
             />
           </div>
+
+          {/* Submit Error */}
+          {submitError && (
+            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+              <span className="text-sm text-destructive">{submitError}</span>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex gap-3 pt-4">

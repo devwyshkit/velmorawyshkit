@@ -29,7 +29,6 @@ import { useToast } from "@/hooks/use-toast";
 import { isAuthenticated } from "@/lib/integrations/supabase-client";
 import {
   addToCartSupabase,
-  getMockItems,
   fetchStoreById,
   fetchItemById,
   addToSavedItemsSupabase,
@@ -90,25 +89,8 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
             }
           }
         } else {
-          // Fallback to mock if not found
-          const items = getMockItems();
-          const foundItem = items.find((i) => i.id === itemId) || items[0];
-          setItem({
-            ...foundItem,
-            specs: {
-              weight: "2.5 kg",
-              dimensions: "30cm x 20cm x 15cm",
-              materials: "Premium packaging with satin finish",
-            },
-          });
-
-          // Load store for mock item
-          if (foundItem.store_id) {
-            const storeData = await fetchStoreById(foundItem.store_id);
-            if (storeData) {
-              setStore(storeData);
-            }
-          }
+          // Item not found - handle gracefully
+          setItem(null);
         }
 
         // Check if item is favourited
@@ -124,10 +106,8 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           // Reviews are non-critical, continue silently
         }
       } catch (error) {
-        // Fallback to mock on error
-        const items = getMockItems();
-        const foundItem = items.find((i) => i.id === itemId) || items[0];
-        setItem(foundItem);
+        console.error('Error loading item:', error);
+        setItem(null);
       }
     };
     loadItem();
@@ -329,12 +309,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
 
                 if (success) {
                   setIsFavourited(!isFavourited);
-                  toast({
-                    title: isFavourited
-                      ? "Removed from favourites"
-                      : "Added to favourites",
-                    description: item.name,
-                  });
+                  // Swiggy 2025: Silent operation - heart icon state change provides visual feedback
                 }
               }}
             >
@@ -503,10 +478,10 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           const option = item.personalizations?.find((p: any) => p.id === id);
           return option?.requiresPreview === true;
         }) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 dark:bg-blue-950 dark:border-blue-800">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-start gap-2">
               <Upload className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-blue-700 dark:text-blue-300">
+              <div className="text-xs text-blue-700">
                 <p className="font-medium">File upload required after payment</p>
                 <p className="mt-1">You'll upload your design files after checkout. Our vendor will create a preview for your approval before production.</p>
               </div>

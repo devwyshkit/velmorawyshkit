@@ -193,11 +193,11 @@ export const PartnerEarnings = () => {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Earnings</h1>
+          <h1 className="text-xl font-bold tracking-tight">Earnings</h1>
           <p className="text-muted-foreground">
             Track your revenue and commission breakdown
           </p>
@@ -209,7 +209,7 @@ export const PartnerEarnings = () => {
       </div>
 
       {/* Earnings Summary (Swiggy/Zomato pattern) */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <StatsCard
           title="This Week's Earnings"
           value={`₹${(weeklyEarnings / 100).toLocaleString('en-IN')}`}
@@ -264,7 +264,7 @@ export const PartnerEarnings = () => {
               {monthlyInvoices.map((invoice) => (
                 <div
                   key={invoice.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -276,10 +276,10 @@ export const PartnerEarnings = () => {
                       </span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         invoice.status === 'paid'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          ? 'bg-green-100 text-green-700'
                           : invoice.status === 'invoiced'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-yellow-100 text-yellow-700'
                       }`}>
                         {invoice.status === 'paid' ? '✓ Paid' : invoice.status === 'invoiced' ? 'Invoiced' : 'Pending'}
                       </span>
@@ -396,7 +396,7 @@ const transactionColumns: ColumnDef<Transaction>[] = [
     accessorKey: "payout",
     header: "Your Earnings",
     cell: ({ row }) => (
-      <span className="font-bold text-green-600 dark:text-green-400">
+      <span className="font-bold text-green-600">
         ₹{(row.original.payout / 100).toLocaleString('en-IN')}
       </span>
     ),

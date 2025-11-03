@@ -6,7 +6,7 @@ export const RouteMap = {
   signup: () => `/signup`,
   favorites: () => `/favorites`,
   track: (orderId: string) => `/order/${orderId}/track`,
-  preview: (orderId: string) => `/order/${orderId}/preview`,
+  // preview route removed - now inline bottom sheet in Track page (Swiggy 2025 pattern)
   orders: () => `/orders`,
   addresses: () => `/account/addresses`,
   addAddress: () => `/account/addresses/add`,

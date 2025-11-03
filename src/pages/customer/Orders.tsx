@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
+import { QuickReorderSheet } from "@/components/customer/shared/QuickReorderSheet";
+import { OrderDetailsSheet } from "@/components/customer/shared/OrderDetailsSheet";
 
 interface Order {
   id: string;
@@ -20,6 +22,8 @@ interface Order {
 
 export const Orders = () => {
   const navigate = useNavigate();
+  const [reorderOrderId, setReorderOrderId] = useState<string | null>(null);
+  const [orderDetailsId, setOrderDetailsId] = useState<string | null>(null);
 
   // Mock orders data
   const orders: Order[] = [
@@ -92,7 +96,7 @@ export const Orders = () => {
           </div>
         ) : (
           orders.map((order) => (
-            <Card key={order.id} className="overflow-hidden">
+            <Card key={order.id} className="overflow-hidden cursor-pointer" onClick={() => setOrderDetailsId(order.id)}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -123,7 +127,7 @@ export const Orders = () => {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => {/* TODO: Reorder logic */}}
+                        onClick={() => setReorderOrderId(order.id)}
                         className="flex items-center gap-1"
                       >
                         <RefreshCw className="h-3 w-3" />
@@ -164,9 +168,9 @@ export const Orders = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => navigate(RouteMap.track(order.id) + '#preview')}
+                      onClick={() => navigate(RouteMap.track(order.id))}
                     >
-                      Review Preview
+                      Track Order
                     </Button>
                   )}
                 </div>
@@ -177,6 +181,24 @@ export const Orders = () => {
       </main>
       
       <CustomerBottomNav />
+
+      {/* Quick Reorder Sheet */}
+      {reorderOrderId && (
+        <QuickReorderSheet
+          isOpen={!!reorderOrderId}
+          onClose={() => setReorderOrderId(null)}
+          orderId={reorderOrderId}
+        />
+      )}
+
+      {/* Order Details Sheet */}
+      {orderDetailsId && (
+        <OrderDetailsSheet
+          isOpen={!!orderDetailsId}
+          onClose={() => setOrderDetailsId(null)}
+          orderId={orderDetailsId}
+        />
+      )}
     </div>
   );
 };

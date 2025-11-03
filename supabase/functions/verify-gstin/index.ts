@@ -1,3 +1,18 @@
+/**
+ * GSTIN Verification Edge Function
+ * Uses IDfy Production API for GSTIN verification
+ * 
+ * Production Credentials:
+ * - Account ID: 1a3dfae3d9a0/20fba821-ee50-46db-9e7e-6c1716da6cbb
+ * - API Key: a7cccddc-cd3c-4431-bd21-2d3f7694b955
+ * 
+ * Environment Variables (optional, falls back to production defaults):
+ * - IDFY_ACCOUNT_ID: IDfy account ID
+ * - IDFY_API_KEY: IDfy API key
+ * 
+ * Endpoint: https://eve.idfy.com/v3/tasks/async/ind_gst_with_nil_return/sync
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -51,42 +66,50 @@ serve(async (req) => {
       )
     }
 
-    // Not cached or expired - call IDfy API
-    const idfyApiKey = Deno.env.get('IDFY_API_KEY')
-    if (!idfyApiKey) {
+    // Not cached or expired - call IDfy API with production credentials
+    const idfyAccountId = Deno.env.get('IDFY_ACCOUNT_ID') || '1a3dfae3d9a0/20fba821-ee50-46db-9e7e-6c1716da6cbb'
+    const idfyApiKey = Deno.env.get('IDFY_API_KEY') || 'a7cccddc-cd3c-4431-bd21-2d3f7694b955'
+    
+    if (!idfyAccountId || !idfyApiKey) {
       return new Response(
-        JSON.stringify({ error: 'IDfy API key not configured' }),
+        JSON.stringify({ error: 'IDfy credentials not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Call IDfy GST verification endpoint
-    const idfyResponse = await fetch('https://api.idfy.in/v3/tasks/gst-verification', {
+    // Call IDfy GST verification endpoint (Production: ind_gst_with_nil_return)
+    // Endpoint: https://eve.idfy.com/v3/tasks/async/ind_gst_with_nil_return/sync
+    const idfyResponse = await fetch('https://eve.idfy.com/v3/tasks/async/ind_gst_with_nil_return/sync', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idfyApiKey}`
+        'account-id': idfyAccountId,
+        'api-key': idfyApiKey,
       },
       body: JSON.stringify({
-        task_id: crypto.randomUUID(),
-        group_id: crypto.randomUUID(),
+        task_id: `gst_${Date.now()}_${gstin.toUpperCase()}`,
+        group_id: 'gstin_verification',
         data: {
-          gstin: gstin.toUpperCase()
-        }
-      })
+          gstin: gstin.toUpperCase(),
+        },
+      }),
     })
 
     if (!idfyResponse.ok) {
-      throw new Error('IDfy API call failed')
+      const errorText = await idfyResponse.text().catch(() => 'Unknown error')
+      console.error('IDfy API error:', errorText)
+      throw new Error(`IDfy API call failed: ${idfyResponse.status} - ${errorText}`)
     }
 
     const idfyData = await idfyResponse.json()
     
-    // Parse IDfy response
-    const verified = idfyData?.result?.status === 'SUCCESS'
-    const businessName = idfyData?.result?.data?.business_name || null
-    const status = idfyData?.result?.data?.status || null
-    const address = idfyData?.result?.data?.address || null
+    // Parse IDfy response (matches idfy-real.ts pattern)
+    // Response structure: { request_id, status, result: { source_output: { ... } } }
+    const sourceOutput = idfyData?.result?.source_output || {}
+    const verified = idfyData?.status === 'completed' && sourceOutput?.status === 'Active'
+    const businessName = sourceOutput?.legal_name || null
+    const status = sourceOutput?.status || null
+    const address = sourceOutput?.principal_place_of_business_address || null
 
     // Store in cache
     const expiresAt = new Date()
@@ -115,11 +138,19 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-  } catch (error) {
-    console.error('Error:', error)
+  } catch (error: any) {
+    // Swiggy 2025: Silent error handling - return verified: false instead of throwing
+    console.error('GSTIN verification error:', error.message || error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        verified: false,
+        business_name: null,
+        status: null,
+        address: null,
+        cached: false,
+        error: 'Verification temporarily unavailable'
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

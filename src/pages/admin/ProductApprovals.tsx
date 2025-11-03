@@ -54,16 +54,25 @@ export const AdminProductApprovals = () => {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('partner_products')
+      // Query store_items where status is pending (matching ProductCreate.tsx)
+      const { data: storeItems, error: storeItemsError } = await supabase
+        .from('store_items')
         .select(`
           *,
-          partner_profiles!inner(business_name)
+          stores!inner(
+            id,
+            name,
+            owner_id,
+            partner_profiles:owner_id (
+              business_name,
+              owner_name
+            )
+          )
         `)
-        .in('approval_status', ['pending_review', 'changes_requested'])
+        .in('status', ['pending', 'changes_requested'])
         .order('created_at', { ascending: false });
 
-      if (error) {
+      if (storeItemsError || !storeItems) {
         // Handle error silently in production
         // Mock data for development
         setProducts([
@@ -74,9 +83,11 @@ export const AdminProductApprovals = () => {
             price: 249900,
             images: ['data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTUwQzE4NS42IDE1MCAxNzQgMTYxLjYgMTc0IDE3NkMxNzQgMTkwLjQgMTg1LjYgMjAyIDE5OSAyMDJDMjEyLjQgMjAyIDIyNCAxOTAuNCAyMjQgMTc2QzIyNCAxNjEuNiAyMTIuNCAxNTAgMjAwIDE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTE4MCAyMDBMMjAwIDE4MEwyMjAgMjAwTDIwMCAyMjBMMTgwIDIwMFoiIGZpbGw9IiM2MzY2RjEiLz4KPC9zdmc+'],
             category: 'premium',
+            store_id: 's1',
             partner_id: 'p1',
             partner_name: 'GiftCraft Premium',
             approval_status: 'pending_review',
+            status: 'pending',
             created_at: new Date().toISOString(),
             requires_fssai: false,
           },
@@ -87,19 +98,26 @@ export const AdminProductApprovals = () => {
             price: 129900,
             images: ['data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTUwQzE4NS42IDE1MCAxNzQgMTYxLjYgMTc0IDE3NkMxNzQgMTkwLjQgMTg1LjYgMjAyIDE5OSAyMDJDMjEyLjQgMjAyIDIyNCAxOTAuNCAyMjQgMTc2QzIyNCAxNjEuNiAyMTIuNCAxNTAgMjAwIDE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTE4MCAyMDBMMjAwIDE4MEwyMjAgMjAwTDIwMCAyMjBMMTgwIDIwMFoiIGZpbGw9IiM2MzY2RjEiLz4KPC9zdmc+'],
             category: 'chocolates',
+            store_id: 's2',
             partner_id: 'p2',
             partner_name: 'ChocoDelight',
             approval_status: 'pending_review',
+            status: 'pending',
             created_at: new Date(Date.now() - 86400000).toISOString(),
             requires_fssai: true,
             fssai_verified: false,
           },
         ]);
       } else {
-        const formattedData = (data || []).map(p => ({
-          ...p,
-          partner_name: p.partner_profiles?.business_name || 'Unknown Partner',
-          requires_fssai: ['food', 'perishables', 'chocolates'].includes(p.category),
+        // Map store_items data to PendingProduct interface
+        const formattedData = (storeItems || []).map(item => ({
+          ...item,
+          partner_id: item.stores?.owner_id || '',
+          partner_name: item.stores?.partner_profiles?.business_name || item.stores?.name || 'Unknown Partner',
+          approval_status: item.status === 'pending' ? 'pending_review' : 
+                          item.status === 'changes_requested' ? 'changes_requested' :
+                          item.status === 'approved' ? 'approved' : 'pending_review',
+          requires_fssai: ['food', 'perishables', 'chocolates', 'beverages'].includes(item.category?.toLowerCase() || ''),
         }));
         setProducts(formattedData);
       }
@@ -122,10 +140,11 @@ export const AdminProductApprovals = () => {
 
     setProcessing(true);
     try {
+      // Update store_items status to 'approved'
       const { error } = await supabase
-        .from('partner_products')
+        .from('store_items')
         .update({
-          approval_status: 'approved',
+          status: 'approved',
           approved_by: user?.id,
           approved_at: new Date().toISOString(),
           reviewed_at: new Date().toISOString(),
@@ -155,10 +174,11 @@ export const AdminProductApprovals = () => {
   const handleApprove = async (productId: string) => {
     setProcessing(true);
     try {
+      // Update store_items status to 'approved'
       const { error } = await supabase
-        .from('partner_products')
+        .from('store_items')
         .update({
-          approval_status: 'approved',
+          status: 'approved',
           approved_by: user?.id,
           approved_at: new Date().toISOString(),
           reviewed_at: new Date().toISOString(),
@@ -187,10 +207,11 @@ export const AdminProductApprovals = () => {
   const handleReject = async (productId: string, reason: string) => {
     setProcessing(true);
     try {
+      // Update store_items status to 'rejected'
       const { error } = await supabase
-        .from('partner_products')
+        .from('store_items')
         .update({
-          approval_status: 'rejected',
+          status: 'rejected',
           approved_by: user?.id,
           reviewed_at: new Date().toISOString(),
           rejection_reason: reason,

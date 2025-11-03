@@ -69,14 +69,14 @@ export const hasPermission = (userRole: UserRole, permission: string): boolean =
 export const getDefaultDashboardPath = (role: UserRole): string => {
   switch (role) {
     case 'seller':
-      return '/seller/dashboard';
+      return '/partner/dashboard'; // Swiggy 2025: Partner portal uses /partner/dashboard
     case 'admin':
       return '/admin/dashboard';
     case 'kam':
       return '/kam/dashboard';
     case 'customer':
     default:
-      return '/role-switcher'; // Customer UI removed - redirect to role switcher
+      return '/'; // Customer home page
   }
 };
 

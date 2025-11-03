@@ -14,7 +14,7 @@ import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
 import { RouteMap } from "@/routes";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { fetchStoreById, getMockItems } from "@/lib/integrations/supabase-data";
+import { fetchStoreById, fetchItemsByStore } from "@/lib/integrations/supabase-data";
 import { useToast } from "@/hooks/use-toast";
 import { OptimizedImage } from "@/components/ui/skeleton-screen";
 import { EmptyStates } from "@/components/ui/empty-state";
@@ -24,7 +24,6 @@ import type { Store, Item } from "@/lib/integrations/supabase-data";
 export const PartnerCatalog = () => {
   const { storeId } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [store, setStore] = useState<Store | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,41 +69,26 @@ export const PartnerCatalog = () => {
           if (!error && itemsData && itemsData.length > 0) {
             setItems(itemsData);
           } else {
-            // Fallback to mock items
-            const mockItems = getMockItems();
-            setItems(mockItems.slice(0, 8));
+            // No items found - show empty state
+            setItems([]);
           }
         } else {
-          // Fallback to mock data
-          const mockItems = getMockItems();
-          setItems(mockItems.slice(0, 8));
-          
-          // Create a mock store
-          setStore({
-            id: storeId,
-            name: "Premium Gifts Co",
-            image: "https://picsum.photos/seed/store/400/400",
-            rating: 4.5,
-            delivery: "1-2 days",
-            category: "Gift Shop",
-            tagline: "Premium gifts for every occasion",
-            ratingCount: 234,
-          });
+          // Store not found - show empty state
+          setItems([]);
+          setStore(null);
         }
       } catch (error) {
         console.error('Error loading store catalog:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load store catalog. Please try again.",
-          variant: "destructive",
-        });
+        // Swiggy 2025: Silent error - show empty state instead of toast
+        setItems([]);
+        setStore(null);
       } finally {
         setLoading(false);
       }
     };
 
     loadStoreCatalog();
-  }, [storeId, toast]);
+  }, [storeId]);
 
   const handleItemClick = (itemId: string) => {
     setSelectedItemId(itemId);

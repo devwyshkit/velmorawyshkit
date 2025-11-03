@@ -81,7 +81,7 @@ export const Step1Business = ({ initialData, onNext }: Step1BusinessProps) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold mb-2">Business Details</h2>
           <p className="text-sm text-muted-foreground">
@@ -103,7 +103,7 @@ export const Step1Business = ({ initialData, onNext }: Step1BusinessProps) => {
           )}
         />
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <FormField
             control={form.control}
             name="category"
@@ -186,7 +186,7 @@ export const Step1Business = ({ initialData, onNext }: Step1BusinessProps) => {
           )}
         />
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <FormField
             control={form.control}
             name="city"
@@ -230,7 +230,7 @@ export const Step1Business = ({ initialData, onNext }: Step1BusinessProps) => {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <FormField
             control={form.control}
             name="phone"

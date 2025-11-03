@@ -13,10 +13,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Loader2 } from "lucide-react";
 
 interface OrderDetailProps {
   order: any;
@@ -29,9 +28,9 @@ interface OrderDetailProps {
  * Follows Zomato Gold custom cake approval pattern
  */
 export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const hasCustomization = order.proof_urls && order.proof_urls.length > 0;
   const needsProofApproval = hasCustomization && !order.proof_approved;
@@ -47,18 +46,11 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
       
       if (error) throw error;
       
-      toast({
-        title: "Order accepted",
-        description: "Customer has been notified",
-      });
-      
+      // Silent success - order list update implies success (Swiggy 2025 pattern)
       onUpdate();
+      setError(null);
     } catch (error: any) {
-      toast({
-        title: "Failed to accept",
-        description: error.message,
-        variant: "destructive",
-      });
+      setError(error.message || "Failed to accept order. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -67,15 +59,12 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
   // Reject order
   const handleRejectOrder = async () => {
     if (!rejectionReason.trim()) {
-      toast({
-        title: "Reason required",
-        description: "Please provide a reason for rejection",
-        variant: "destructive",
-      });
+      setError("Please provide a reason for rejection");
       return;
     }
 
     setLoading(true);
+    setError(null);
     try {
       const { error } = await supabase
         .from('orders')
@@ -87,18 +76,11 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
       
       if (error) throw error;
       
-      toast({
-        title: "Order rejected",
-        description: "Customer will be notified and refunded",
-      });
-      
+      // Silent success - order list update implies success
       onUpdate();
+      setError(null);
     } catch (error: any) {
-      toast({
-        title: "Failed to reject",
-        description: error.message,
-        variant: "destructive",
-      });
+      setError(error.message || "Failed to reject order. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -118,18 +100,11 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
       
       if (error) throw error;
       
-      toast({
-        title: "Proof approved! ✅",
-        description: "You can now start production",
-      });
-      
+      // Silent success - UI update implies success
       onUpdate();
+      setError(null);
     } catch (error: any) {
-      toast({
-        title: "Failed to approve",
-        description: error.message,
-        variant: "destructive",
-      });
+      setError(error.message || "Failed to approve proof. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -138,20 +113,14 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
   // Request changes to proof
   const handleRequestChanges = async () => {
     setLoading(true);
+    setError(null);
     try {
       // In production, this would send notification to customer
-      toast({
-        title: "Changes requested",
-        description: "Customer will be notified to upload new files",
-      });
-      
+      // Silent success - UI update implies success
       onUpdate();
+      setError(null);
     } catch (error: any) {
-      toast({
-        title: "Failed to request changes",
-        description: error.message,
-        variant: "destructive",
-      });
+      setError(error.message || "Failed to request changes. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -160,6 +129,7 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
   // Update order status (Preparing → Ready → Shipped)
   const handleUpdateStatus = async (newStatus: string) => {
     setLoading(true);
+    setError(null);
     try {
       const { error } = await supabase
         .from('orders')
@@ -168,18 +138,11 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
       
       if (error) throw error;
       
-      toast({
-        title: "Status updated",
-        description: `Order marked as ${newStatus}`,
-      });
-      
+      // Silent success - order list update implies success
       onUpdate();
+      setError(null);
     } catch (error: any) {
-      toast({
-        title: "Update failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      setError(error.message || "Failed to update status. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -187,6 +150,14 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
 
   return (
     <div className="space-y-6 py-4">
+      {/* Error Message */}
+      {error && (
+        <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
       {/* Order Header */}
       <div>
         <div className="flex items-center gap-2 mb-2">
@@ -200,7 +171,7 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
 
       {/* PROOF APPROVAL SECTION (Zomato Gold custom cake pattern) */}
       {hasCustomization && (
-        <Card className={needsProofApproval ? "border-primary" : "border-green-200 bg-green-50 dark:bg-green-950/20"}>
+        <Card className={needsProofApproval ? "border-primary" : "border-green-200 bg-green-50"}>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <FileImage className="h-5 w-5" />
@@ -256,7 +227,7 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
                     className="flex-1 gap-2"
                   >
                     {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Approving...</span>
                     ) : (
                       <>
                         <CheckCircle2 className="h-4 w-4" />
@@ -276,7 +247,7 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-green-700 dark:text-green-400">
+              <p className="text-sm text-green-700">
                 ✅ Proof approved. You can proceed with production.
               </p>
             )}
@@ -351,7 +322,7 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
             className="w-full gap-2"
           >
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              "Accepting..."
             ) : (
               <>
                 <CheckCircle2 className="h-4 w-4" />
@@ -361,7 +332,7 @@ export const OrderDetail = ({ order, onUpdate }: OrderDetailProps) => {
           </Button>
 
           {needsProofApproval && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+            <p className="text-xs text-amber-600 text-center">
               ⚠️ Approve proof before accepting order
             </p>
           )}

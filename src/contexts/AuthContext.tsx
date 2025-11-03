@@ -134,11 +134,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Cleanup CSRF protection
         cleanupCSRFProtection();
         
-        toast({
-          title: "Session expired",
-          description: "Please login again for security",
-          variant: "destructive",
-        });
+        // Swiggy 2025: Silent operation - redirect to login will show appropriate UI
+        // Note: Could show inline banner instead of toast for better UX
       }, timeoutMs);
     };
     
@@ -166,9 +163,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Map Supabase user to our User interface
   const mapSupabaseUser = (supabaseUser: SupabaseUser): User => {
     // Extract role from app_metadata (set by admin) or user_metadata (fallback)
-    const role = (supabaseUser.app_metadata?.role || 
-                  supabaseUser.user_metadata?.role || 
-                  'customer') as 'customer' | 'seller' | 'admin' | 'kam';
+    let role = (supabaseUser.app_metadata?.role || 
+                supabaseUser.user_metadata?.role || 
+                'customer') as string;
+    
+    // Normalize 'partner' to 'seller' for consistency (Swiggy 2025: partners are sellers)
+    if (role === 'partner') {
+      role = 'seller';
+    }
+    
+    const normalizedRole = role as 'customer' | 'seller' | 'admin' | 'kam';
     
     const user = {
       id: supabaseUser.id,
@@ -180,7 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       phone: supabaseUser.phone || supabaseUser.user_metadata?.phone,
       isEmailVerified: !!supabaseUser.email_confirmed_at,
       isPhoneVerified: !!supabaseUser.phone_confirmed_at || !!supabaseUser.user_metadata?.phone_verified,
-      role,
+      role: normalizedRole,
     };
     
     // Initialize CSRF protection for authenticated users

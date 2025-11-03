@@ -115,10 +115,7 @@ export const CustomerMobileLogin = () => {
       setOtpSent(true);
       setStep('otp');
       setResendTimer(60); // 60 second countdown
-      toast({
-        title: "OTP Sent",
-        description: `Verification code sent to +91${phone.slice(0, 4)} XX ${phone.slice(6)}`,
-      });
+      // Swiggy 2025: Silent operation - step change indicates OTP sent
     } catch (error: any) {
       toast({
         title: "Failed to send OTP",
@@ -157,11 +154,7 @@ export const CustomerMobileLogin = () => {
           // Migrate guest cart
           await migrateGuestCart();
           
-          toast({
-            title: "Welcome back!",
-            description: "You've successfully logged in.",
-          });
-          
+          // Swiggy 2025: Silent operation - navigation confirms success
           // Navigate to redirect URL or home
           const redirect = searchParams.get('redirect');
           navigate(redirect || RouteMap.home());
@@ -302,11 +295,7 @@ export const CustomerMobileLogin = () => {
         return;
       }
 
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in.",
-      });
-
+      // Swiggy 2025: Silent operation - navigation confirms success
       navigate(RouteMap.home());
     } catch (error: any) {
       toast({

@@ -8,8 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/components/theme-provider";
-import { Loader2, Mail, Lock, Building, CheckCircle2, AlertCircle, Smartphone } from "lucide-react";
+import { Mail, Lock, Building, CheckCircle2, AlertCircle, Smartphone } from "lucide-react";
 
 /**
  * Partner Signup Page
@@ -21,7 +20,6 @@ import { Loader2, Mail, Lock, Building, CheckCircle2, AlertCircle, Smartphone } 
 export const PartnerSignup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   
   // Form state
@@ -35,8 +33,6 @@ export const PartnerSignup = () => {
   
   // Validation state
   const [passwordError, setPasswordError] = useState("");
-  
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   // Password validation (Swiggy/Zomato business account standards)
   const validatePassword = (pwd: string): boolean => {
@@ -249,9 +245,9 @@ export const PartnerSignup = () => {
             <div className="flex justify-center mb-4">
               <Link to="/">
                 <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-business-logo.png"}
+                  src="/wyshkit-business-logo.png"
                   alt="Wyshkit Partner Portal"
-                  className="h-12 hover:opacity-80 transition-opacity cursor-pointer"
+                  className="h-12 cursor-pointer"
                 />
               </Link>
             </div>
@@ -426,7 +422,6 @@ export const PartnerSignup = () => {
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Creating account...
                       </>
                     ) : (
@@ -464,7 +459,6 @@ export const PartnerSignup = () => {
                     >
                       {loading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Sending OTP...
                         </>
                       ) : (
@@ -497,7 +491,6 @@ export const PartnerSignup = () => {
                     >
                       {loading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Verifying...
                         </>
                       ) : (

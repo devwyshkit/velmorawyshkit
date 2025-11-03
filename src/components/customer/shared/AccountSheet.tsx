@@ -44,11 +44,7 @@ export const AccountSheet = ({ isOpen, onClose }: AccountSheetProps) => {
       window.dispatchEvent(new Event('mockAuthChange'));
     }
     
-    toast({
-      title: "Logged out",
-      description: "You've been successfully logged out",
-    });
-    
+    // Swiggy 2025: Silent operation - navigation confirms logout
     onClose();
     navigate(RouteMap.login());
   };

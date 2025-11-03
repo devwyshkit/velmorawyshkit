@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getSearchSuggestions, saveSearchHistory, getTrendingSearches } from "@/lib/integrations/supabase-data";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDelivery } from "@/contexts/DeliveryContext";
 
 interface SearchSuggestion {
   id: string;
@@ -25,8 +28,18 @@ interface SearchBarProps {
   defaultValue?: string;
 }
 
-const RECENT_SEARCHES_KEY = 'wyshkit_recent_searches';
+const RECENT_SEARCHES_KEY = 'wyshkit_recent_searches'; // Kept for backward compatibility only
 const MAX_RECENT_SEARCHES = 10;
+
+// Get or create session ID for anonymous users
+const getOrCreateSessionId = (): string => {
+  let sessionId = localStorage.getItem('wyshkit_session_id');
+  if (!sessionId) {
+    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('wyshkit_session_id', sessionId);
+  }
+  return sessionId;
+};
 
 export const SearchBar = ({
   variant = "homepage",
@@ -38,46 +51,18 @@ export const SearchBar = ({
   defaultValue = ""
 }: SearchBarProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { location: deliveryLocation } = useDelivery();
   const [value, setValue] = useState(defaultValue);
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Mock suggestions - In real app, this would be from API
-  const mockSuggestions: SearchSuggestion[] = [
-    { id: "1", text: "birthday gifts", type: "trending", count: 1234 },
-    { id: "2", text: "corporate mugs", type: "product", count: 567 },
-    { id: "3", text: "custom t-shirts", type: "product", count: 890 },
-    { id: "4", text: "wedding hampers", type: "category", count: 345 },
-    { id: "5", text: "QuickGifts", type: "vendor", count: 123 },
-    { id: "6", text: "anniversary gifts", type: "trending", count: 678 },
-    { id: "7", text: "office supplies", type: "category", count: 234 },
-    { id: "8", text: "personalized gifts", type: "product", count: 456 }
-  ];
-
-  // Mock trending searches
-  const trendingSearches = [
-    'Birthday Gifts',
-    'Chocolate Hampers',
-    'Custom Mugs',
-    'Corporate Gifts',
-    'Wedding Favors',
-  ];
-
-  // Load recent searches on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (stored) {
-      try {
-        setRecentSearches(JSON.parse(stored));
-      } catch (error) {
-        // Handle error silently in production
-      }
-    }
-  }, []);
+  // Swiggy 2025: No mock data - all suggestions from backend API
 
   // Sync value with defaultValue prop changes (for controlled component behavior)
   useEffect(() => {
@@ -87,26 +72,47 @@ export const SearchBar = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultValue]);
 
-  // Filter suggestions based on input
+  // Fetch suggestions from backend API - Swiggy 2025 pattern (200ms debounce, 1+ char)
   useEffect(() => {
-    if (showSuggestions && value.trim()) {
-      const filtered = mockSuggestions.filter(s => 
-        s.text.toLowerCase().includes(value.toLowerCase())
-      );
-      setSuggestions(filtered.slice(0, 6));
-    } else if (showSuggestions) {
-      // Show recent searches and trending when no input
-      const recentSuggestions = recentSearches.slice(0, 3).map(search => ({
-        id: `recent-${search}`, 
-        text: search, 
-        type: "recent" as const
-      }));
-      const trendingSuggestions = mockSuggestions
-        .filter(s => s.type === "trending")
-        .slice(0, 3);
-      setSuggestions([...recentSuggestions, ...trendingSuggestions]);
+    if (!showSuggestions) return;
+
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
-  }, [value, recentSearches, showSuggestions]);
+
+    // Swiggy 2025: Show suggestions from 1 character (not 3+)
+    if (value.trim().length >= 0) {
+      setIsLoadingSuggestions(true);
+      
+      debounceTimerRef.current = setTimeout(async () => {
+        try {
+          const sessionId = user ? undefined : getOrCreateSessionId();
+          const fetchedSuggestions = await getSearchSuggestions(
+            value.trim(),
+            user?.id || null,
+            sessionId
+          );
+          
+          setSuggestions(fetchedSuggestions);
+        } catch (error) {
+          console.error('Error fetching suggestions:', error);
+          setSuggestions([]);
+        } finally {
+          setIsLoadingSuggestions(false);
+        }
+      }, 200); // Swiggy 2025: 200ms debounce (not 300ms)
+    } else {
+      setSuggestions([]);
+      setIsLoadingSuggestions(false);
+    }
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [value, showSuggestions, user]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -122,21 +128,30 @@ export const SearchBar = ({
     }
   }, [isOpen]);
 
-  const saveRecentSearch = (query: string) => {
+  // Save search to Supabase history - Swiggy 2025 pattern (sync across devices)
+  const saveSearch = async (query: string, searchSource: 'search_bar' | 'voice' | 'autocomplete' | 'trending' | 'recent' = 'search_bar') => {
     if (!query.trim()) return;
-    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, MAX_RECENT_SEARCHES);
-    setRecentSearches(updated);
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    
+    const sessionId = user ? undefined : getOrCreateSessionId();
+    await saveSearchHistory(query, user?.id || null, sessionId, {
+      searchSource,
+      location: deliveryLocation || undefined,
+    });
+    
+    // Also keep localStorage for backward compatibility (will be phased out)
+    try {
+      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+      const recentSearches = stored ? JSON.parse(stored) : [];
+      const updated = [query, ...recentSearches.filter((s: string) => s !== query)].slice(0, MAX_RECENT_SEARCHES);
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    } catch (error) {
+      // Silent fail
+    }
   };
 
-  const clearRecentSearches = () => {
-    setRecentSearches([]);
-    localStorage.removeItem(RECENT_SEARCHES_KEY);
-  };
-
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string, searchSource: 'search_bar' | 'voice' | 'autocomplete' | 'trending' | 'recent' = 'search_bar') => {
     if (query.trim()) {
-      saveRecentSearch(query);
+      await saveSearch(query, searchSource);
       if (onSearch) {
         onSearch(query);
       } else {
@@ -148,7 +163,10 @@ export const SearchBar = ({
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
     setValue(suggestion.text);
-    handleSearch(suggestion.text);
+    const searchSource = suggestion.type === 'recent' ? 'recent' : 
+                         suggestion.type === 'trending' ? 'trending' : 
+                         'autocomplete';
+    handleSearch(suggestion.text, searchSource);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -171,7 +189,7 @@ export const SearchBar = ({
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setValue(transcript);
-        handleSearch(transcript);
+        handleSearch(transcript, 'voice');
         setIsVoiceActive(false);
       };
 
@@ -250,12 +268,13 @@ export const SearchBar = ({
           )}
         </div>
 
-        {/* Suggestions Dropdown */}
-        {isOpen && showSuggestions && (suggestions.length > 0 || recentSearches.length > 0 || value.trim()) && (
+        {/* Suggestions Dropdown - Swiggy 2025: All from backend, no mock data */}
+        {isOpen && showSuggestions && (
           <Card className="absolute top-full left-0 right-0 mt-1 z-50 max-h-[400px] overflow-y-auto shadow-lg border w-full md:w-auto md:min-w-full">
             <CardContent className="p-2">
-              {value.trim() ? (
-                // Show filtered suggestions
+              {isLoadingSuggestions ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">Loading suggestions...</div>
+              ) : suggestions.length > 0 ? (
                 <div className="space-y-1">
                   {suggestions.map((suggestion) => {
                     const Icon = getSuggestionIcon(suggestion.type);
@@ -277,50 +296,8 @@ export const SearchBar = ({
                   })}
                 </div>
               ) : (
-                // Show recent searches and trending when no input
-                <div className="space-y-3">
-                  {recentSearches.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between px-3 py-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">Recent Searches</span>
-                        <button
-                          onClick={clearRecentSearches}
-                          className="text-xs text-primary hover:underline"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <div className="space-y-1">
-                        {recentSearches.slice(0, 5).map((search) => (
-                          <button
-                            key={search}
-                            onClick={() => handleSearch(search)}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted text-left transition-colors"
-                          >
-                            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="flex-1 text-sm">{search}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {trendingSearches.length > 0 && (
-                    <div>
-                      <span className="text-xs font-medium text-muted-foreground px-3 py-1.5 block">Trending</span>
-                      <div className="space-y-1">
-                        {trendingSearches.slice(0, 5).map((search) => (
-                          <button
-                            key={search}
-                            onClick={() => handleSearch(search)}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted text-left transition-colors"
-                          >
-                            <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="flex-1 text-sm">{search}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  {value.trim().length > 0 ? 'No suggestions found' : 'Start typing to search...'}
                 </div>
               )}
             </CardContent>
@@ -421,64 +398,41 @@ export const SearchBar = ({
       {isOpen && showSuggestions && (
         <Card className="absolute top-full left-0 right-0 mt-2 z-50 border shadow-lg">
           <CardContent className="p-0">
-            {/* Header */}
-            {suggestions.length > 0 && (
-              <div className="flex items-center justify-between p-3 border-b">
-                <span className="text-sm font-medium text-muted-foreground">
-                  {value.trim() ? "Suggestions" : "Recent & Trending"}
-                </span>
-                {!value.trim() && recentSearches.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setRecentSearches([]);
-                      localStorage.removeItem(RECENT_SEARCHES_KEY);
-                      setSuggestions(mockSuggestions.filter(s => s.type === "trending").slice(0, 3));
-                    }}
-                    className="text-xs text-muted-foreground"
-                  >
-                    Clear Recent
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {/* Suggestions List */}
+            {/* Suggestions List - Swiggy 2025: All from backend */}
             <div className="max-h-64 overflow-y-auto">
-              {suggestions.map((suggestion) => {
-                const Icon = getSuggestionIcon(suggestion.type);
-                return (
-                  <button
-                    key={suggestion.id}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="flex-1 text-sm">{suggestion.text}</span>
-                    {suggestion.count && (
-                      <Badge variant="secondary" className="text-xs">
-                        {suggestion.count.toLocaleString()}
-                      </Badge>
-                    )}
-                    {suggestion.type === "trending" && (
-                      <Badge variant="outline" className="text-xs border-orange-200 text-orange-600 dark:border-orange-800 dark:text-orange-400">
-                        Trending
-                      </Badge>
-                    )}
-                  </button>
-                );
-              })}
+              {isLoadingSuggestions ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">Loading suggestions...</div>
+              ) : suggestions.length > 0 ? (
+                suggestions.map((suggestion) => {
+                  const Icon = getSuggestionIcon(suggestion.type);
+                  return (
+                    <button
+                      key={suggestion.id}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="flex-1 text-sm">{suggestion.text}</span>
+                      {suggestion.count && (
+                        <Badge variant="secondary" className="text-xs">
+                          {suggestion.count.toLocaleString()}
+                        </Badge>
+                      )}
+                      {suggestion.type === "trending" && (
+                        <Badge variant="outline" className="text-xs border-orange-200 text-orange-600 dark:border-orange-800 dark:text-orange-400">
+                          Trending
+                        </Badge>
+                      )}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="p-6 text-center text-muted-foreground">
+                  <SearchIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">{value.trim() ? `No suggestions found for "${value}"` : 'Start typing to search...'}</p>
+                </div>
+              )}
             </div>
-
-            {/* No Results */}
-            {value.trim() && suggestions.length === 0 && (
-              <div className="p-6 text-center text-muted-foreground">
-                <SearchIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No suggestions found for "{value}"</p>
-                <p className="text-xs mt-1">Try searching for gifts, categories, or stores</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}

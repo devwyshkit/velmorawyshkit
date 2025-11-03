@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -66,31 +66,37 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "flex items-center gap-2 text-sm font-medium hover:bg-accent/50 transition-colors",
-            "text-foreground/80 hover:text-foreground",
-            className
-          )}
-        >
-          <MapPin className="h-4 w-4 text-primary" />
-          <span className="max-w-[120px] truncate">{currentLocation.displayText}</span>
-        </Button>
-      </DialogTrigger>
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsOpen(true)}
+        className={cn(
+          "flex items-center gap-2 text-sm font-medium hover:bg-accent/50 transition-colors",
+          "text-foreground/80 hover:text-foreground",
+          className
+        )}
+      >
+        <MapPin className="h-4 w-4 text-primary" />
+        <span className="max-w-[120px] truncate">{currentLocation.displayText}</span>
+      </Button>
       
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            Select Delivery Location
-          </DialogTitle>
-        </DialogHeader>
+      <Sheet open={isOpen} onOpenChange={setIsOpen} modal={false}>
+        <SheetContent side="bottom" className="h-auto rounded-t-xl sm:max-w-[480px] sm:left-1/2 sm:-translate-x-1/2">
+          {/* Grabber */}
+          <div className="flex justify-center pt-2 pb-4">
+            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+          </div>
+          
+          {/* Header */}
+          <div className="px-4 pb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Select Delivery Location
+            </h2>
+          </div>
         
-        <div className="space-y-4">
+          <div className="px-4 pb-6 space-y-4">
           {/* Current Location Detection */}
           <Button 
             onClick={detectCurrentLocation}
@@ -140,7 +146,8 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
+    </>
   );
 };

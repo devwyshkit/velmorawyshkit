@@ -160,12 +160,20 @@ export const CheckoutCoordinator = ({ isOpen, onClose }: CheckoutCoordinatorProp
         .insert({
           customer_id: user.id,
           store_id: cartItems[0]?.store_id || null,
-          delivery_address: `${selectedAddress.house}, ${selectedAddress.area}, ${selectedAddress.city} - ${selectedAddress.pincode}`,
+          delivery_address: {
+            house: selectedAddress.house,
+            area: selectedAddress.area,
+            city: selectedAddress.city,
+            pincode: selectedAddress.pincode,
+            name: selectedAddress.name,
+            phone: selectedAddress.phone,
+            label: selectedAddress.label
+          },
           payment_method: paymentMethod || 'card',
           gstin: gstin || null,
+          is_business_order: !!gstin,
           status: needsFiles ? 'preview_pending' : 'confirmed',
-          items: cartItems,
-          subtotal_amount: cartTotal,
+          subtotal: cartTotal,
           total_amount: cartTotal,
         })
         .select()
@@ -179,10 +187,13 @@ export const CheckoutCoordinator = ({ isOpen, onClose }: CheckoutCoordinatorProp
       const orderItems = cartItems.map((item: any) => ({
         order_id: order.id,
         item_id: item.id,
+        item_name: item.name,
+        item_image_url: item.image,
         quantity: item.quantity || 1,
+        unit_price: item.price,
         total_price: item.price * (item.quantity || 1),
+        personalizations: item.personalizations || [], // Use personalizations (matches DB schema)
         preview_status: item.personalizations?.some((p: any) => p.requiresPreview === true) ? 'pending' : null,
-        customization_details: item.personalizations || [],
       }));
 
       const { error: itemsError } = await supabase

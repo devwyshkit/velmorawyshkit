@@ -59,7 +59,7 @@ export function Step1ListingType({ value, onChange }: Step1ListingTypeProps) {
                 <Label
                   key={type.value}
                   htmlFor={type.value}
-                  className={`flex cursor-pointer transition-all ${
+                  className={`flex cursor-pointer ${
                     isSelected
                       ? 'ring-2 ring-primary'
                       : 'hover:border-primary/50'

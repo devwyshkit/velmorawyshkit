@@ -25,12 +25,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { AdminMobileNav } from "./AdminMobileNav";
 import { AdminBottomNav } from "./AdminBottomNav";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/contexts/AuthContext";
 import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 
@@ -44,10 +42,7 @@ export const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { theme } = useTheme();
   const { user, loading } = useAuth();
-
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   // 🔒 CRITICAL: Authentication Guard
   useEffect(() => {
@@ -132,7 +127,7 @@ export const AdminLayout = () => {
           {/* Logo - Compact on mobile */}
           <Link to="/admin/dashboard" className="flex items-center mr-auto md:mr-8">
             <img
-              src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
+              src="/wyshkit-logo.png"
               alt="Wyshkit Admin"
               className="h-5 md:h-8 w-auto object-contain"
               width="120"
@@ -152,7 +147,7 @@ export const AdminLayout = () => {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex items-center gap-1 px-2 py-2 text-sm font-medium rounded-md transition-colors relative whitespace-nowrap",
+                    "flex items-center gap-1 px-2 py-2 text-sm font-medium rounded-md relative whitespace-nowrap",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -184,7 +179,7 @@ export const AdminLayout = () => {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex items-center gap-2 px-2 py-2 text-sm font-medium rounded-md transition-colors relative whitespace-nowrap",
+                    "flex items-center gap-2 px-2 py-2 text-sm font-medium rounded-md relative whitespace-nowrap",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -207,8 +202,6 @@ export const AdminLayout = () => {
 
           {/* Right Side Actions - Compact on mobile */}
           <div className="flex items-center gap-1 md:gap-2">
-            <ThemeToggle />
-            
             <Button variant="ghost" size="icon" className="relative h-9 w-9">
               <Bell className="h-4 w-4 md:h-5 md:w-5" />
               <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 p-0 flex items-center justify-center text-[10px]">

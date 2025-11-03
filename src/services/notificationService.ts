@@ -1,6 +1,8 @@
 // Simple notification service - browser notifications only (like Swiggy)
 // No over-engineering, just basic browser notifications
 
+import { pwaNavigationService } from './pwaNavigationService';
+
 interface NotificationOptions {
   title: string;
   body: string;
@@ -8,6 +10,20 @@ interface NotificationOptions {
   tag?: string;
   data?: any;
 }
+
+// Check if URL is internal (same origin) or external
+const isInternalUrl = (url: string): boolean => {
+  if (!url) return false;
+  // If it starts with /, it's internal
+  if (url.startsWith('/')) return true;
+  // If it's same origin, it's internal
+  try {
+    const urlObj = new URL(url, window.location.origin);
+    return urlObj.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+};
 
 class NotificationService {
   private isSupported = false;
@@ -60,7 +76,14 @@ class NotificationService {
       notification.onclick = () => {
         window.focus();
         if (options.data?.url) {
-          window.location.href = options.data.url;
+          const url = options.data.url;
+          // Use pwaNavigationService for internal routes, window.location.href for external
+          if (isInternalUrl(url)) {
+            pwaNavigationService.navigateTo(url);
+          } else {
+            // External URL - use window.location.href
+            window.location.href = url;
+          }
         }
         notification.close();
       };

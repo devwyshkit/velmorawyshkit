@@ -6,11 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
-import { useToast } from "@/hooks/use-toast";
 
 export const AddAddress = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -25,10 +23,7 @@ export const AddAddress = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Save address logic
-    toast({
-      title: "Address saved",
-      description: `${formData.fullName}'s ${formData.saveAs} address has been saved`,
-    });
+    // Swiggy 2025: Silent operation - navigation confirms success
     navigate(-1);
   };
 

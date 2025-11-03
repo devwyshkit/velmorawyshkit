@@ -2,7 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { 
   Home, Package, ShoppingBag, DollarSign, User, Bell, LogOut, Menu,
-  Megaphone, Star, AlertCircle, PackageX, Users, HelpCircle
+  Star, HelpCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PartnerBottomNav } from "@/components/partner/PartnerBottomNav";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { StockAlertListener } from "@/components/StockAlertListener";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/components/theme-provider";
 import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 
 /**
@@ -35,11 +33,8 @@ export const PartnerLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { theme } = useTheme();
   const isMobile = useIsMobile();
   const { user, loading } = useAuth();
-  
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   // 🔒 CRITICAL: Authentication Guard
   useEffect(() => {
@@ -69,17 +64,13 @@ export const PartnerLayout = () => {
     return null;
   }
 
-  // Partner navigation items - All 12 Features (Swiggy/Zomato pattern expanded)
+  // Partner navigation items - Swiggy 2025 pattern (only core features)
   const navItems = [
     { icon: Home, label: "Dashboard", path: "/partner/dashboard" },
     { icon: Package, label: "Products", path: "/partner/products" },
     { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // TODO: Real-time count
-    { icon: Megaphone, label: "Campaigns", path: "/partner/campaigns" },
-    { icon: Star, label: "Reviews", path: "/partner/reviews" },
-    { icon: AlertCircle, label: "Disputes", path: "/partner/disputes" },
-    { icon: PackageX, label: "Returns", path: "/partner/returns" },
     { icon: DollarSign, label: "Earnings", path: "/partner/earnings" },
-    { icon: Users, label: "Referrals", path: "/partner/referrals" },
+    { icon: Star, label: "Reviews", path: "/partner/reviews" },
     { icon: HelpCircle, label: "Help", path: "/partner/help" },
     { icon: User, label: "Profile", path: "/partner/profile" },
   ];
@@ -100,18 +91,12 @@ export const PartnerLayout = () => {
         window.history.pushState(null, '', window.location.href);
       });
       
-      toast({
-        title: "Logged out",
-        description: "You've been logged out successfully",
-      });
-      
+      // Silent success - navigation implies success (Swiggy 2025 pattern)
       navigate("/partner/login", { replace: true });
     } catch (error: any) {
-      toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Silent error - logout should always succeed or redirect
+      console.error('Logout error:', error);
+      navigate("/partner/login", { replace: true });
     }
   };
 
@@ -125,7 +110,7 @@ export const PartnerLayout = () => {
             <div className="p-4 border-b flex items-center justify-center">
               <Link to="/partner/dashboard">
                 <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
+                  src="/wyshkit-logo.png"
                   alt="Wyshkit Partner"
                   className="h-8 w-auto object-contain"
                   width="120"
@@ -145,7 +130,7 @@ export const PartnerLayout = () => {
                     key={item.path}
                     to={item.path}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative",
+                      "flex items-center gap-3 px-3 py-2 rounded-lg relative",
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -215,7 +200,7 @@ export const PartnerLayout = () => {
               {/* Logo - Properly sized for mobile */}
               <Link to="/partner/dashboard" className="flex items-center flex-shrink-0">
                 <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-logo.png"}
+                  src="/wyshkit-logo.png"
                   alt="Wyshkit"
                   className="h-6 w-auto max-w-[120px] object-contain"
                   width="120"
@@ -228,7 +213,6 @@ export const PartnerLayout = () => {
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Bell className="h-4 w-4" />
                 </Button>
-                <ThemeToggle />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -262,7 +246,6 @@ export const PartnerLayout = () => {
         {!isMobile && (
           <header className="sticky top-0 z-30 bg-background border-b border-border">
             <div className="flex items-center justify-end h-16 px-6 gap-4">
-              <ThemeToggle />
               <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5" />
               </Button>

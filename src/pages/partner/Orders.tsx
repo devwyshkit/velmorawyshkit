@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { OrderDetail } from "@/components/partner/OrderDetail";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Order {
   id: string;
@@ -39,8 +39,8 @@ interface OrderItem {
  * Follows Swiggy/Zomato order management pattern
  */
 export const PartnerOrders = () => {
-  const { toast } = useToast();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -130,10 +130,8 @@ export const PartnerOrders = () => {
         },
         (payload) => {
           setOrders(prev => [payload.new as Order, ...prev]);
-          toast({
-            title: "New Order! 🎉",
-            description: `Order #${(payload.new as any).order_number}`,
-          });
+          // Silent success - orders list updates automatically (Swiggy 2025 pattern)
+          // Badge count in navigation will reflect new order
         }
       )
       .subscribe();
@@ -174,10 +172,10 @@ export const PartnerOrders = () => {
   const readyCount = orders.filter(o => o.partner_status === 'ready').length;
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Orders</h1>
+        <h1 className="text-xl font-bold tracking-tight">Orders</h1>
         <p className="text-muted-foreground">
           Manage orders and approve customization proofs
         </p>
@@ -268,9 +266,12 @@ export const PartnerOrders = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Order Detail Sheet (with Proof Approval) */}
+      {/* Order Detail Sheet (with Proof Approval) - Swiggy 2025: Bottom on mobile, Right on desktop */}
       <Sheet open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetContent 
+          side={isMobile ? "bottom" : "right"} 
+          className={isMobile ? "h-[90vh] rounded-t-xl overflow-y-auto" : "w-full sm:max-w-2xl overflow-y-auto"}
+        >
           <SheetHeader>
             <SheetTitle>Order Details</SheetTitle>
           </SheetHeader>
@@ -290,7 +291,7 @@ const OrderCard = ({ order, onClick }: { order: Order; onClick: () => void }) =>
 
   return (
     <Card 
-      className="cursor-pointer hover:shadow-md transition-shadow"
+      className="cursor-pointer hover:shadow-md"
       onClick={onClick}
     >
       <CardContent className="p-4">

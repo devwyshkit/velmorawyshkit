@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -74,10 +73,10 @@ export const PartnerOnboarding = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="flex items-center justify-between mb-4">
+      {/* Header - Swiggy 2025 Pattern: Minimal, mobile-first */}
+      <header className="border-b bg-card sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-xl font-bold">Partner Onboarding</h1>
               <p className="text-sm text-muted-foreground">
@@ -94,15 +93,15 @@ export const PartnerOnboarding = () => {
         </div>
       </header>
 
-      {/* Steps Indicator */}
-      <div className="max-w-4xl mx-auto w-full p-4">
-        <div className="flex items-center justify-between mb-8">
+      {/* Steps Indicator - Mobile-first */}
+      <div className="max-w-7xl mx-auto w-full p-4">
+        <div className="flex items-center justify-between mb-6">
           {STEPS.map((step, index) => (
             <div key={step.id} className="flex items-center flex-1">
               <div className="flex flex-col items-center">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors",
+                    "w-10 h-10 rounded-full flex items-center justify-center font-semibold",
                     currentStep > step.id
                       ? "bg-primary text-primary-foreground"
                       : currentStep === step.id
@@ -133,9 +132,8 @@ export const PartnerOnboarding = () => {
           ))}
         </div>
 
-        {/* Step Content */}
-        <Card className="max-w-3xl mx-auto">
-          <CardContent className="p-6 md:p-8">
+        {/* Step Content - Full-page mobile-first, no Card wrapper (Swiggy 2025 pattern) */}
+        <div className="max-w-3xl mx-auto">
             {currentStep === 1 && (
               <Step1Business
                 initialData={onboardingData}
@@ -164,8 +162,7 @@ export const PartnerOnboarding = () => {
                 onBack={handleBack}
               />
             )}
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );

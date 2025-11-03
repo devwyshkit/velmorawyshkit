@@ -135,15 +135,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION get_order_timeline(
   p_order_id UUID
 )
-RETURNS TABLE (
-  step_label TEXT,
-  step_status TEXT,
-  completed BOOLEAN,
-  timestamp TIMESTAMP WITH TIME ZONE
-) AS $$
+RETURNS JSONB
+AS $$
 DECLARE
   v_order orders%ROWTYPE;
   v_has_custom BOOLEAN;
+  v_timeline JSONB;
 BEGIN
   -- Get order details
   SELECT * INTO v_order
@@ -151,7 +148,7 @@ BEGIN
   WHERE id = p_order_id;
   
   IF NOT FOUND THEN
-    RETURN;
+    RETURN '[]'::JSONB;
   END IF;
   
   -- Check if order has custom items
@@ -164,21 +161,25 @@ BEGIN
   
   -- Build timeline based on status and custom items
   IF v_has_custom THEN
-    RETURN QUERY VALUES
-      ('Order Placed', 'placed', true, v_order.created_at),
-      ('Upload Your Files', v_order.status, v_order.status != 'placed', NOW()),
-      ('Preview Ready', v_order.status, v_order.status IN ('preview_approved', 'in_production'), NOW()),
-      ('Approved & Production Started', v_order.status, v_order.status IN ('in_production', 'production_complete'), NOW()),
-      ('Packed & Ready', v_order.status, v_order.status IN ('ready_for_pickup', 'picked_up'), NOW()),
-      ('Out for Delivery', v_order.status, v_order.status = 'out_for_delivery', NOW()),
-      ('Delivered', v_order.status, v_order.status = 'delivered', NOW());
+    v_timeline := '[
+      {"label": "Order Placed", "status": "completed"},
+      {"label": "Upload Your Files", "status": "active"},
+      {"label": "Preview Ready", "status": "pending"},
+      {"label": "Approved & Production Started", "status": "pending"},
+      {"label": "Packed & Ready", "status": "pending"},
+      {"label": "Out for Delivery", "status": "pending"},
+      {"label": "Delivered", "status": "pending"}
+    ]'::JSONB;
   ELSE
-    RETURN QUERY VALUES
-      ('Order Placed', 'placed', true, v_order.created_at),
-      ('Preparing Your Order', v_order.status, v_order.status IN ('confirmed', 'in_production'), NOW()),
-      ('Out for Delivery', v_order.status, v_order.status = 'out_for_delivery', NOW()),
-      ('Delivered', v_order.status, v_order.status = 'delivered', NOW());
+    v_timeline := '[
+      {"label": "Order Placed", "status": "completed"},
+      {"label": "Preparing Your Order", "status": "active"},
+      {"label": "Out for Delivery", "status": "pending"},
+      {"label": "Delivered", "status": "pending"}
+    ]'::JSONB;
   END IF;
+  
+  RETURN v_timeline;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

@@ -17,11 +17,7 @@ import {
   ShoppingBag,
   DollarSign,
   MoreHorizontal,
-  Megaphone,
   Star,
-  AlertCircle,
-  PackageX,
-  Users,
   HelpCircle,
   User,
 } from "lucide-react";
@@ -51,20 +47,16 @@ export const PartnerBottomNav = () => {
     { icon: DollarSign, label: "Earnings", path: "/partner/earnings" },
   ];
 
-  // Secondary navigation items (in "More" menu)
+  // Secondary navigation items (in "More" menu) - Swiggy 2025 pattern
   const secondaryNavItems = [
-    { icon: Megaphone, label: "Campaigns", path: "/partner/campaigns" },
     { icon: Star, label: "Reviews", path: "/partner/reviews" },
-    { icon: AlertCircle, label: "Disputes", path: "/partner/disputes" },
-    { icon: PackageX, label: "Returns", path: "/partner/returns" },
-    { icon: Users, label: "Referrals", path: "/partner/referrals" },
     { icon: HelpCircle, label: "Help", path: "/partner/help" },
     { icon: User, label: "Profile", path: "/partner/profile" },
   ];
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-card border-t border-border safe-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border safe-bottom">
         <div className="flex items-center justify-around h-14 max-w-screen-xl mx-auto px-2">
           {/* Primary Items */}
           {primaryNavItems.map((item) => {
@@ -77,7 +69,7 @@ export const PartnerBottomNav = () => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors relative",
+                  "flex flex-col items-center justify-center gap-1 flex-1 h-full relative",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
@@ -105,7 +97,7 @@ export const PartnerBottomNav = () => {
             <SheetTrigger asChild>
               <button
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+                  "flex flex-col items-center justify-center gap-1 flex-1 h-full",
                   secondaryNavItems.some(item => location.pathname === item.path)
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
@@ -134,7 +126,7 @@ export const PartnerBottomNav = () => {
                       to={item.path}
                       onClick={() => setShowMoreSheet(false)}
                       className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                        "flex items-center gap-3 px-4 py-3 rounded-lg",
                         isActive
                           ? "bg-primary text-primary-foreground"
                           : "text-foreground hover:bg-muted"

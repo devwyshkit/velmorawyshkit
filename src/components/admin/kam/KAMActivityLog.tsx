@@ -163,7 +163,7 @@ export const KAMActivityLog = ({
                       <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                         <span>{formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}</span>
                         {activity.next_followup && (
-                          <span className="text-amber-600 dark:text-amber-400">
+                          <span className="text-amber-600">
                             📅 Follow-up: {new Date(activity.next_followup).toLocaleDateString()}
                           </span>
                         )}

@@ -25,7 +25,6 @@ import { fetchStores, type Store } from "@/lib/integrations/supabase-data";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useDelivery } from "@/contexts/DeliveryContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 import { EmptyStates } from "@/components/ui/empty-state";
 import {
   SmartFilters,
@@ -45,7 +44,6 @@ interface Occasion {
 
 export const CustomerHome = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { location, deliveryDate } = useDelivery();
   const { user } = useAuth();
   const [banners, setBanners] = useState<
@@ -697,15 +695,11 @@ export const CustomerHome = () => {
         },
       ];
       setOffers(mockOffers);
-        toast({
-          title: "Loading error",
-          description: "Some content may not be available",
-          variant: "destructive",
-        });
+      // Swiggy 2025: Silent error - empty states will show if data is missing
       } finally {
         setLoading(false);
       }
-  }, [location, toast]);
+  }, [location]);
 
   useEffect(() => {
     loadData();

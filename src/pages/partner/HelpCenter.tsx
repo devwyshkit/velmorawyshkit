@@ -19,10 +19,10 @@ export const HelpCenter = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6">
       {/* Page Header */}
       <div className="text-center">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Help Center</h1>
+        <h1 className="text-xl font-bold tracking-tight">Help Center</h1>
         <p className="text-muted-foreground">
           Find answers or contact support
         </p>
@@ -48,7 +48,7 @@ export const HelpCenter = () => {
           {HELP_CATEGORIES.map(category => {
             const IconComponent = ICON_MAP[category.icon as keyof typeof ICON_MAP];
             return (
-              <Card key={category.id} className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <Card key={category.id} className="cursor-pointer hover:bg-accent/50 ">
                 <CardContent className="p-6 text-center">
                   {IconComponent && <IconComponent className="h-12 w-12 mx-auto mb-3 text-primary" />}
                   <p className="font-medium">{category.name}</p>
@@ -62,8 +62,8 @@ export const HelpCenter = () => {
       {/* Quick Actions */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+        <div className="grid gap-3 md:grid-cols-2">
+          <Card className="cursor-pointer hover:bg-accent/50 ">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <MessageCircle className="h-10 w-10 text-primary" />
@@ -75,7 +75,7 @@ export const HelpCenter = () => {
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <Card className="cursor-pointer hover:bg-accent/50 ">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <FileText className="h-10 w-10 text-primary" />
@@ -100,7 +100,7 @@ export const HelpCenter = () => {
             "Understanding commission structure",
             "Responding to customer reviews",
           ].map((article, idx) => (
-            <Card key={idx} className="cursor-pointer hover:bg-accent/50 transition-colors">
+            <Card key={idx} className="cursor-pointer hover:bg-accent/50 ">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{article}</p>

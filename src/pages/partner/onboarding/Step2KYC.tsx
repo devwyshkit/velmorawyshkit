@@ -1,11 +1,23 @@
-import { useState } from "react";
+/**
+ * Onboarding Step 2: KYC Documents (Swiggy 2025 Document-First Pattern)
+ * 
+ * Flow:
+ * 1. User uploads documents (PAN, GST, Cancelled Cheque, FSSAI)
+ * 2. OCR automatically extracts data
+ * 3. Form fields auto-fill from extracted data
+ * 4. Verification happens automatically in background
+ * 5. Inline status badges show verification state
+ * 
+ * NO manual entry as primary, NO verify buttons, NO toasts
+ */
+
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Form,
@@ -16,16 +28,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowRight, ArrowLeft, AlertTriangle, Upload, ExternalLink, CheckCircle2, XCircle, Loader2, Info } from "lucide-react";
-import { idfyMock } from "@/lib/api/idfy-mock";
+import { ArrowRight, ArrowLeft, AlertTriangle, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
+import { DocumentUploadZone, type DocumentType } from "@/components/partner/onboarding/DocumentUploadZone";
+import { useIdfyDocumentOCR } from "@/hooks/useIdfyDocumentOCR";
 import * as idfyReal from "@/lib/api/idfy-real";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Conditional schema based on category
 const createStep2Schema = (requiresFSSAI: boolean) => {
   const base = z.object({
-    pan_number: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format (e.g., ABCDE1234F)"),
+    pan_number: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format"),
     gst_number: z.string().regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[Z0-9]{1}[A-Z]{1}[0-9]{1}$/, "Invalid GST format"),
   });
 
@@ -45,14 +57,18 @@ interface Step2KYCProps {
   onBack: () => void;
 }
 
-/**
- * Onboarding Step 2: KYC Documents
- * CONDITIONAL FSSAI based on category (your brilliant idea!)
- * Swiggy/Zomato pattern: PAN + GST mandatory, FSSAI only for food
- */
+type VerificationStatus = 'pending' | 'verifying' | 'verified' | 'failed';
+
+interface DocumentState {
+  fileUrl: string | null;
+  extractedData: any;
+  status: VerificationStatus;
+  verificationId: string | null;
+  error: string | null;
+}
+
 export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProps) => {
-  const { toast } = useToast();
-  // Determine if FSSAI is required based on category
+  const { user } = useAuth();
   const requiresFSSAI = ['food', 'perishables', 'beverages'].includes(category || '');
   
   const schema = createStep2Schema(requiresFSSAI);
@@ -67,154 +83,125 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
     } as any,
   });
 
-  // IDfy verification states
-  const [panVerifying, setPanVerifying] = useState(false);
-  const [panVerified, setPanVerified] = useState(false);
-  const [panVerificationId, setPanVerificationId] = useState<string | null>(null);
-  
-  const [gstVerifying, setGstVerifying] = useState(false);
-  const [gstVerified, setGstVerified] = useState(false);
-  const [gstVerificationId, setGstVerificationId] = useState<string | null>(null);
-  
-  const [fssaiVerifying, setFssaiVerifying] = useState(false);
-  const [fssaiVerified, setFssaiVerified] = useState(false);
-  const [fssaiVerificationId, setFssaiVerificationId] = useState<string | null>(null);
+  // Document states for each document type
+  const [panDoc, setPanDoc] = useState<DocumentState>({
+    fileUrl: initialData.pan_document_url || null,
+    extractedData: null,
+    status: 'pending',
+    verificationId: null,
+    error: null,
+  });
 
-  const handleVerifyPAN = async () => {
-    const panNumber = form.getValues('pan_number');
-    if (!panNumber) {
-      toast({
-        title: "PAN number required",
-        description: "Please enter PAN number to verify",
-        variant: "destructive",
-      });
-      return;
-    }
+  const [gstDoc, setGstDoc] = useState<DocumentState>({
+    fileUrl: initialData.gst_document_url || null,
+    extractedData: null,
+    status: 'pending',
+    verificationId: null,
+    error: null,
+  });
 
-    setPanVerifying(true);
+  const [fssaiDoc, setFssaiDoc] = useState<DocumentState>({
+    fileUrl: initialData.fssai_document_url || null,
+    extractedData: null,
+    status: 'pending',
+    verificationId: null,
+    error: null,
+  });
+
+  const { processDocumentOCR, uploadAndProcess, isProcessing } = useIdfyDocumentOCR();
+
+  // Auto-verify extracted numbers in background
+  const autoVerifyExtractedNumber = async (
+    type: 'pan' | 'gst' | 'fssai',
+    number: string,
+    setDocState: (updater: (prev: DocumentState) => DocumentState) => void
+  ) => {
+    if (!number) return;
+
+    setDocState(prev => ({ ...prev, status: 'verifying' }));
+
     try {
-      // Use real IDfy API if configured, fallback to mock
-      const result = idfyReal.isIdfyConfigured() 
-        ? await idfyReal.verifyPAN(panNumber)
-        : await idfyMock.verifyPAN(panNumber, initialData.business_name || '');
-      
-      if (result.verified || (result as any).status === 'verified') {
-        setPanVerified(true);
-        setPanVerificationId(result.verification_id);
-        const name = result.name || (result as any).details?.registered_name;
-        toast({
-          title: "PAN verified ✓",
-          description: `Verified: ${name} (₹10 charged)`,
-        });
+      let verificationResult: any;
+
+      if (type === 'pan') {
+        verificationResult = await idfyReal.verifyPAN(number);
+      } else if (type === 'gst') {
+        verificationResult = await idfyReal.verifyGST(number);
+      } else if (type === 'fssai') {
+        verificationResult = await idfyReal.verifyFSSAI(number);
+      }
+
+      if (verificationResult.verified) {
+        setDocState(prev => ({
+          ...prev,
+          status: 'verified',
+          verificationId: verificationResult.verification_id,
+          error: null,
+        }));
       } else {
-        toast({
-          title: "PAN verification failed",
-          description: (result as any).error_message || "Invalid PAN or not found in records",
-          variant: "destructive",
-        });
+        setDocState(prev => ({
+          ...prev,
+          status: 'failed',
+          error: 'Verification failed. Please check the number and try again.',
+        }));
       }
     } catch (error: any) {
-      toast({
-        title: "Verification error",
-        description: idfyReal.handleIdfyError(error),
-        variant: "destructive",
-      });
-    } finally {
-      setPanVerifying(false);
+      setDocState(prev => ({
+        ...prev,
+        status: 'failed',
+        error: 'Verification temporarily unavailable',
+      }));
     }
   };
 
-  const handleVerifyGST = async () => {
-    const gstNumber = form.getValues('gst_number');
-    if (!gstNumber) {
-      toast({
-        title: "GST number required",
-        description: "Please enter GST number to verify",
-        variant: "destructive",
-      });
+  // Handle document upload and OCR
+  const handleDocumentUpload = async (
+    type: DocumentType,
+    file: File,
+    fileUrl: string
+  ) => {
+    if (!user?.id) return;
+
+    let setDocState: (updater: (prev: DocumentState) => DocumentState) => void;
+    
+    if (type === 'pan') {
+      setDocState = setPanDoc;
+    } else if (type === 'gst') {
+      setDocState = setGstDoc;
+    } else if (type === 'fssai') {
+      setDocState = setFssaiDoc;
+    } else {
       return;
     }
 
-    setGstVerifying(true);
-    try {
-      // Use real IDfy API if configured, fallback to mock
-      const result = idfyReal.isIdfyConfigured()
-        ? await idfyReal.verifyGST(gstNumber)
-        : await idfyMock.verifyGST(gstNumber);
-      
-      const isVerified = result.verified || (result as any).status === 'verified';
-      const isActive = result.status === 'Active' || (result as any).details?.status === 'active';
-      
-      if (isVerified && isActive) {
-        setGstVerified(true);
-        setGstVerificationId(result.verification_id);
-        const businessName = result.business_name || (result as any).details?.business_name;
-        toast({
-          title: "GST verified ✓",
-          description: `Verified: ${businessName} (₹10 charged)`,
-        });
-      } else {
-        toast({
-          title: "GST verification failed",
-          description: !isActive ? "GST is inactive" : "Invalid GST or not found in records",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Verification error",
-        description: idfyReal.handleIdfyError(error),
-        variant: "destructive",
-      });
-    } finally {
-      setGstVerifying(false);
-    }
-  };
+    setDocState(prev => ({ ...prev, fileUrl, error: null }));
 
-  const handleVerifyFSSAI = async () => {
-    const fssaiNumber = (form.getValues() as any).fssai_number;
-    if (!fssaiNumber) {
-      toast({
-        title: "FSSAI license required",
-        description: "Please enter FSSAI license number to verify",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Process OCR
+    const result = await uploadAndProcess(type, file, user.id);
 
-    setFssaiVerifying(true);
-    try {
-      // Use real IDfy API if configured, fallback to mock
-      const result = idfyReal.isIdfyConfigured()
-        ? await idfyReal.verifyFSSAI(fssaiNumber)
-        : await idfyMock.verifyFSSAI(fssaiNumber);
-      
-      const isVerified = result.verified || (result as any).status === 'verified';
-      const isActive = result.license_status === 'Active' || true;
-      
-      if (isVerified && isActive) {
-        setFssaiVerified(true);
-        setFssaiVerificationId(result.verification_id);
-        const businessName = result.business_name || (result as any).details?.business_name;
-        toast({
-          title: "FSSAI verified ✓",
-          description: `Verified: ${businessName} (₹10 charged)`,
-        });
-      } else {
-        toast({
-          title: "FSSAI verification failed",
-          description: (result as any).error_message || "Invalid license or not found in records",
-          variant: "destructive",
-        });
+    if (result.ocrResult.success && result.ocrResult.extracted_data) {
+      const extractedData = result.ocrResult.extracted_data;
+      setDocState(prev => ({ ...prev, extractedData }));
+
+      // Auto-fill form fields
+      if (type === 'pan' && extractedData.pan_number) {
+        form.setValue('pan_number', extractedData.pan_number.toUpperCase());
+        // Auto-verify
+        await autoVerifyExtractedNumber('pan', extractedData.pan_number, setDocState);
+      } else if (type === 'gst' && extractedData.gst_number) {
+        form.setValue('gst_number', extractedData.gst_number.toUpperCase());
+        // Auto-verify
+        await autoVerifyExtractedNumber('gst', extractedData.gst_number, setDocState);
+      } else if (type === 'fssai' && extractedData.fssai_number) {
+        form.setValue('fssai_number', extractedData.fssai_number);
+        // Auto-verify
+        await autoVerifyExtractedNumber('fssai', extractedData.fssai_number, setDocState);
       }
-    } catch (error: any) {
-      toast({
-        title: "Verification error",
-        description: idfyReal.handleIdfyError(error),
-        variant: "destructive",
-      });
-    } finally {
-      setFssaiVerifying(false);
+    } else {
+      setDocState(prev => ({
+        ...prev,
+        error: result.ocrResult.error || 'Failed to extract data. Please enter details manually.',
+      }));
     }
   };
 
@@ -223,35 +210,66 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
       pan_number: values.pan_number,
       gst_number: values.gst_number,
       ...(requiresFSSAI && { fssai_number: (values as any).fssai_number }),
-      // Save IDfy verification IDs for database storage
-      pan_verification_id: panVerificationId,
-      gst_verification_id: gstVerificationId,
-      fssai_verification_id: fssaiVerificationId,
-      // Verification status for admin review
-      pan_verified: panVerified,
-      gst_verified: gstVerified,
-      fssai_verified: fssaiVerified,
+      pan_document_url: panDoc.fileUrl,
+      gst_document_url: gstDoc.fileUrl,
+      ...(requiresFSSAI && { fssai_document_url: fssaiDoc.fileUrl }),
+      // Verification IDs
+      pan_verification_id: panDoc.verificationId,
+      gst_verification_id: gstDoc.verificationId,
+      ...(requiresFSSAI && { fssai_verification_id: fssaiDoc.verificationId }),
+      // Verification status
+      pan_verified: panDoc.status === 'verified',
+      gst_verified: gstDoc.status === 'verified',
+      ...(requiresFSSAI && { fssai_verified: fssaiDoc.status === 'verified' }),
     });
+  };
+
+  const getVerificationBadge = (status: VerificationStatus) => {
+    switch (status) {
+      case 'verified':
+        return (
+          <Badge variant="default" className="bg-green-600 text-xs gap-1">
+            <CheckCircle2 className="h-3 w-3" />
+            Verified
+          </Badge>
+        );
+      case 'verifying':
+        return (
+          <Badge variant="secondary" className="text-xs gap-1">
+            <span>Uploading...</span>
+            Verifying...
+          </Badge>
+        );
+      case 'failed':
+        return (
+          <Badge variant="destructive" className="text-xs gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Failed
+          </Badge>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold mb-2">KYC Documents</h2>
           <p className="text-sm text-muted-foreground">
-            Verify your business identity with government documents
+            Upload your business documents. We'll extract and verify the details automatically.
           </p>
         </div>
 
-        {/* Conditional FSSAI Alert (YOUR BRILLIANT IDEA!) */}
+        {/* Conditional FSSAI Alert */}
         {requiresFSSAI && (
           <Alert variant="default" className="border-primary">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>FSSAI License Required</AlertTitle>
             <AlertDescription className="text-xs space-y-2">
               <p>
-                Since you deal with <strong>{category}</strong>, FSSAI license is mandatory as per food safety regulations.
+                Since you deal with <strong>{category}</strong>, FSSAI license is mandatory.
               </p>
               <a
                 href="https://foscos.fssai.gov.in"
@@ -265,147 +283,87 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
           </Alert>
         )}
 
-        {/* PAN Card (Mandatory for all) */}
-        <div className="space-y-4">
+        {/* PAN Card Upload (Document-First) */}
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-sm">PAN Card</h3>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="text-xs gap-1">
-                    <Info className="h-3 w-3" />
-                    Auto-verify with IDfy
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Instant verification (₹10 per check)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {panDoc.status !== 'pending' && getVerificationBadge(panDoc.status)}
           </div>
-          
+
+          <DocumentUploadZone
+            documentType="pan"
+            label="Upload PAN Card"
+            description="Upload a clear image of your PAN card"
+            onUploadComplete={(file, fileUrl) => handleDocumentUpload('pan', file, fileUrl)}
+            extractedData={panDoc.extractedData}
+            isProcessing={isProcessing}
+            error={panDoc.error}
+          />
+
+          {/* Manual Entry Fallback (Editable if OCR fails) */}
           <FormField
             control={form.control}
             name="pan_number"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center justify-between">
-                  <span>PAN Number</span>
-                  {panVerified && (
-                    <Badge variant="default" className="bg-green-600 text-xs gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Verified
-                    </Badge>
-                  )}
-                </FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input
-                      placeholder="ABCDE1234F"
-                      maxLength={10}
-                      className="uppercase"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                    />
-                  </FormControl>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleVerifyPAN}
-                    disabled={panVerifying || panVerified || !field.value}
-                    className="flex-shrink-0"
-                  >
-                    {panVerifying ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : panVerified ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    ) : (
-                      'Verify'
-                    )}
-                  </Button>
-                </div>
+                <FormLabel>PAN Number</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="ABCDE1234F"
+                    maxLength={10}
+                    className="uppercase"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                  />
+                </FormControl>
                 <FormDescription className="text-xs">
-                  10-character PAN (5 letters, 4 numbers, 1 letter)
+                  {panDoc.extractedData?.pan_number
+                    ? "Extracted from document. You can edit if needed."
+                    : "Enter manually if extraction didn't work"}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
-
-          <div className="space-y-2">
-            <Label>PAN Card Document</Label>
-            <div className="border-2 border-dashed rounded-lg p-4 text-center">
-              <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Upload PAN card image</p>
-              <p className="text-xs text-muted-foreground">JPG, PNG (max 5MB)</p>
-              <Button type="button" variant="outline" size="sm" className="mt-2">
-                Select File
-              </Button>
-            </div>
-          </div>
         </div>
 
-        {/* GST Certificate (Mandatory for all) */}
-        <div className="space-y-4">
+        {/* GST Certificate Upload (Document-First) */}
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-sm">GST Registration</h3>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="text-xs gap-1">
-                    <Info className="h-3 w-3" />
-                    Auto-verify with IDfy
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Instant verification (₹15 per check)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {gstDoc.status !== 'pending' && getVerificationBadge(gstDoc.status)}
           </div>
-          
+
+          <DocumentUploadZone
+            documentType="gst"
+            label="Upload GST Certificate"
+            description="Upload a clear image of your GST registration certificate"
+            onUploadComplete={(file, fileUrl) => handleDocumentUpload('gst', file, fileUrl)}
+            extractedData={gstDoc.extractedData}
+            isProcessing={isProcessing}
+            error={gstDoc.error}
+          />
+
+          {/* Manual Entry Fallback */}
           <FormField
             control={form.control}
             name="gst_number"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center justify-between">
-                  <span>GST Number</span>
-                  {gstVerified && (
-                    <Badge variant="default" className="bg-green-600 text-xs gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Verified
-                    </Badge>
-                  )}
-                </FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input
-                      placeholder="22AAAAA0000A1Z5"
-                      maxLength={15}
-                      className="uppercase"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                    />
-                  </FormControl>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleVerifyGST}
-                    disabled={gstVerifying || gstVerified || !field.value}
-                    className="flex-shrink-0"
-                  >
-                    {gstVerifying ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : gstVerified ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    ) : (
-                      'Verify'
-                    )}
-                  </Button>
-                </div>
+                <FormLabel>GST Number</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="22AAAAA0000A1Z5"
+                    maxLength={15}
+                    className="uppercase"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                  />
+                </FormControl>
                 <FormDescription className="text-xs">
-                  15-character GSTIN
+                  {gstDoc.extractedData?.gst_number
+                    ? "Extracted from document. You can edit if needed."
+                    : "Enter manually if extraction didn't work"}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -413,87 +371,65 @@ export const Step2KYC = ({ initialData, category, onNext, onBack }: Step2KYCProp
           />
         </div>
 
-        {/* FSSAI License (CONDITIONAL - only if food category) */}
+        {/* FSSAI License Upload (Conditional, Document-First) */}
         {requiresFSSAI && (
-          <div className="space-y-4 p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
+          <div className="space-y-3 p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-sm flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-primary" />
                 FSSAI License (Required for Food)
               </h3>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="secondary" className="text-xs gap-1">
-                      <Info className="h-3 w-3" />
-                      Auto-verify with IDfy
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Instant verification (₹15 per check)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {fssaiDoc.status !== 'pending' && getVerificationBadge(fssaiDoc.status)}
             </div>
-            
+
+            <DocumentUploadZone
+              documentType="fssai"
+              label="Upload FSSAI Certificate"
+              description="Upload a clear image of your FSSAI license certificate"
+              onUploadComplete={(file, fileUrl) => handleDocumentUpload('fssai', file, fileUrl)}
+              extractedData={fssaiDoc.extractedData}
+              isProcessing={isProcessing}
+              error={fssaiDoc.error}
+            />
+
+            {/* Manual Entry Fallback */}
             <FormField
               control={form.control}
               name="fssai_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center justify-between">
-                    <span>FSSAI License Number</span>
-                    {fssaiVerified && (
-                      <Badge variant="default" className="bg-green-600 text-xs gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Verified
-                      </Badge>
-                    )}
-                  </FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input
-                        placeholder="12345678901234"
-                        maxLength={14}
-                        {...field}
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleVerifyFSSAI}
-                      disabled={fssaiVerifying || fssaiVerified || !field?.value}
-                      className="flex-shrink-0"
-                    >
-                      {fssaiVerifying ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : fssaiVerified ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      ) : (
-                        'Verify'
-                      )}
-                    </Button>
-                  </div>
+                  <FormLabel>FSSAI License Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="12345678901234"
+                      maxLength={14}
+                      {...field}
+                    />
+                  </FormControl>
                   <FormDescription className="text-xs">
-                    14-digit FSSAI license number
+                    {fssaiDoc.extractedData?.fssai_number
+                      ? "Extracted from document. You can edit if needed."
+                      : "Enter manually if extraction didn't work"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <div className="space-y-2">
-              <Label>FSSAI Certificate</Label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Upload FSSAI certificate</p>
-                <p className="text-xs text-muted-foreground">PDF, JPG, PNG (max 5MB)</p>
-                <Button type="button" variant="outline" size="sm" className="mt-2">
-                  Select File
-                </Button>
-              </div>
-            </div>
           </div>
+        )}
+
+        {/* Error Messages (Inline, no toasts) */}
+        {(panDoc.error || gstDoc.error || (requiresFSSAI && fssaiDoc.error)) && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Document Processing Issues</AlertTitle>
+            <AlertDescription>
+              {panDoc.error && <p className="text-xs">PAN: {panDoc.error}</p>}
+              {gstDoc.error && <p className="text-xs">GST: {gstDoc.error}</p>}
+              {requiresFSSAI && fssaiDoc.error && <p className="text-xs">FSSAI: {fssaiDoc.error}</p>}
+              <p className="text-xs mt-2">You can enter details manually and continue.</p>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Navigation */}

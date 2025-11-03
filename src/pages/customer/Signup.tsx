@@ -99,10 +99,7 @@ export const CustomerMobileSignup = () => {
       setOtpSent(true);
       setStep('otp');
       setResendTimer(60); // 60 second countdown
-      toast({
-        title: "OTP Sent",
-        description: `Verification code sent to +91${phone.slice(0, 4)} XX ${phone.slice(6)}`,
-      });
+      // Swiggy 2025: Silent operation - step change indicates OTP sent
     } catch (error: any) {
       toast({
         title: "Failed to send OTP",
@@ -145,10 +142,7 @@ export const CustomerMobileSignup = () => {
           setStep('profile');
         } else {
           // Existing user - redirect to home
-          toast({
-            title: "Welcome back!",
-            description: "You've successfully logged in.",
-          });
+          // Swiggy 2025: Silent operation - navigation confirms success
           navigate(RouteMap.home());
         }
       } else {
@@ -164,7 +158,7 @@ export const CustomerMobileSignup = () => {
           if (existingSession) {
             // Existing user
             setIsNewUser(false);
-            window.location.href = RouteMap.home();
+            navigate(RouteMap.home());
           } else {
             // New user - show profile step
             setIsNewUser(true);
@@ -218,11 +212,7 @@ export const CustomerMobileSignup = () => {
         }
       }
       
-      // Navigate to home
-      toast({
-        title: "Welcome to Wyshkit!",
-        description: "Your account is ready!",
-      });
+      // Swiggy 2025: Silent operation - navigation confirms success
       navigate(RouteMap.home());
     } catch (error: any) {
       toast({
@@ -279,16 +269,10 @@ export const CustomerMobileSignup = () => {
       if (error) throw error;
 
       if (data.session) {
-        toast({
-          title: "Welcome to Wyshkit!",
-            description: "Your account is ready!",
-        });
+        // Swiggy 2025: Silent operation - navigation confirms success
         navigate(RouteMap.home());
       } else {
-        toast({
-          title: "Check your email",
-          description: "Click the verification link to activate your account.",
-        });
+        // Swiggy 2025: Silent operation - navigate to login (email verification UI will show message)
         navigate(RouteMap.login());
         }
       } else {

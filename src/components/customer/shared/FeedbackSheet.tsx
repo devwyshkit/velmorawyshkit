@@ -3,9 +3,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Star } from "lucide-react";
+import { Star, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 
 interface FeedbackSheetProps {
   isOpen: boolean;
@@ -14,31 +13,24 @@ interface FeedbackSheetProps {
 }
 
 export const FeedbackSheet = ({ isOpen, onClose, orderId }: FeedbackSheetProps) => {
-  const { toast } = useToast();
   const [productRating, setProductRating] = useState(0);
   const [deliveryRating, setDeliveryRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     setLoading(true);
+    setError(null);
     
     try {
       // Submit feedback to backend
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast({
-        title: "Feedback submitted! ✅",
-        description: "Thank you for helping us improve",
-      });
-      
+      // Swiggy 2025: Silent operation - closing sheet confirms submission
       onClose();
     } catch (error) {
-      toast({
-        title: "Submission failed",
-        description: "Please try again",
-        variant: "destructive",
-      });
+      setError("Failed to submit feedback. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -105,6 +97,14 @@ export const FeedbackSheet = ({ isOpen, onClose, orderId }: FeedbackSheetProps) 
             />
           </div>
           
+          {/* Error message */}
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+              <span className="text-sm text-destructive">{error}</span>
+            </div>
+          )}
+
           <div className="flex gap-3">
             <Button
               className="flex-1"

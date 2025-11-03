@@ -17,6 +17,8 @@ import {
   TrendingUp,
   LucideIcon
 } from 'lucide-react';
+import { pwaNavigationService } from '@/services/pwaNavigationService';
+import { RouteMap } from '@/routes';
 
 export interface EmptyStateProps {
   icon?: LucideIcon;
@@ -118,7 +120,7 @@ export const EmptyStates = {
       description="Add some products to get started with your order"
       action={{
         label: "Browse Products",
-        onClick: () => window.location.href = '/'
+        onClick: () => pwaNavigationService.navigateToHome()
       }}
       {...props}
     />
@@ -131,11 +133,11 @@ export const EmptyStates = {
       description="Create an account to save your favorite items for later"
       action={{
         label: "Sign In",
-        onClick: () => window.location.href = '/login'
+        onClick: () => pwaNavigationService.navigateTo(RouteMap.login())
       }}
       secondaryAction={{
         label: "Browse Stores",
-        onClick: () => window.location.href = '/'
+        onClick: () => pwaNavigationService.navigateToHome()
       }}
       {...props}
     />
@@ -148,7 +150,7 @@ export const EmptyStates = {
       description="Tap the heart icon to save stores and products you love"
       action={{
         label: "Start Exploring",
-        onClick: () => window.location.href = '/'
+        onClick: () => pwaNavigationService.navigateToHome()
       }}
       {...props}
     />
@@ -162,7 +164,10 @@ export const EmptyStates = {
       description="Try adjusting your search or filters to find products"
       action={{
         label: "Clear Filters",
-        onClick: () => window.location.reload()
+        onClick: () => {
+          // Swiggy 2025: Navigate to search without filters instead of reload
+          pwaNavigationService.navigateTo(RouteMap.search());
+        }
       }}
       {...props}
     />
@@ -175,7 +180,7 @@ export const EmptyStates = {
       description="Your order history will appear here once you start shopping"
       action={{
         label: "Start Shopping",
-        onClick: () => window.location.href = '/'
+        onClick: () => pwaNavigationService.navigateToHome()
       }}
       {...props}
     />
@@ -192,8 +197,17 @@ export const EmptyStates = {
       }}
       secondaryAction={{
         label: "Contact Support",
-        onClick: () => window.location.href = '/contact'
+        onClick: () => pwaNavigationService.navigateTo(RouteMap.help())
       }}
+      {...props}
+    />
+  ),
+
+  NoResults: (props: Partial<EmptyStateProps>) => (
+    <EmptyState
+      variant="search"
+      title="No results found"
+      description="Try adjusting your search or filters to find what you're looking for"
       {...props}
     />
   )

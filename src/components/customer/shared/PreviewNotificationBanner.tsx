@@ -4,7 +4,7 @@ import { RouteMap } from "@/routes";
 import { X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/integrations/supabase-client";
+import { supabase, isSupabaseConfigured } from "@/lib/integrations/supabase-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,12 @@ export const PreviewNotificationBanner = () => {
 
   useEffect(() => {
     if (!user && !localStorage.getItem('mock_session')) return;
+
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured()) {
+      // Supabase not configured - silently skip (expected behavior)
+      return;
+    }
 
     const checkPreviewStatus = async () => {
       try {
@@ -42,7 +48,11 @@ export const PreviewNotificationBanner = () => {
           .eq('preview_status', 'preview_ready');
 
         if (error) {
-          console.error('Error fetching preview ready items:', error);
+          // Swiggy 2025: Silent error handling - don't spam console or show toasts
+          // Only log if it's not a network/connection error
+          if (!error.message.includes('Failed to fetch') && !error.message.includes('ERR_NAME_NOT_RESOLVED')) {
+            console.error('Error fetching preview ready items:', error);
+          }
           return;
         }
 
@@ -72,32 +82,65 @@ export const PreviewNotificationBanner = () => {
           setPreviewReadyOrders([]);
           setIsVisible(false);
         }
-      } catch (error) {
-        console.error('Error checking preview status:', error);
+      } catch (error: any) {
+        // Swiggy 2025: Silent error handling - don't spam console
+        // Network errors are expected when Supabase is unavailable
+        if (error?.message && 
+            !error.message.includes('Failed to fetch') && 
+            !error.message.includes('ERR_NAME_NOT_RESOLVED')) {
+          console.error('Error checking preview status:', error);
+        }
       }
     };
 
     checkPreviewStatus();
 
     // Subscribe to real-time updates
-    const channel = supabase
-      .channel('preview-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'order_items',
-          filter: 'preview_status=eq.preview_ready',
-        },
-        (payload) => {
-          checkPreviewStatus();
-        }
-      )
-      .subscribe();
+    // Only subscribe if Supabase is properly configured
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel('preview-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'order_items',
+            filter: 'preview_status=eq.preview_ready',
+          },
+          (payload) => {
+            checkPreviewStatus();
+          }
+        )
+        .subscribe((status) => {
+          // Handle subscription errors silently
+          if (status === 'SUBSCRIBED') {
+            // Successfully subscribed
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            // Connection failed - silently fail, don't retry
+            if (channel) {
+              try {
+                supabase.removeChannel(channel);
+              } catch {
+                // Silent cleanup error
+              }
+            }
+          }
+        });
+    } catch (error) {
+      // Swiggy 2025: Silent error handling - WebSocket subscription failures are non-critical
+      // Preview banner will just not show realtime updates, but initial check will still work
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (error) {
+          // Silent cleanup error
+        }
+      }
     };
   }, [user]);
 
@@ -105,7 +148,8 @@ export const PreviewNotificationBanner = () => {
 
   const handleReviewClick = () => {
     if (previewReadyOrders.length > 0) {
-      navigate(RouteMap.preview(previewReadyOrders[0].orderId));
+      // Navigate to track page with hash - preview sheet will auto-open (Swiggy 2025 pattern)
+      navigate(`${RouteMap.track(previewReadyOrders[0].orderId)}#preview`);
       setIsVisible(false);
     }
   };

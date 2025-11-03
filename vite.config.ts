@@ -8,12 +8,19 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Let Vite auto-detect HMR settings for better WebSocket connection
+    // Removed explicit HMR config to prevent 503 errors
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom"],
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom"],
+    force: true,
   },
   build: {
     rollupOptions: {

@@ -59,7 +59,7 @@ export const AdminBottomNav = () => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 relative transition-colors",
+                  "flex flex-col items-center justify-center gap-1 relative",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
@@ -83,7 +83,7 @@ export const AdminBottomNav = () => {
           <button
             onClick={() => setShowMore(true)}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 transition-colors",
+              "flex flex-col items-center justify-center gap-1",
               showMore
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -113,7 +113,7 @@ export const AdminBottomNav = () => {
                   to={item.path}
                   onClick={() => setShowMore(false)}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                    "flex items-center gap-3 px-4 py-3 rounded-lg",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-accent"

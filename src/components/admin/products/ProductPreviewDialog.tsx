@@ -140,8 +140,8 @@ export const ProductPreviewDialog = ({
             {product.requires_fssai && (
               <div className={`p-3 rounded-lg border ${
                 product.fssai_verified 
-                  ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
-                  : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-red-50 border-red-200'
               }`}>
                 <p className="text-sm font-medium mb-1">
                   {product.fssai_verified ? '✅ FSSAI Compliance' : '⚠️ FSSAI Verification Required'}

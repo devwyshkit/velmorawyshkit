@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, ArrowRight } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
 
 /**
  * Email Verification Page (Partner)
@@ -13,10 +12,7 @@ import { useTheme } from "@/components/theme-provider";
 export const PartnerVerifyEmail = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme } = useTheme();
   const email = location.state?.email || "your email";
-  
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -26,7 +22,7 @@ export const PartnerVerifyEmail = () => {
             <div className="flex justify-center mb-4">
               <Link to="/">
                 <img
-                  src={isDark ? "/horizontal-no-tagline-fff-transparent-3000x750.png" : "/wyshkit-business-logo.png"}
+                  src="/wyshkit-business-logo.png"
                   alt="Wyshkit Partner Portal"
                   className="h-12"
                 />

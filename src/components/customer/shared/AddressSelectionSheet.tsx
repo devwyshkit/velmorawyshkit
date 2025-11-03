@@ -153,17 +153,56 @@ export const AddressSelectionSheet = ({
   };
 
   const handleDownloadEstimate = async () => {
-    // Manual calculation for preview
-    const subtotal = cartTotal;
-    const gstAmount = calculateGST(subtotal);
-    const total = calculateTotalWithGST(subtotal);
+    if (!gstin || !gstinValid) return;
+
+    setIsGeneratingEstimate(true);
     
-    const estimateText = `
+    try {
+      // Create a temporary order ID for estimate generation (will be replaced with actual order ID after payment)
+      const tempOrderId = `temp_${Date.now()}`;
+      
+      // Call Edge Function to generate PDF estimate via Refrens
+      const { data, error } = await supabase.functions.invoke('generate-estimate', {
+        body: {
+          orderId: tempOrderId,
+          cartItems: cartItems.map(item => ({
+            name: item.name || 'Item',
+            price: item.price || 0,
+            quantity: item.quantity || 1
+          })),
+          gstin: gstin,
+          customerInfo: {
+            name: addresses.find(a => a.id === selectedAddress)?.name || 'Customer',
+            email: '', // Will be filled from user profile
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      // Download the PDF
+      if (data.pdf_url) {
+        const a = document.createElement('a');
+        a.href = data.pdf_url;
+        a.download = `wyshkit-estimate-${gstin}.pdf`;
+        a.target = '_blank';
+        a.click();
+      } else {
+        throw new Error('No PDF URL returned');
+      }
+    } catch (error: any) {
+      console.error('Error generating estimate:', error);
+      // Fallback to manual calculation if Edge Function fails
+      const subtotal = cartTotal;
+      const gstAmount = calculateGST(subtotal);
+      const total = calculateTotalWithGST(subtotal);
+      
+      const estimateText = `
 WYSHKIT - Tax Estimate
 GSTIN: ${gstin}
 ${'-'.repeat(40)}
 Items:
-${cartItems.map(item => `${item.name} x${item.quantity}: ₹${(item.price * item.quantity).toLocaleString('en-IN')}`).join('\n')}
+${cartItems.map(item => `${item.name || 'Item'} x${item.quantity || 1}: ₹${((item.price || 0) * (item.quantity || 1)).toLocaleString('en-IN')}`).join('\n')}
 ${'-'.repeat(40)}
 Subtotal: ₹${subtotal.toLocaleString('en-IN')}
 GST (18%): ₹${gstAmount.toLocaleString('en-IN')}
@@ -171,14 +210,17 @@ ${'-'.repeat(40)}
 Total: ₹${total.toLocaleString('en-IN')}
 
 HSN Code: 9985
-    `;
+      `;
 
-    const blob = new Blob([estimateText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'wyshkit-estimate.txt';
-    a.click();
+      const blob = new Blob([estimateText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'wyshkit-estimate.txt';
+      a.click();
+    } finally {
+      setIsGeneratingEstimate(false);
+    }
   };
 
   const handleConfirm = () => {
@@ -320,9 +362,24 @@ HSN Code: 9985
                           <span>₹{calculateTotalWithGST(cartTotal).toLocaleString('en-IN')}</span>
                         </div>
                       </div>
-                      <Button variant="outline" onClick={handleDownloadEstimate} size="sm" className="w-full mt-2">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download PDF
+                      <Button 
+                        variant="outline" 
+                        onClick={handleDownloadEstimate} 
+                        size="sm" 
+                        className="w-full mt-2"
+                        disabled={isGeneratingEstimate}
+                      >
+                        {isGeneratingEstimate ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating PDF...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download PDF
+                          </>
+                        )}
                       </Button>
                     </div>
                   </Card>

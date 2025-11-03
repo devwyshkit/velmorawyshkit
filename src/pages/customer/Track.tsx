@@ -7,7 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
 import { FileUploadSheet } from "@/components/customer/shared/FileUploadSheet";
-import { useToast } from "@/hooks/use-toast";
+import { PorterDelhiveryTracking } from "@/components/customer/shared/PorterDelhiveryTracking";
+import { QuickReorderSheet } from "@/components/customer/shared/QuickReorderSheet";
+import { PreviewApprovalSheet } from "@/components/customer/shared/PreviewApprovalSheet";
+import { OrderDetailsSheet } from "@/components/customer/shared/OrderDetailsSheet";
 import { getETAEstimate } from "@/lib/integrations/openai";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { notificationService } from "@/services/notificationService";
@@ -26,7 +29,6 @@ interface TimelineStep {
 export const Track = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
   const orderId = id || 'ORD-' + Date.now();
   const [eta, setEta] = useState<string>('');
@@ -39,6 +41,10 @@ export const Track = () => {
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
   const [selectedOrderItemForUpload, setSelectedOrderItemForUpload] = useState<any>(null);
+  const [isReorderOpen, setIsReorderOpen] = useState(false);
+  const [isPreviewSheetOpen, setIsPreviewSheetOpen] = useState(false);
+  const [previewOrderItem, setPreviewOrderItem] = useState<any>(null);
+  const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
   
   // Fetch order data on mount
   useEffect(() => {
@@ -85,6 +91,20 @@ export const Track = () => {
             item.preview_status !== null && item.preview_status !== undefined
           );
           setHasCustomItems(hasPreview);
+
+          // Auto-open preview sheet if preview is ready (Swiggy 2025: inline preview)
+          // Check if navigated from PreviewNotificationBanner or URL hash
+          const hasPreviewReady = items.some((item: any) => item.preview_status === 'preview_ready');
+          const urlHash = window.location.hash;
+          if (hasPreviewReady && (urlHash === '#preview' || document.referrer.includes('preview'))) {
+            const readyItem = items.find((item: any) => item.preview_status === 'preview_ready');
+            if (readyItem) {
+              setPreviewOrderItem(readyItem);
+              setIsPreviewSheetOpen(true);
+              // Clear hash
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading order data:', error);
@@ -305,14 +325,8 @@ export const Track = () => {
             setOrderItems(items);
             setOrderData(items);
             
-            // Check if preview became ready
-            const previewReady = items.some((item: any) => item.preview_status === 'preview_ready');
-            if (previewReady) {
-              toast({
-                title: "Preview Ready! 🎨",
-                description: "Your design preview is ready for review",
-              });
-            }
+            // Preview ready notification is handled by PreviewNotificationBanner
+            // No need for redundant toast (Swiggy 2025: single notification system)
             
             // Rebuild timeline
             setTimeline(buildTimeline());
@@ -331,16 +345,44 @@ export const Track = () => {
 
 
 
-  const orderDetails = {
+  const [orderDetails, setOrderDetails] = useState({
     id: orderId,
     items: [
       { name: 'Premium Gift Hamper', quantity: 2 },
       { name: 'Artisan Chocolate Box', quantity: 1 },
     ],
     deliveryAddress: '123 MG Road, Bangalore, Karnataka - 560001',
-    deliveryPartner: 'Rahul Kumar',
-    deliveryPhone: '+91 98765 43210',
-  };
+    logisticsProvider: null as 'porter' | 'delhivery' | null,
+    trackingNumber: null as string | null,
+  });
+
+  // Fetch order details including logistics provider
+  useEffect(() => {
+    const loadOrderDetails = async () => {
+      if (!user && !localStorage.getItem('mock_session')) return;
+      
+      try {
+        const { data: order, error } = await supabase
+          .from('orders')
+          .select('delivery_address, logistics_provider, tracking_number')
+          .eq('id', orderId)
+          .single();
+
+        if (order && !error) {
+          setOrderDetails(prev => ({
+            ...prev,
+            deliveryAddress: order.delivery_address?.full || order.delivery_address || prev.deliveryAddress,
+            logisticsProvider: order.logistics_provider || null,
+            trackingNumber: order.tracking_number || null,
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading order details:', error);
+      }
+    };
+    
+    loadOrderDetails();
+  }, [orderId, user]);
 
   useEffect(() => {
     const loadETA = async () => {
@@ -348,12 +390,7 @@ export const Track = () => {
       setEta(estimatedTime);
     };
     loadETA();
-
-    // Show tracking update notification
-    toast({
-      title: "Order is on the way! 🚚",
-      description: `Estimated arrival: ${eta || '30-45 mins'}`,
-    });
+    // Removed auto-toast notification (anti-pattern) - ETA is displayed in the UI
   }, [orderId]);
 
   const getIcon = (step: TimelineStep) => {
@@ -386,31 +423,31 @@ export const Track = () => {
           </CardContent>
         </Card>
 
-        {/* Contact & Help Buttons (Swiggy/Zomato pattern) */}
+        {/* Contact Support & Track on Logistics Provider (Swiggy 2025 pattern) */}
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
             className="h-12 gap-2"
             onClick={() => {
-              window.location.href = `tel:${orderDetails.deliveryPhone}`;
+              // Open support contact (email, phone, or chat)
+              const supportPhone = import.meta.env.VITE_SUPPORT_PHONE || '+91-1800-XXX-XXXX';
+              window.location.href = `tel:${supportPhone}`;
             }}
           >
             <Phone className="h-5 w-5" />
-            <span className="hidden sm:inline">Contact Partner</span>
-            <span className="sm:hidden">Call</span>
+            <span className="hidden sm:inline">Contact Support</span>
+            <span className="sm:hidden">Support</span>
           </Button>
           <Button
             variant="outline"
             className="h-12 gap-2"
             onClick={() => {
-              toast({
-                title: "Need Help?",
-                description: "Our support team will contact you shortly",
-              });
+              // Navigate to help center or open support chat
+              navigate(RouteMap.help());
             }}
           >
             <HelpCircle className="h-5 w-5" />
-            <span className="hidden sm:inline">Need Help?</span>
+            <span className="hidden sm:inline">Help Center</span>
             <span className="sm:hidden">Help</span>
           </Button>
         </div>
@@ -476,7 +513,10 @@ export const Track = () => {
                 </div>
                 
                 <Button
-                  onClick={() => navigate(RouteMap.preview(orderId))}
+                  onClick={() => {
+                    setPreviewOrderItem(previewItem);
+                    setIsPreviewSheetOpen(true);
+                  }}
                   variant="default"
                   className="w-full"
                   size="lg"
@@ -582,13 +622,7 @@ export const Track = () => {
                 <Button
                   variant="outline"
                   className="h-12 gap-2 border-green-300 text-green-700 hover:bg-green-100"
-                  onClick={() => {
-                    toast({
-                      title: "Reorder Started",
-                      description: "Adding items to cart for reorder",
-                    });
-                    // TODO: Implement reorder logic
-                  }}
+                  onClick={() => setIsReorderOpen(true)}
                 >
                   <RotateCcw className="h-4 w-4" />
                   <span className="text-sm">Reorder</span>
@@ -598,10 +632,7 @@ export const Track = () => {
                   variant="outline"
                   className="h-12 gap-2 border-green-300 text-green-700 hover:bg-green-100"
                   onClick={() => {
-                    toast({
-                      title: "Invoice Downloaded",
-                      description: "Your invoice has been saved to downloads",
-                    });
+                    // Swiggy 2025: Silent operation - download happens without toast
                     // TODO: Implement invoice download
                   }}
                 >
@@ -613,10 +644,7 @@ export const Track = () => {
                   variant="outline"
                   className="h-12 gap-2 border-green-300 text-green-700 hover:bg-green-100"
                   onClick={() => {
-                    toast({
-                      title: "Chat Opened",
-                      description: "Connecting you with support",
-                    });
+                    // Swiggy 2025: Silent operation - chat opens without toast
                     // TODO: Implement chat functionality
                   }}
                 >
@@ -640,7 +668,13 @@ export const Track = () => {
                   </p>
                 </div>
                 <Button
-                  onClick={() => navigate(RouteMap.preview(orderId))}
+                  onClick={() => {
+                    const readyItem = orderItems.find((item: any) => item.preview_status === 'preview_ready');
+                    if (readyItem) {
+                      setPreviewOrderItem(readyItem);
+                      setIsPreviewSheetOpen(true);
+                    }
+                  }}
                   variant="default"
                   size="sm"
                 >
@@ -651,12 +685,15 @@ export const Track = () => {
           </Card>
         )}
 
-        {/* Order Items */}
-        <Card>
+        {/* Order Items - Clickable to view full details */}
+        <Card className="cursor-pointer" onClick={() => setIsOrderDetailsOpen(true)}>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Package className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Items in this order</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Items in this order</h3>
+              </div>
+              <span className="text-xs text-muted-foreground">View Details →</span>
             </div>
             <div className="space-y-2">
               {orderDetails.items.map((item, index) => (
@@ -670,6 +707,15 @@ export const Track = () => {
           </CardContent>
         </Card>
 
+        {/* Porter/Delhivery Tracking Card */}
+        {orderDetails.logisticsProvider && orderDetails.trackingNumber && (
+          <PorterDelhiveryTracking
+            orderId={orderId}
+            logisticsProvider={orderDetails.logisticsProvider}
+            trackingNumber={orderDetails.trackingNumber}
+          />
+        )}
+
         {/* Delivery Details */}
         <Card>
           <CardContent className="p-6">
@@ -681,11 +727,6 @@ export const Track = () => {
               <div>
                 <p className="text-muted-foreground text-xs mb-1">Address</p>
                 <p>{orderDetails.deliveryAddress}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Delivery Partner</p>
-                <p>{orderDetails.deliveryPartner}</p>
-                <p className="text-xs text-muted-foreground">{orderDetails.deliveryPhone}</p>
               </div>
             </div>
           </CardContent>
@@ -740,6 +781,49 @@ export const Track = () => {
           }}
         />
       )}
+
+      {/* Quick Reorder Sheet */}
+      <QuickReorderSheet
+        isOpen={isReorderOpen}
+        onClose={() => setIsReorderOpen(false)}
+        orderId={orderId}
+      />
+
+      {/* Preview Approval Sheet - Inline bottom sheet (Swiggy 2025 pattern) */}
+      {previewOrderItem && (
+        <PreviewApprovalSheet
+          isOpen={isPreviewSheetOpen}
+          onClose={() => {
+            setIsPreviewSheetOpen(false);
+            setPreviewOrderItem(null);
+            // Refresh order data after approval/revision
+            const refreshData = async () => {
+              const { data: items } = await supabase
+                .from('order_items')
+                .select('*')
+                .eq('order_id', orderId);
+              
+              if (items) {
+                setOrderItems(items);
+                setTimeline(buildTimeline());
+              }
+            };
+            refreshData();
+          }}
+          orderId={orderId}
+          orderItemId={previewOrderItem.id}
+          deadline={previewOrderItem.preview_deadline ? new Date(previewOrderItem.preview_deadline) : undefined}
+          deliveryDate={orderItems[0]?.order_id?.scheduled_date ? new Date(orderItems[0].order_id.scheduled_date) : undefined}
+          freeRevisionsLeft={Math.max(0, 2 - (previewOrderItem.revision_count || 0))}
+        />
+      )}
+
+      {/* Order Details Sheet - Full breakdown */}
+      <OrderDetailsSheet
+        isOpen={isOrderDetailsOpen}
+        onClose={() => setIsOrderDetailsOpen(false)}
+        orderId={orderId}
+      />
     </div>
   );
 };

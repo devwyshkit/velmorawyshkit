@@ -132,7 +132,7 @@ export const PartnerCard = ({ partner, onApprove, onReject, onView, onAssignKAM 
         </div>
 
         {!kycComplete && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+          <p className="text-xs text-amber-600 mt-2">
             ⚠️ KYC verification incomplete
           </p>
         )}

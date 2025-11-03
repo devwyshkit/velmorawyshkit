@@ -90,8 +90,8 @@ export const CommissionBreakdown = ({
           {/* Base Commission */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">1</span>
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <span className="text-sm font-medium text-blue-600">1</span>
               </div>
               <div>
                 <p className="text-sm font-medium">Base Commission</p>
@@ -109,8 +109,8 @@ export const CommissionBreakdown = ({
           {badgeDiscount > 0 && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
-                  <Award className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <Award className="h-4 w-4 text-green-600" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">Badge Discount</p>
@@ -129,8 +129,8 @@ export const CommissionBreakdown = ({
           {/* Fulfillment Fees */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
-                <Package className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
+                <Package className="h-4 w-4 text-amber-600" />
               </div>
               <div>
                 <p className="text-sm font-medium">Fulfillment Fees</p>
@@ -161,22 +161,22 @@ export const CommissionBreakdown = ({
           </div>
 
           {/* Your Earnings */}
-          <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
             <div>
-              <p className="font-semibold text-green-900 dark:text-green-100">Your Net Earnings</p>
-              <p className="text-xs text-green-700 dark:text-green-300">
+              <p className="font-semibold text-green-900">Your Net Earnings</p>
+              <p className="text-xs text-green-700">
                 After all deductions
               </p>
             </div>
-            <p className="text-xl font-bold text-green-600 dark:text-green-400">
+            <p className="text-xl font-bold text-green-600">
               ₹{(netEarnings / 100).toLocaleString('en-IN')}
             </p>
           </div>
         </div>
 
         {/* Tips */}
-        <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-xs text-blue-800 dark:text-blue-200">
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-xs text-blue-800">
             <strong>💡 Tip:</strong> Earn loyalty badges to reduce your commission rate! 
             {badgeDiscount === 0 && ' Complete 50+ orders to earn Rising Seller badge (-2%).'}
             {badgeDiscount > 0 && badgeDiscount < 8 && ' Earn more badges to unlock VIP 8% discount!'}

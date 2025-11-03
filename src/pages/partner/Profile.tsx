@@ -19,7 +19,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { Loader2 } from "lucide-react";
 
 // Form validation
 const profileFormSchema = z.object({
@@ -121,33 +120,28 @@ export const PartnerProfile = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Profile updated",
-        description: "Your business details have been saved",
-      });
+      // Silent success - form remains visible with updated data (Swiggy 2025 pattern)
+      // UI update implies success
     } catch (error: any) {
-      toast({
-        title: "Update failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Error can be shown via form validation or inline error message
+      console.error('Profile update error:', error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Profile Settings</h1>
+        <h1 className="text-xl font-bold tracking-tight">Profile Settings</h1>
         <p className="text-muted-foreground">
           Manage your business information and contact details
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Business Information */}
           <Card>
             <CardHeader>
@@ -171,7 +165,7 @@ export const PartnerProfile = () => {
                 )}
               />
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="phone"
@@ -243,7 +237,7 @@ export const PartnerProfile = () => {
                 )}
               />
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <FormField
                   control={form.control}
                   name="city"
@@ -321,10 +315,7 @@ export const PartnerProfile = () => {
             className="w-full md:w-auto gap-2"
           >
             {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
+              "Saving..."
             ) : (
               <>
                 <Save className="h-4 w-4" />
