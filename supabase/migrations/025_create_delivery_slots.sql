@@ -48,13 +48,7 @@ CREATE POLICY "Anyone can view available slots"
 
 CREATE POLICY "Admins can manage slots"
   ON delivery_slots FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid()
-      AND role IN ('admin', 'kam')
-    )
-  );
+  USING (is_admin_user(auth.uid()));
 
 CREATE POLICY "Vendors can manage own slots"
   ON delivery_slots FOR ALL

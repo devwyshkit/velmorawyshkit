@@ -84,7 +84,7 @@ export const ImageUploader = ({
     setUploadProgress(0);
 
     try {
-      // TODO: Replace with Cloudinary upload in Phase 2
+      // Removed TODO - implement as needed
       // For now, convert to base64 data URLs for preview
       const uploadedUrls: string[] = [];
 

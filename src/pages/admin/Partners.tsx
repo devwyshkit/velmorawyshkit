@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, UserCheck, UserX, Ban, UserCog } from "lucide-react";
+import { Users, UserCheck, UserX, Ban } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { PartnerApprovalQueue } from "@/components/admin/PartnerApprovalQueue";
 import { PartnerCard } from "@/components/admin/mobile/PartnerCard";
-import { AssignKAMDialog } from "@/components/admin/kam/AssignKAMDialog";
-import { KAMActivityLog } from "@/components/admin/kam/KAMActivityLog";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,14 +14,12 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 interface ActivePartner {
   id: string;
-  business_name: string;
+  name: string;
   email: string;
   category: string;
   created_at: string;
-  kam_id?: string;
-  kam_name?: string;
-  kam_email?: string;
   rating?: number;
+  rating_count?: number;
   total_orders?: number;
 }
 
@@ -41,9 +37,6 @@ export const AdminPartners = () => {
   const [suspendedCount, setSuspendedCount] = useState(0);
   const [activePartners, setActivePartners] = useState<ActivePartner[]>([]);
   const [loadingActive, setLoadingActive] = useState(false);
-  const [kamDialogOpen, setKamDialogOpen] = useState(false);
-  const [selectedPartner, setSelectedPartner] = useState<ActivePartner | null>(null);
-  const [showKAMActivity, setShowKAMActivity] = useState(false);
 
   useEffect(() => {
     loadCounts();
@@ -61,13 +54,13 @@ export const AdminPartners = () => {
         setRejectedCount(approvals.filter(a => a.status === 'rejected').length);
       }
 
-      const { data: partners } = await supabase
-        .from('partners')
+      const { data: stores } = await supabase
+        .from('stores')
         .select('status, is_active');
 
-      if (partners) {
-        setActiveCount(partners.filter(p => p.status === 'approved' && p.is_active).length);
-        setSuspendedCount(partners.filter(p => !p.is_active).length);
+      if (stores) {
+        setActiveCount(stores.filter(s => s.status === 'approved' && s.is_active).length);
+        setSuspendedCount(stores.filter(s => !s.is_active).length);
       }
     } catch (error) {
       // Handle error silently in production
@@ -83,21 +76,17 @@ export const AdminPartners = () => {
   const loadActivePartners = async () => {
     setLoadingActive(true);
     try {
+      // Query stores table directly (Swiggy pattern - no KAM layer)
       const { data, error } = await supabase
-        .from('partner_profiles')
+        .from('stores')
         .select(`
           id,
-          business_name,
+          name,
           email,
           category,
-          created_at,
-          kam_assignments (
-            kam_profiles (
-              id,
-              name,
-              email
-            )
-          )
+          rating,
+          rating_count,
+          created_at
         `)
         .eq('status', 'approved')
         .eq('is_active', true)
@@ -105,39 +94,36 @@ export const AdminPartners = () => {
 
       if (error) {
         // Handle error silently in production
-        // Mock data
+        // Mock data for development
         setActivePartners([
           {
             id: '1',
-            business_name: 'GiftCraft Premium',
+            name: 'GiftCraft Premium',
             email: 'contact@giftcraft.com',
             category: 'premium',
             created_at: new Date(Date.now() - 90 * 86400000).toISOString(),
-            kam_name: 'Rajesh Kumar',
-            kam_email: 'rajesh@wyshkit.com',
             rating: 4.8,
-            total_orders: 245,
+            rating_count: 245,
           },
           {
             id: '2',
-            business_name: 'ChocoDelight',
+            name: 'ChocoDelight',
             email: 'admin@chocodelight.com',
             category: 'chocolates',
             created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
             rating: 4.6,
-            total_orders: 189,
+            rating_count: 189,
           },
         ]);
       } else {
-        const formatted = (data || []).map((p: any) => ({
-          id: p.id,
-          business_name: p.business_name,
-          email: p.email,
-          category: p.category,
-          created_at: p.created_at,
-          kam_id: p.kam_assignments?.[0]?.kam_profiles?.id,
-          kam_name: p.kam_assignments?.[0]?.kam_profiles?.name,
-          kam_email: p.kam_assignments?.[0]?.kam_profiles?.email,
+        const formatted = (data || []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          category: s.category,
+          created_at: s.created_at,
+          rating: s.rating,
+          rating_count: s.rating_count,
         }));
         setActivePartners(formatted);
       }
@@ -148,26 +134,11 @@ export const AdminPartners = () => {
     }
   };
 
-  const handleAssignKAM = (partner: ActivePartner) => {
-    setSelectedPartner(partner);
-    setKamDialogOpen(true);
-  };
-
-  const handleKAMAssignSuccess = () => {
-    setKamDialogOpen(false);
-    setSelectedPartner(null);
-    loadActivePartners();
-    toast({
-      title: "KAM assigned successfully",
-      description: "The partner has been assigned to a KAM",
-    });
-  };
-
   // Columns for Active Partners DataTable
   const activePartnerColumns: ColumnDef<ActivePartner>[] = [
     {
-      accessorKey: "business_name",
-      header: "Business Name",
+      accessorKey: "name",
+      header: "Store Name",
     },
     {
       accessorKey: "category",
@@ -175,23 +146,6 @@ export const AdminPartners = () => {
       cell: ({ row }) => {
         const category = row.original.category?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
         return <Badge variant="secondary">{category}</Badge>;
-      },
-    },
-    {
-      accessorKey: "kam_name",
-      header: "Assigned KAM",
-      cell: ({ row }) => {
-        if (row.original.kam_name) {
-          return (
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                <UserCog className="h-3 w-3 mr-1" />
-                {row.original.kam_name}
-              </Badge>
-            </div>
-          );
-        }
-        return <span className="text-muted-foreground text-sm">Not assigned</span>;
       },
     },
     {
@@ -205,26 +159,10 @@ export const AdminPartners = () => {
       },
     },
     {
-      accessorKey: "total_orders",
-      header: "Orders",
+      accessorKey: "rating_count",
+      header: "Reviews",
       cell: ({ row }) => {
-        return <span className="font-medium">{row.original.total_orders || 0}</span>;
-      },
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => {
-        return (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleAssignKAM(row.original)}
-          >
-            <UserCog className="h-4 w-4 mr-1" />
-            {row.original.kam_name ? 'Change KAM' : 'Assign KAM'}
-          </Button>
-        );
+        return <span className="font-medium">{row.original.rating_count || 0}</span>;
       },
     },
   ];
@@ -287,49 +225,34 @@ export const AdminPartners = () => {
         <TabsContent value="active">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Active Partners ({activeCount})</span>
-                <Badge variant="secondary" onClick={() => setShowKAMActivity(!showKAMActivity)} className="cursor-pointer">
-                  <UserCog className="h-3 w-3 mr-1" />
-                  {showKAMActivity ? 'Show Partners' : 'KAM Activity'}
-                </Badge>
-              </CardTitle>
+              <CardTitle>Active Partners ({activeCount})</CardTitle>
             </CardHeader>
             <CardContent>
-              {showKAMActivity ? (
-                <KAMActivityLog />
-              ) : (
-                <>
-                  {isMobile ? (
-                    <div className="space-y-3">
-                      {activePartners.map(partner => (
-                        <PartnerCard
-                          key={partner.id}
-                          partner={{
-                            id: partner.id,
-                            name: partner.business_name,
-                            email: partner.email,
-                            category: partner.category,
-                            submitted_at: partner.created_at,
-                            kyc_pan_verified: true,
-                            kyc_gst_verified: true,
-                            kyc_bank_verified: true,
-                            kam_name: partner.kam_name,
-                            kam_email: partner.kam_email,
-                          }}
-                          onAssignKAM={() => handleAssignKAM(partner)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <DataTable
-                      columns={activePartnerColumns}
-                      data={activePartners}
-                      loading={loadingActive}
-                      skeletonRows={5}
+              {isMobile ? (
+                <div className="space-y-3">
+                  {activePartners.map(partner => (
+                    <PartnerCard
+                      key={partner.id}
+                      partner={{
+                        id: partner.id,
+                        name: partner.name,
+                        email: partner.email,
+                        category: partner.category,
+                        submitted_at: partner.created_at,
+                        kyc_pan_verified: true,
+                        kyc_gst_verified: true,
+                        kyc_bank_verified: true,
+                      }}
                     />
-                  )}
-                </>
+                  ))}
+                </div>
+              ) : (
+                <DataTable
+                  columns={activePartnerColumns}
+                  data={activePartners}
+                  loading={loadingActive}
+                  skeletonRows={5}
+                />
               )}
             </CardContent>
           </Card>
@@ -364,17 +287,6 @@ export const AdminPartners = () => {
         </TabsContent>
       </Tabs>
 
-      {/* KAM Assignment Dialog */}
-      {selectedPartner && (
-        <AssignKAMDialog
-          partnerId={selectedPartner.id}
-          partnerName={selectedPartner.business_name}
-          currentKAMId={selectedPartner.kam_id}
-          open={kamDialogOpen}
-          onClose={() => setKamDialogOpen(false)}
-          onSuccess={handleKAMAssignSuccess}
-        />
-      )}
     </div>
   );
 };

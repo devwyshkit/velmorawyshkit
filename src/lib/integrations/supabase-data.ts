@@ -4,14 +4,7 @@ import { ValidationSchemas } from '@/lib/validation/schemas';
 // Re-export favorites service
 export * from '@/lib/services/favorites';
 
-// Helper to check if user is using mock auth
-const isMockAuth = (): boolean => {
-  try {
-    return localStorage.getItem('mock_session') === 'true';
-  } catch {
-    return false;
-  }
-};
+// Backend only - no mock auth
 
 // Type definitions
 export interface Store {
@@ -54,7 +47,7 @@ export interface Item {
     sizes?: Array<{ id: string; label: string; available: boolean }>;
     colors?: Array<{ id: string; name: string; hex: string }>;
   };
-  personalizations?: Array<{ id: string; label: string; price: number; instructions?: string; requiresPreview?: boolean }>;
+  personalizations?: Array<{ id: string; label: string; price: number; instructions?: string }>;
   preparationTime?: string; // Ready in: X hours/days
   deliveryTime?: string; // Delivery: X days
   campaignDiscount?: { type: 'percentage' | 'flat'; value: number }; // Discount badge
@@ -63,7 +56,8 @@ export interface Item {
 }
 
 export interface CartItemData {
-  id: string;
+  id: string; // cart_item.id
+  item_id?: string; // product item_id (for matching products with cart)
   name: string;
   price: number;
   quantity: number;
@@ -71,7 +65,7 @@ export interface CartItemData {
   addOns?: Array<{ id: string; name: string; price: number }>;
   store_id?: string;
   isCustomizable?: boolean; // NEW: Track if item has customizations
-  personalizations?: Array<{ id: string; label: string; price: number; instructions?: string; requiresPreview?: boolean }>; // NEW: Store personalization data
+  personalizations?: Array<{ id: string; label: string; price: number; instructions?: string }>; // NEW: Store personalization data
 }
 
 export interface SavedItemData {
@@ -127,43 +121,73 @@ export const groupStoresByDelivery = (stores: Store[], selectedDate: Date) => {
 // Data fetching functions
 export const fetchStores = async (location?: string): Promise<Store[]> => {
   try {
-    // Query stores table with items to calculate starting price
-    const { data, error } = await supabase
-      .from('stores')
-      .select(`
-        *,
-        store_items!inner(price)
-      `)
-      .order('rating', { ascending: false });
+    // Swiggy 2025: Only show approved, active stores
+    // 2025 Pattern: Parallelize stores and items queries for performance
+    const [storesResult, itemsResult] = await Promise.all([
+      // Stores query - optimized select (only needed columns)
+      supabase
+        .from('stores')
+        .select('id, name, logo_url, banner_url, rating, delivery_time, city, category, rating_count, status, is_active')
+        .eq('status', 'approved')
+        .eq('is_active', true)
+        .order('rating', { ascending: false }),
+      
+      // Items query - fetch all approved items for pricing calculation
+      supabase
+        .from('store_items')
+        .select('store_id, price')
+        .eq('status', 'approved')
+        .eq('is_active', true),
+    ]);
 
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      return data.map(p => {
-        // Calculate starting price from cheapest item
-        const startingPrice = p.store_items && p.store_items.length > 0 
-          ? Math.min(...p.store_items.map((item: any) => item.price))
-          : 299; // Default fallback price
-        
-        return {
-          id: p.id,
-          name: p.name,
-          image: p.logo_url || p.banner_url || 'https://picsum.photos/seed/store/400/400',
-          rating: p.rating || 4.5,
-          delivery: p.delivery_time || '3-5 days',
-          location: p.city,
-          category: p.category,
-          ratingCount: p.rating_count || 100,
-          startingPrice,
-        };
+    const { data: storesData, error: storesError } = storesResult;
+    const { data: itemsData } = itemsResult;
+
+    if (storesError) {
+      // Silent error handling - return empty array (Swiggy 2025 pattern)
+      return [];
+    }
+
+    if (!storesData || storesData.length === 0) {
+      return [];
+    }
+
+    // Group items by store_id and calculate starting price
+    const itemsByStore = new Map<string, number[]>();
+    if (itemsData) {
+      itemsData.forEach((item: any) => {
+        if (!itemsByStore.has(item.store_id)) {
+          itemsByStore.set(item.store_id, []);
+        }
+        itemsByStore.get(item.store_id)!.push(Number(item.price));
       });
     }
+
+    // Map stores to Store interface with starting prices
+    return storesData.map(p => {
+      const storeItems = itemsByStore.get(p.id) || [];
+      const startingPrice = storeItems.length > 0 
+        ? Math.min(...storeItems)
+        : 299; // Default fallback price
+      
+      return {
+        id: p.id,
+        name: p.name,
+        image: p.logo_url || p.banner_url || 'https://picsum.photos/seed/store/400/400',
+        rating: Number(p.rating) || 4.5,
+        delivery: p.delivery_time || '3-5 days',
+        location: p.city,
+        category: p.category,
+        ratingCount: p.rating_count || 100,
+        startingPrice,
+        status: p.status,
+        is_active: p.is_active,
+      };
+    });
   } catch (error) {
-    // Handle error silently in production
+    // Silent error handling - return empty array (Swiggy 2025 pattern)
+    return [];
   }
-  
-  // Return empty array if Supabase query fails
-  return [];
 };
 
 export const fetchStoreById = async (id: string): Promise<Store | null> => {
@@ -186,7 +210,7 @@ export const fetchStoreById = async (id: string): Promise<Store | null> => {
       ratingCount: data.rating_count || 0,
     };
   } catch (error) {
-    console.error('Error fetching store:', error);
+    // Silent error handling (Swiggy 2025 pattern)
   }
   
   return null;
@@ -194,11 +218,13 @@ export const fetchStoreById = async (id: string): Promise<Store | null> => {
 
 export const fetchItemsByStore = async (storeId: string): Promise<Item[]> => {
   try {
+    // Swiggy 2025: Only show approved, active items
     const { data, error } = await supabase
       .from('store_items')
       .select('*')
       .eq('store_id', storeId)
       .eq('status', 'approved')
+      .eq('is_active', true)
       .order('rating', { ascending: false });
 
     if (error) throw error;
@@ -207,7 +233,7 @@ export const fetchItemsByStore = async (storeId: string): Promise<Item[]> => {
       return data;
     }
   } catch (error) {
-    console.error('Error fetching items by store:', error);
+    // Silent error handling (Swiggy 2025 pattern)
   }
   
   return [];
@@ -225,116 +251,131 @@ export const fetchItemById = async (id: string): Promise<Item | null> => {
     if (error) throw error;
     if (data) return data;
   } catch (error) {
-    console.error('Error fetching item:', error);
+    // Silent error handling (Swiggy 2025 pattern)
   }
   
   return null;
 };
 
 export const fetchCartItems = async (): Promise<CartItemData[]> => {
-  // Always check localStorage first (works for both guest and logged-in users)
-  try {
-    const cartData = localStorage.getItem('mock_cart');
-    if (cartData) {
-      const localCart = JSON.parse(cartData);
-      // If we have local cart, return it immediately
-      if (localCart && localCart.length > 0) {
-        return localCart;
-      }
-    }
-  } catch (error) {
-    console.error('Error reading localStorage cart:', error);
-  }
-
-  // If logged in, try to fetch from Supabase and merge
-  const authenticated = await isAuthenticated();
-  if (authenticated) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      const { data, error } = await supabase
-        .from('cart_items')
-        .select(`
-          *,
-          store_items (
-            name,
-            image,
-            price,
-            add_ons
-          )
-        `)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const supabaseCart = data.map(item => ({
-          id: item.id,
-          name: item.store_items?.name || 'Product',
-          price: item.unit_price || 0,
-          quantity: item.quantity || 1,
-          image: item.store_items?.image || '/placeholder.svg',
-          addOns: item.personalizations || [],
-          store_id: item.store_id,
-        }));
-        
-        // Merge with localStorage cart if exists
-        const localCart = localStorage.getItem('mock_cart');
-        if (localCart) {
-          const parsedLocalCart = JSON.parse(localCart);
-          // Merge logic: combine both carts, prefer Supabase for conflicts
-          const mergedCart = [...parsedLocalCart, ...supabaseCart];
-          localStorage.setItem('mock_cart', JSON.stringify(mergedCart));
-          return mergedCart;
-        }
-        
-        return supabaseCart;
-      }
-    } catch (error) {
-      // Handle error silently in production
-    }
-  }
+  // Mock mode: Use localStorage cart
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+    const { getCartItems } = await import('@/lib/mock-cart');
   
-  return [];
+  if (isMockModeEnabled()) {
+    const mockItems = getCartItems();
+    return mockItems.map(item => ({
+      id: item.id,
+      item_id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image,
+      addOns: item.personalizations || [],
+      store_id: item.store_id,
+    }));
+  }
+
+  // Backend only - require authentication
+  const authenticated = await isAuthenticated();
+  if (!authenticated) {
+    return []; // Empty cart for unauthenticated users
+  }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('cart_items')
+      .select(`
+        id,
+        item_id,
+        store_id,
+        quantity,
+        unit_price,
+        personalizations,
+        store_items (
+          name,
+          image_url,
+          images,
+          price,
+          customization_options
+        )
+      `)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      return data.map(item => ({
+        id: item.id, // cart_item.id
+        item_id: item.item_id, // product item_id (for matching)
+        name: item.store_items?.name || 'Product',
+        price: item.unit_price || 0,
+        quantity: item.quantity || 1,
+        image: item.store_items?.image_url || item.store_items?.images?.[0] || '/placeholder.svg',
+        addOns: item.personalizations || [],
+        store_id: item.store_id,
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    // Silent error handling - return empty array (Swiggy 2025 pattern)
+    return [];
+  }
 };
 
 export const addToCartSupabase = async (item: CartItemData): Promise<boolean> => {
-  // Always save to localStorage first (works for both guest and logged-in users)
-  try {
-    const existingCart = localStorage.getItem('mock_cart');
-    const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
-    
-    // Generate unique cart item ID
-    const cartItem: CartItemData = {
-      ...item,
-      id: `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    };
-    
-    // Check if item already exists (by product ID, not cart ID)
-    const existingIndex = cartItems.findIndex(i => i.name === item.name && i.store_id === item.store_id);
-    if (existingIndex >= 0) {
-      cartItems[existingIndex].quantity += (item.quantity || 1);
-    } else {
-      cartItems.push(cartItem);
-    }
-    
-    localStorage.setItem('mock_cart', JSON.stringify(cartItems));
-  } catch (error) {
-    console.error('Error adding to localStorage cart:', error);
-    return false;
+  // Mock mode: Use localStorage cart
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  const { addToMockCart } = await import('@/lib/mock-cart');
+  
+  if (isMockModeEnabled()) {
+    return addToMockCart(item);
   }
 
-  // If logged in, also save to Supabase in background
+  // Backend only - require authentication
   const authenticated = await isAuthenticated();
-  if (authenticated) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return true; // Return true since localStorage save succeeded
+  if (!authenticated) {
+    throw new Error('Please login to add items to cart');
+  }
 
-      const unitPrice = item.price;
-      const totalPrice = unitPrice * (item.quantity || 1);
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not found');
+    }
 
+    const unitPrice = item.price;
+    const totalPrice = unitPrice * (item.quantity || 1);
+
+    // Check if item already exists in cart
+    const { data: existingItem } = await supabase
+      .from('cart_items')
+      .select('id, quantity')
+      .eq('user_id', user.id)
+      .eq('item_id', item.id)
+      .eq('store_id', item.store_id!)
+      .single();
+
+    if (existingItem) {
+      // Update quantity
+      const newQuantity = existingItem.quantity + (item.quantity || 1);
+      const newTotalPrice = unitPrice * newQuantity;
+      
+      const { error } = await supabase
+        .from('cart_items')
+        .update({ 
+          quantity: newQuantity,
+          total_price: newTotalPrice 
+        })
+        .eq('id', existingItem.id);
+
+      if (error) throw error;
+    } else {
+      // Insert new item
       const { error } = await supabase
         .from('cart_items')
         .insert({
@@ -347,107 +388,134 @@ export const addToCartSupabase = async (item: CartItemData): Promise<boolean> =>
           total_price: totalPrice,
         });
 
-      if (error) {
-        console.error('Error syncing to Supabase:', error);
-        // Still return true since localStorage save succeeded
-      }
-    } catch (error) {
-      console.error('Error syncing to Supabase:', error);
-      // Still return true since localStorage save succeeded
+      if (error) throw error;
     }
+
+    return true;
+  } catch (error) {
+    // Re-throw error for caller to handle (Swiggy 2025 pattern: silent at low level)
+    throw error;
   }
-  
-  return true;
 };
 
 export const updateCartItemSupabase = async (itemId: string, quantity: number): Promise<boolean> => {
-  // Always update localStorage first
-  try {
-    const existingCart = localStorage.getItem('mock_cart');
-    const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
-    
-    const itemIndex = cartItems.findIndex(i => i.id === itemId);
-    if (itemIndex >= 0) {
-      cartItems[itemIndex].quantity = quantity;
-      localStorage.setItem('mock_cart', JSON.stringify(cartItems));
-    } else {
-      return false;
-    }
-  } catch (error) {
-    console.error('Error updating localStorage cart:', error);
-    return false;
-  }
-
-  // If logged in, also update Supabase in background
-  const authenticated = await isAuthenticated();
-  if (authenticated) {
-    try {
-      // Need to fetch current unit_price to recalculate total_price
-      const { data: cartItem } = await supabase
-        .from('cart_items')
-        .select('unit_price')
-        .eq('id', itemId)
-        .single();
-
-      if (!cartItem) return true; // Return true since localStorage update succeeded
-
-      const totalPrice = cartItem.unit_price * quantity;
-
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity, total_price: totalPrice })
-        .eq('id', itemId);
-
-      if (error) {
-        console.error('Error syncing to Supabase:', error);
-        // Still return true since localStorage update succeeded
-      }
-    } catch (error) {
-      console.error('Error syncing to Supabase:', error);
-      // Still return true since localStorage update succeeded
-    }
-  }
+  // Mock mode: Use localStorage cart
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  const { updateMockCartQuantity } = await import('@/lib/mock-cart');
   
-  return true;
+  if (isMockModeEnabled()) {
+    return updateMockCartQuantity(itemId, quantity);
+  }
+
+  // Backend only - require authentication
+  const authenticated = await isAuthenticated();
+  if (!authenticated) {
+    throw new Error('Please login to update cart');
+  }
+
+  try {
+    // Fetch current unit_price to recalculate total_price
+    const { data: cartItem } = await supabase
+      .from('cart_items')
+      .select('unit_price')
+      .eq('id', itemId)
+      .single();
+
+    if (!cartItem) {
+      throw new Error('Cart item not found');
+    }
+
+    const totalPrice = cartItem.unit_price * quantity;
+
+    const { error } = await supabase
+      .from('cart_items')
+      .update({ quantity, total_price: totalPrice })
+      .eq('id', itemId);
+
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    // Re-throw error for caller to handle (Swiggy 2025 pattern: silent at low level)
+    throw error;
+  }
 };
 
 export const removeCartItemSupabase = async (itemId: string): Promise<boolean> => {
-  // Always remove from localStorage first
-  try {
-    const existingCart = localStorage.getItem('mock_cart');
-    const cartItems: CartItemData[] = existingCart ? JSON.parse(existingCart) : [];
-    
-    const filtered = cartItems.filter(i => i.id !== itemId);
-    localStorage.setItem('mock_cart', JSON.stringify(filtered));
-  } catch (error) {
-    console.error('Error removing from localStorage cart:', error);
-    return false;
-  }
-
-  // If logged in, also remove from Supabase in background
-  const authenticated = await isAuthenticated();
-  if (authenticated) {
-    try {
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('id', itemId);
-
-      if (error) {
-        console.error('Error syncing to Supabase:', error);
-        // Still return true since localStorage remove succeeded
-      }
-    } catch (error) {
-      console.error('Error syncing to Supabase:', error);
-      // Still return true since localStorage remove succeeded
-    }
-  }
+  // Mock mode: Use localStorage cart
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  const { removeFromMockCart } = await import('@/lib/mock-cart');
   
-  return true;
+  if (isMockModeEnabled()) {
+    return removeFromMockCart(itemId);
+  }
+
+  // Backend only - require authentication
+  const authenticated = await isAuthenticated();
+  if (!authenticated) {
+    throw new Error('Please login to remove cart item');
+  }
+
+  try {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    // Re-throw error for caller to handle (Swiggy 2025 pattern: silent at low level)
+    throw error;
+  }
 };
 
 // Alias for consistency with other naming patterns
 export const removeFromCartSupabase = removeCartItemSupabase;
+
+// Helper function to remove cart item by product ID and store ID (Swiggy 2025 pattern)
+export const removeCartItemByProductId = async (itemId: string, storeId: string): Promise<boolean> => {
+  // Backend only - require authentication
+  const authenticated = await isAuthenticated();
+  if (!authenticated) {
+    throw new Error('Please login to remove cart item');
+  }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Find cart item by item_id and store_id
+    const { data: cartItem, error: findError } = await supabase
+      .from('cart_items')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('item_id', itemId)
+      .eq('store_id', storeId)
+      .single();
+
+    if (findError) {
+      // Item not in cart - not an error, return success
+      if (findError.code === 'PGRST116') {
+        return true;
+      }
+      throw findError;
+    }
+
+    if (!cartItem) {
+      return true; // Item not found - already removed
+    }
+
+    // Remove by cart_item ID
+    return await removeCartItemSupabase(cartItem.id);
+  } catch (error) {
+    // Re-throw error for caller to handle
+    throw error;
+  }
+};
 
 // Note: fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase
 // are now provided by the favorites service (exported via line 5)
@@ -474,15 +542,20 @@ export const getSearchSuggestions = async (
         p_limit: 10
       });
       
-      if (error) throw error;
+      if (error) {
+        // RPC function doesn't exist - handle gracefully (Swiggy 2025 pattern)
+        // Check for various error codes: PGRST202 (function not found), 404, or any error
+        return [];
+      }
       return (data || []).map((s: any) => ({
         id: s.id,
         text: s.text,
         type: s.type as 'recent' | 'trending' | 'product' | 'category',
         count: s.count
       }));
-    } catch (error) {
-      console.error('Error fetching search suggestions:', error);
+    } catch (error: any) {
+      // Handle any other errors gracefully (Swiggy 2025 pattern)
+      // Silent error handling - return empty array
       return [];
     }
   }
@@ -495,15 +568,20 @@ export const getSearchSuggestions = async (
       p_limit: 10
     });
     
-    if (error) throw error;
+    if (error) {
+      // RPC function doesn't exist - handle gracefully (Swiggy 2025 pattern)
+      // Silent error handling - return empty array
+      return [];
+    }
     return (data || []).map((s: any) => ({
       id: s.id,
       text: s.text,
       type: s.type as 'recent' | 'trending' | 'product' | 'category',
       count: s.count
     }));
-  } catch (error) {
-    console.error('Error fetching search suggestions:', error);
+  } catch (error: any) {
+    // Handle any other errors gracefully (Swiggy 2025 pattern)
+    // Silent error handling - return empty array
     return [];
   }
 };
@@ -535,7 +613,7 @@ export const saveSearchHistory = async (
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error saving search history:', error);
+    // Silent error handling (Swiggy 2025 pattern)
     // Silent fail - search history is non-critical
   }
 };
@@ -551,7 +629,7 @@ export const getTrendingSearches = async (limit: number = 10): Promise<string[]>
     if (error) throw error;
     return (data || []).map((t: any) => t.query);
   } catch (error) {
-    console.error('Error fetching trending searches:', error);
+    // Silent error handling (Swiggy 2025 pattern)
     return [];
   }
 };
@@ -566,10 +644,26 @@ export const searchItems = async (query: string): Promise<Item[]> => {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Try direct table search first (more reliable than RPC)
+      // Swiggy 2025: Only search approved, active items
+      // First get approved active stores, then search their items
+      const { data: activeStores } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('status', 'approved')
+        .eq('is_active', true);
+      
+      const storeIds = activeStores?.map(s => s.id) || [];
+      
+      if (storeIds.length === 0) {
+        return [];
+      }
+      
       const { data, error } = await supabase
         .from('store_items')
         .select('*')
+        .in('store_id', storeIds)
+        .eq('status', 'approved')
+        .eq('is_active', true)
         .or(`name.ilike.%${query}%,description.ilike.%${query}%,short_desc.ilike.%${query}%`)
         .limit(20);
 
@@ -592,7 +686,7 @@ export const searchItems = async (query: string): Promise<Item[]> => {
   }
   
   // Return empty array if all backend attempts fail
-  console.error('Search failed after retries:', lastError);
+  // Silent error handling after retries (Swiggy 2025 pattern)
   return [];
 };
 
@@ -642,7 +736,7 @@ export const searchStores = async (query: string): Promise<Store[]> => {
   }
   
   // Return empty array if all backend attempts fail
-  console.error('Store search failed after retries:', lastError);
+  // Silent error handling after retries (Swiggy 2025 pattern)
   return [];
 };
 

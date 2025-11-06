@@ -6,7 +6,7 @@ import { getLoginPath } from "@/utils/roleUtils";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'customer' | 'seller' | 'admin' | 'kam';
+  requiredRole?: 'customer' | 'seller' | 'admin';
   redirectTo?: string;
 }
 

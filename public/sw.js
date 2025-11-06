@@ -1,5 +1,6 @@
-const CACHE_NAME = 'wyshkit-v1';
-const CART_CACHE_NAME = 'wyshkit-cart-v1';
+// Updated cache version to force invalidation of old cached modules
+const CACHE_NAME = 'wyshkit-v2-' + Date.now();
+const CART_CACHE_NAME = 'wyshkit-cart-v2';
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',
@@ -22,7 +23,12 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== CART_CACHE_NAME) {
+          // Delete all old caches (including old wyshkit-v1, wyshkit-cart-v1, and any v2 caches)
+          if (!cacheName.startsWith('wyshkit-v2') && cacheName !== CART_CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+          // Also delete older v2 caches if they exist
+          if (cacheName.startsWith('wyshkit-v2-') && cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
@@ -35,6 +41,28 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // CRITICAL: Completely bypass service worker for Vite dev server
+  // This prevents any caching of development modules
+  if (
+    // Vite source files
+    url.pathname.startsWith('/src/') ||
+    // Vite modules with timestamps (cache-busting)
+    url.pathname.includes('?t=') ||
+    url.searchParams.has('t') ||
+    url.searchParams.has('v') ||
+    // Vite HMR WebSocket
+    url.protocol === 'ws:' || url.protocol === 'wss:' ||
+    // Vite client script
+    url.pathname.includes('/@vite/') ||
+    url.pathname.includes('/node_modules/') ||
+    // Any file with .ts, .tsx, .js, .jsx extension from src
+    (url.pathname.match(/\.(ts|tsx|js|jsx)$/) && url.origin.includes('localhost'))
+  ) {
+    // Don't intercept - let browser fetch directly from network
+    // This ensures Vite modules are never cached
+    return; // Don't call event.respondWith - let default fetch happen
+  }
 
   // Handle cart data caching for offline functionality
   if (url.pathname.includes('/api/cart')) {

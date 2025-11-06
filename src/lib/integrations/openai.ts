@@ -16,7 +16,6 @@ export const getRecommendations = async (userPreferences?: {
 }): Promise<RecommendationItem[]> => {
   // If no API key, return fallback recommendations
   if (!OPENAI_API_KEY || OPENAI_API_KEY === '') {
-    console.warn('OpenAI API key not configured, using fallback recommendations');
     return getFallbackRecommendations();
   }
 
@@ -82,8 +81,7 @@ Format the response as JSON array with fields: title, description, price (as num
       price: rec.price,
     }));
   } catch (error) {
-    console.error('Failed to get AI recommendations:', error);
-    // Fallback to static recommendations
+    // Silent error handling - fallback to static recommendations (Swiggy 2025 pattern)
     return getFallbackRecommendations();
   }
 };

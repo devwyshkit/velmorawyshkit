@@ -7,6 +7,7 @@ import {
   AlertCircle,
   TrendingUp,
   ArrowRight,
+  Tag,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,8 @@ interface AdminStats {
   openDisputes: number;
   escalatedDisputes: number;
   duePayouts: number;
+  pendingOfferRequests: number;
+  activeOffers: number;
 }
 
 /**
@@ -44,6 +47,8 @@ export const AdminDashboard = () => {
     openDisputes: 0,
     escalatedDisputes: 0,
     duePayouts: 0,
+    pendingOfferRequests: 0,
+    activeOffers: 0,
   });
 
   useEffect(() => {
@@ -78,7 +83,7 @@ export const AdminDashboard = () => {
       const today = new Date().toISOString().split('T')[0];
 
       // Parallel queries for performance
-      const [ordersResult, partnersResult, disputesResult, payoutsResult] = await Promise.all([
+      const [ordersResult, partnersResult, disputesResult, payoutsResult, offersResult] = await Promise.all([
         // Today's orders
         supabase
           .from('orders')
@@ -86,11 +91,10 @@ export const AdminDashboard = () => {
           .gte('created_at', today)
           .eq('status', 'completed'),
         
-        // Partner stats
+        // Partner stats (using stores table - Swiggy pattern)
         supabase
-          .from('partners')
-          .select('status')
-          .eq('is_active', true),
+          .from('stores')
+          .select('status, is_active'),
         
         // Disputes
         supabase
@@ -100,11 +104,20 @@ export const AdminDashboard = () => {
         
         // Due payouts (mock for now)
         Promise.resolve({ data: [], count: 120 }),
+        
+        // Promotional offers (handle gracefully if table doesn't exist)
+        supabase
+          .from('promotional_offers')
+          .select('status, is_active')
+          .eq('is_active', true)
+          .catch(() => ({ data: null, error: null })), // Return null if table doesn't exist
       ]);
 
       const gmv = ordersResult.data?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
-      const activePartners = partnersResult.data?.filter(p => p.status === 'approved').length || 0;
-      const pendingApprovals = partnersResult.data?.filter(p => p.status === 'pending').length || 0;
+      const activePartners = partnersResult.data?.filter(s => s.status === 'approved' && s.is_active).length || 0;
+      const pendingApprovals = partnersResult.data?.filter(s => s.status === 'pending').length || 0;
+      const pendingOfferRequests = offersResult?.data?.filter(o => o.status === 'pending').length || 0;
+      const activeOffers = offersResult?.data?.filter(o => o.status === 'active').length || 0;
 
       setStats({
         gmvToday: gmv,
@@ -114,6 +127,8 @@ export const AdminDashboard = () => {
         openDisputes: disputesResult.data?.length || 0,
         escalatedDisputes: 5, // Mock - would calculate >48 hours
         duePayouts: payoutsResult.count || 120,
+        pendingOfferRequests,
+        activeOffers,
       });
     } catch (error) {
       console.error('Failed to load admin stats:', error);
@@ -127,6 +142,8 @@ export const AdminDashboard = () => {
         openDisputes: 23,
         escalatedDisputes: 5,
         duePayouts: 120,
+        pendingOfferRequests: 3,
+        activeOffers: 12,
       });
     } finally {
       setLoading(false);
@@ -251,6 +268,51 @@ export const AdminDashboard = () => {
               </Button>
         </CardContent>
       </Card>
+        )}
+
+        {/* Pending Offer Requests */}
+        {stats.pendingOfferRequests > 0 && (
+          <Card className="cursor-pointer hover:shadow-lg" onClick={() => navigate("/admin/promotional-offers")}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Offer Requests</CardTitle>
+                <Badge variant="destructive">{stats.pendingOfferRequests}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                Partner promotional offers awaiting approval
+              </p>
+              <Button variant="outline" size="sm" className="w-full gap-2">
+                Review Offers
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Active Promotional Offers */}
+        {stats.activeOffers > 0 && (
+          <Card className="cursor-pointer hover:shadow-lg" onClick={() => navigate("/admin/promotional-offers")}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  Active Offers
+                </CardTitle>
+                <Badge>{stats.activeOffers}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                {stats.activeOffers} promotional offers currently running
+              </p>
+              <Button variant="outline" size="sm" className="w-full gap-2">
+                Manage Offers
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </div>
 

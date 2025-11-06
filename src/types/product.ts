@@ -23,7 +23,6 @@ export interface AddOn {
   price: number; // in paise, per item
   type: 'standard' | 'bulk';
   minimumOrder?: number; // for bulk add-ons (MOQ)
-  requiresPreview?: boolean; // vendor must show preview before production
   requiresProof?: boolean; // customer must upload file (logo, design)
 }
 

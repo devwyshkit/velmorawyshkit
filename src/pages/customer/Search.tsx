@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { RouteMap } from "@/routes";
 import { ArrowLeft, TrendingUp, ArrowUpRight } from "lucide-react";
@@ -11,6 +12,7 @@ import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { searchItems, fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase, getTrendingSearches, saveSearchHistory } from "@/lib/integrations/supabase-data";
 import { useAuth } from "@/contexts/AuthContext";
+import { generateSessionId } from "@/lib/utils/id-generator";
 import { EmptyStates } from "@/components/ui/empty-state";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +36,7 @@ export const CustomerMobileSearch = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
+
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [favouritedItems, setFavouritedItems] = useState<Set<string>>(new Set());
@@ -102,7 +105,7 @@ export const CustomerMobileSearch = () => {
           setResults(itemSearchResults);
           
           // Swiggy 2025: Save search to history (sync across devices)
-          const sessionId = user ? undefined : `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const sessionId = user ? undefined : generateSessionId();
           await saveSearchHistory(searchQuery, user?.id || null, sessionId, {
             searchSource: 'search_bar',
             resultCount: itemSearchResults.length,
@@ -160,7 +163,7 @@ export const CustomerMobileSearch = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-[112px]">
       {/* Search Header with Back Button */}
       <header className="sticky top-0 z-40 bg-white border-b border-border">
         <div className="flex items-center gap-3 h-14 px-4">
@@ -185,14 +188,16 @@ export const CustomerMobileSearch = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-screen-xl mx-auto px-4 py-6">
+      {/* Swiggy 2025: Reduced mobile padding - 12px mobile, 24px desktop */}
+      <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3 md:py-6">
         {searchQuery && results.length > 0 ? (
           /* Search Results */
           <div>
             <h2 className="text-lg font-semibold mb-4">
               Results for "{searchQuery}"
             </h2>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {/* Swiggy 2025: Tighter mobile gap - 12px mobile */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
               {results.map((item) => (
                 <CustomerItemCard
                   key={item.id}

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -24,9 +25,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    // Swiggy 2025: Structured logging with context
+    logger.error('Error Boundary caught an error', error, {
+      componentStack: errorInfo.componentStack,
+      errorBoundary: true,
+    });
     
-    // Here you would send error to monitoring service
+    // TODO: Send to error monitoring service (Sentry, LogRocket, etc.)
     // Example: Sentry.captureException(error, { extra: errorInfo });
   }
 
@@ -93,9 +98,13 @@ export const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({
 // Custom hook for error handling in functional components
 export const useErrorHandler = () => {
   return React.useCallback((error: Error, errorInfo?: any) => {
-    console.error('Application error:', error);
+    // Swiggy 2025: Structured logging with context
+    logger.error('Application error', error, {
+      errorInfo,
+      hook: 'useErrorHandler',
+    });
     
-    // Send to monitoring service
+    // TODO: Send to error monitoring service (Sentry, LogRocket, etc.)
     // Example: Sentry.captureException(error, { extra: errorInfo });
   }, []);
 };

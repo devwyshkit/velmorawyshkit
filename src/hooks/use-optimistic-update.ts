@@ -17,21 +17,28 @@ export function useOptimisticUpdate<T>(
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  // Swiggy 2025: Use ref for previous data to avoid useCallback dependency on state
   const previousDataRef = useRef<T>(initialData);
+  const currentDataRef = useRef<T>(initialData);
+
+  // Swiggy 2025: Update ref when state changes (for rollback)
+  useEffect(() => {
+    currentDataRef.current = state.data;
+  }, [state.data]);
 
   const update = useCallback(async (optimisticData: T) => {
     // Store previous data for rollback
-    previousDataRef.current = state.data;
+    previousDataRef.current = currentDataRef.current;
     
-    // Apply optimistic update immediately
-    setState({
+    // Apply optimistic update immediately using functional update
+    setState(prev => ({
       data: optimisticData,
       isOptimistic: true,
       rollback: () => setState({
         data: previousDataRef.current,
         isOptimistic: false
       })
-    });
+    }));
 
     setIsLoading(true);
     setError(null);
@@ -40,11 +47,11 @@ export function useOptimisticUpdate<T>(
       // Perform actual update
       const result = await updateFn(optimisticData);
       
-      // Replace optimistic data with server response
-      setState({
+      // Replace optimistic data with server response using functional update
+      setState(prev => ({
         data: result,
         isOptimistic: false
-      });
+      }));
       
       return result;
     } catch (err) {
@@ -52,16 +59,16 @@ export function useOptimisticUpdate<T>(
       const error = err instanceof Error ? err : new Error('Update failed');
       setError(error);
       
-      setState({
+      setState(prev => ({
         data: previousDataRef.current,
         isOptimistic: false
-      });
+      }));
       
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [state.data, updateFn]);
+  }, [updateFn]);
 
   const rollback = useCallback(() => {
     if (state.rollback) {

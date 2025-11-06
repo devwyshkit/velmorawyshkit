@@ -96,7 +96,7 @@ export const SearchBar = ({
           
           setSuggestions(fetchedSuggestions);
         } catch (error) {
-          console.error('Error fetching suggestions:', error);
+          // Silent error handling - suggestions unavailable (Swiggy 2025 pattern)
           setSuggestions([]);
         } finally {
           setIsLoadingSuggestions(false);
@@ -380,15 +380,12 @@ export const SearchBar = ({
               variant="ghost"
               className={cn(
                 "h-8 w-8",
-                isVoiceActive && "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400"
+                isVoiceActive && "bg-red-100 text-red-600"
               )}
               onClick={handleVoiceSearch}
               aria-label="Voice search"
             >
-              <Mic className={cn(
-                "h-4 w-4",
-                isVoiceActive && "animate-pulse"
-              )} />
+              <Mic className="h-4 w-4" />
             </Button>
           )}
         </div>
@@ -419,7 +416,7 @@ export const SearchBar = ({
                         </Badge>
                       )}
                       {suggestion.type === "trending" && (
-                        <Badge variant="outline" className="text-xs border-orange-200 text-orange-600 dark:border-orange-800 dark:text-orange-400">
+                        <Badge variant="outline" className="text-xs border-orange-200 text-orange-600">
                           Trending
                         </Badge>
                       )}

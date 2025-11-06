@@ -1,8 +1,7 @@
-export type UserRole = 'customer' | 'seller' | 'admin' | 'kam';
+export type UserRole = 'customer' | 'seller' | 'admin';
 
 export const ROLE_HIERARCHIES: Record<UserRole, readonly UserRole[]> = {
-  admin: ['admin', 'kam', 'seller', 'customer'],
-  kam: ['kam', 'seller'],
+  admin: ['admin', 'seller', 'customer'],
   seller: ['seller'],
   customer: ['customer']
 } as const;
@@ -31,13 +30,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Record<string, boolean>> = {
     canManageDisputes: true,
     canViewPlatformAnalytics: true,
     canManageSystem: true
-  },
-  kam: {
-    canManageVendorRelationships: true,
-    canViewVendorPerformance: true,
-    canManageContracts: true,
-    canViewReports: true,
-    canManageAccounts: true
   }
 } as const;
 
@@ -49,8 +41,6 @@ export const getRoleDisplayName = (role: UserRole): string => {
       return 'Seller';
     case 'admin':
       return 'Administrator';
-    case 'kam':
-      return 'Key Account Manager';
     default:
       return 'User';
   }
@@ -72,8 +62,6 @@ export const getDefaultDashboardPath = (role: UserRole): string => {
       return '/partner/dashboard'; // Swiggy 2025: Partner portal uses /partner/dashboard
     case 'admin':
       return '/admin/dashboard';
-    case 'kam':
-      return '/kam/dashboard';
     case 'customer':
     default:
       return '/'; // Customer home page
@@ -81,17 +69,22 @@ export const getDefaultDashboardPath = (role: UserRole): string => {
 };
 
 export const getLoginPath = (role?: UserRole): string => {
-  const isBusinessRole = role === 'seller' || role === 'admin' || role === 'kam';
-  return isBusinessRole ? '/partner/login' : '/login';
+  if (role === 'admin') {
+    return '/admin/login';
+  }
+  if (role === 'seller') {
+    return '/partner/login';
+  }
+  return '/login';
 };
 
 export const getRegisterPath = (role?: UserRole): string => {
-  const isBusinessRole = role === 'seller' || role === 'admin' || role === 'kam';
+  const isBusinessRole = role === 'seller' || role === 'admin';
   return isBusinessRole ? '/auth/business-register' : '/auth/customer-register';
 };
 
 export const isBusinessRole = (role: UserRole): boolean => {
-  return role === 'seller' || role === 'admin' || role === 'kam';
+  return role === 'seller' || role === 'admin';
 };
 
 export const isCustomerRole = (role: UserRole): boolean => {

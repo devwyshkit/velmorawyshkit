@@ -10,7 +10,8 @@ import { Card } from "@/components/ui/card";
 import { CheckCircle, Loader2, XCircle, Download, MapPin, Plus } from "lucide-react";
 import { calculateGST, calculateTotalWithGST } from "@/lib/integrations/razorpay";
 import { loadGooglePlaces, initAutocomplete, formatAddress } from "@/lib/integrations/google-places";
-import { supabase } from "@/lib/integrations/supabase-client";
+// Phase 1 Cleanup: Removed Supabase imports - pure mock mode
+import { getAddresses, prePopulateAddresses } from "@/lib/mock-addresses";
 
 interface Address {
   id: string;
@@ -39,34 +40,12 @@ export const AddressSelectionSheet = ({
   cartItems, 
   cartTotal 
 }: AddressSelectionSheetProps) => {
-  // Mock addresses (in real app, fetch from API)
-  const [addresses, setAddresses] = useState<Address[]>([
-    {
-      id: '1',
-      label: 'Home',
-      name: 'John Doe',
-      phone: '+91 98765 43210',
-      house: '123 MG Road',
-      area: 'HSR Layout',
-      city: 'Bangalore',
-      pincode: '560102',
-      isDefault: true,
-    },
-    {
-      id: '2',
-      label: 'Work',
-      name: 'John Doe',
-      phone: '+91 98765 43210',
-      house: 'Tech Park',
-      area: 'Koramangala',
-      city: 'Bangalore',
-      pincode: '560034',
-      isDefault: false,
-    },
-  ]);
+  // Addresses state
+  const [addresses, setAddresses] = useState<Address[]>([]);
 
-  const [selectedAddress, setSelectedAddress] = useState<string>(addresses[0]?.id || '');
+  const [selectedAddress, setSelectedAddress] = useState<string>('');
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [newAddress, setNewAddress] = useState({
     label: 'Home',
     name: '',
@@ -89,6 +68,24 @@ export const AddressSelectionSheet = ({
   const [isGeneratingEstimate, setIsGeneratingEstimate] = useState(false);
 
   const addressInputRef = useRef<HTMLInputElement>(null);
+
+  // Load addresses on mount
+  useEffect(() => {
+    const loadAddresses = async () => {
+      // Phase 1 Cleanup: Always use mock addresses - no conditionals
+      prePopulateAddresses();
+      const mockAddresses = getAddresses();
+      setAddresses(mockAddresses);
+      if (mockAddresses.length > 0) {
+        const defaultAddr = mockAddresses.find(a => a.isDefault) || mockAddresses[0];
+        setSelectedAddress(defaultAddr.id);
+      }
+    };
+
+    if (isOpen) {
+      loadAddresses();
+    }
+  }, [isOpen]);
 
   // Setup Google Places when adding new address
   useEffect(() => {
@@ -144,7 +141,7 @@ export const AddressSelectionSheet = ({
         setGstinDetails(null);
       }
     } catch (error: any) {
-      console.error('GSTIN verification error:', error);
+      // Silent error handling - invalid GSTIN (Swiggy 2025 pattern)
       setGstinValid(false);
       setGstinDetails(null);
     } finally {
@@ -191,7 +188,7 @@ export const AddressSelectionSheet = ({
         throw new Error('No PDF URL returned');
       }
     } catch (error: any) {
-      console.error('Error generating estimate:', error);
+      // Silent error handling - estimate unavailable (Swiggy 2025 pattern)
       // Fallback to manual calculation if Edge Function fails
       const subtotal = cartTotal;
       const gstAmount = calculateGST(subtotal);
@@ -227,12 +224,17 @@ HSN Code: 9985
     const address = addresses.find(a => a.id === selectedAddress);
     if (!address) return;
 
+    // Set transitioning flag to prevent sheet from calling onClose
+    setIsTransitioning(true);
+    
+    // Call onAddressConfirm which transitions to payment step (Swiggy 2025 pattern)
+    // CheckoutCoordinator will close this sheet and open payment sheet
     onAddressConfirm(address, isBusinessOrder && gstinValid ? gstin : undefined);
   };
 
   const handleAddNewAddress = () => {
     const newAddr: Address = {
-      id: Date.now().toString(),
+      id: generateId('temp_address'),
       label: newAddress.label,
       name: newAddress.name,
       phone: newAddress.phone,
@@ -251,15 +253,31 @@ HSN Code: 9985
   const defaultAddress = addresses.find(a => a.isDefault);
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
+    <Sheet 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        // Only close if not transitioning to next step (Swiggy 2025 pattern)
+        if (!open && !isTransitioning) {
+          onClose();
+        }
+      }} 
+      modal={false}
+    >
       <SheetContent 
         side="bottom" 
-        className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 overflow-y-auto"
+        className="max-h-[75vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 flex flex-col overflow-hidden"
       >
-        <SheetHeader className="sr-only">
-          <SheetTitle>Select Delivery Address</SheetTitle>
-          <SheetDescription>Choose your delivery address and payment method</SheetDescription>
-        </SheetHeader>
+        {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+        <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
+          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
+        
+        {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-6">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Select Delivery Address</SheetTitle>
+            <SheetDescription>Choose your delivery address and payment method</SheetDescription>
+          </SheetHeader>
 
         <div className="p-4 space-y-6">
           <div>
@@ -455,6 +473,7 @@ HSN Code: 9985
           <Button onClick={handleConfirm} className="w-full" size="lg" disabled={!selectedAddress}>
             Deliver Here
           </Button>
+        </div>
         </div>
       </SheetContent>
     </Sheet>

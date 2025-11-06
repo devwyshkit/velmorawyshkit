@@ -1,4 +1,14 @@
--- Test User Seed Data
+-- ⚠️ DEPRECATED: This file is deprecated and should NOT be used
+-- 
+-- Test users created via SQL inserts into auth.users DO NOT WORK with Supabase Auth.
+-- Supabase Auth requires users to be created via the Admin API.
+-- 
+-- ✅ USE INSTEAD: scripts/create-test-users.ts
+-- 
+-- This file is kept for reference only. The seed script (scripts/seed-test-data.ts)
+-- will skip this file and use the Admin API script instead.
+--
+-- Test User Seed Data (DEPRECATED)
 -- For development and testing purposes
 -- Run this after migrations are applied
 
@@ -86,6 +96,7 @@ INSERT INTO addresses (
 ON CONFLICT (id) DO NOTHING;
 
 COMMENT ON TABLE addresses IS 'Test address seeded for test user';
+
 
 
 

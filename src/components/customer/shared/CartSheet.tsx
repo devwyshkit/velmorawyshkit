@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
 import { Trash2, Store, Upload } from "lucide-react";
@@ -9,11 +9,12 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { CheckoutCoordinator } from "@/components/customer/shared/CheckoutCoordinator";
-import { supabase } from "@/lib/integrations/supabase-client";
+// Phase 1 Cleanup: Removed Supabase imports - pure mock mode
 import { calculateGST, calculateTotalWithGST, generateEstimate } from "@/lib/integrations/razorpay";
-import { fetchStoreById, fetchCartItems, updateCartItemSupabase, removeFromCartSupabase } from "@/lib/integrations/supabase-data";
+import { getCartItems } from "@/lib/mock-cart";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { Personalization } from "@/lib/types/cart";
 
 interface CartSheetProps {
   isOpen: boolean;
@@ -26,92 +27,105 @@ interface CartItem {
   price: number;
   quantity: number;
   image?: string;
-  addOns?: any[];
+  addOns?: Personalization[];
   store_id?: string;
 }
+
+// Helper to load cart items synchronously (Swiggy 2025 pattern)
+const loadCartItemsSync = (): CartItem[] => {
+  try {
+    const fetchedItems = getCartItems();
+    return fetchedItems.map(item => ({
+      ...item,
+      personalizations: item.addOns || [],
+    }));
+  } catch (error) {
+    return [];
+  }
+};
 
 export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { refreshCartCount } = useCart();
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [storeName, setStoreName] = useState<string>("");
+  const { refreshCartCount, cartCount, updateCartQuantity, removeCartItem } = useCart();
+  // Swiggy 2025: Initialize items synchronously to prevent empty cart flash
+  const [items, setItems] = useState<CartItem[]>(() => loadCartItemsSync());
+  const [storeName, setStoreName] = useState<string>(() => {
+    const initialItems = loadCartItemsSync();
+    return initialItems.length > 0 && initialItems[0].store_id ? "Partner Store" : "";
+  });
   const [showCheckout, setShowCheckout] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadCart();
-    }
-  }, [isOpen]);
+  // Calculate current items count with useMemo (Swiggy 2025 pattern - prevent flickering)
+  const currentItemsCount = useMemo(() => {
+    return items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  }, [items]);
 
-  const loadCart = async () => {
+  // Swiggy 2025: Load cart synchronously (localStorage is synchronous)
+  const loadCart = useCallback(() => {
     try {
-      // fetchCartItems handles both guest (localStorage) and authenticated (Supabase)
-      const cartItems = await fetchCartItems();
+      // Get cart items synchronously (no artificial delay)
+      const fetchedItems = getCartItems();
+      // Map addOns to personalizations for consistency with checkout
+      const cartItems = fetchedItems.map(item => ({
+        ...item,
+        personalizations: item.addOns || [],
+      }));
       setItems(cartItems);
       
-      // Load store name
+      // Load store name (mock - extract from first item's store_id if available)
       if (cartItems.length > 0 && cartItems[0].store_id) {
-        const store = await fetchStoreById(cartItems[0].store_id);
-        setStoreName(store?.name || "");
+        // Phase 1 Cleanup: Mock store name - no Supabase fetch
+        setStoreName("Partner Store");
       } else {
         setStoreName("");
       }
     } catch (error) {
-      console.error('Error loading cart:', error);
+      // Silent error handling - show empty state (Swiggy 2025 pattern)
       setItems([]);
       setStoreName("");
-      // No toast - empty state shows error (Swiggy 2025 pattern)
     }
-  };
+  }, []); // Empty dependency array as it's memoized
+
+  // Swiggy 2025: Load cart when sheet opens or cart count changes (synchronous)
+  useEffect(() => {
+    if (isOpen) {
+      // Load cart synchronously - no delay needed
+      loadCart();
+    }
+  }, [isOpen, cartCount, loadCart]);
 
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
-    // Optimistic update
+    // Handle quantity 0 (remove item)
+    if (newQuantity === 0) {
+      await handleRemoveItem(itemId);
+      return;
+    }
+
+    // Optimistic update (Swiggy 2025 pattern)
     const updatedItems = items.map(item =>
       item.id === itemId ? { ...item, quantity: newQuantity } : item
     );
     setItems(updatedItems);
 
-    if (!user) {
-      // Just show optimistic update for mock users
-      refreshCartCount();
-      return;
-    }
-
-    // Update in Supabase
-    const success = await updateCartItemSupabase(itemId, newQuantity);
-    if (success) {
-      refreshCartCount();
-    } else {
-      // Revert on failure
+    // Phase 1 Cleanup: Always use CartContext handler (now mock-based)
+    const success = await updateCartQuantity(itemId, newQuantity);
+    if (!success) {
+      // Revert on failure - optimistic update already reverted (Swiggy 2025 pattern)
       loadCart();
-      console.error('Failed to update cart item');
-      // No toast - optimistic update already reverted (Swiggy 2025 pattern)
     }
   };
 
   const handleRemoveItem = async (itemId: string) => {
-    // Optimistic update
+    // Optimistic update (Swiggy 2025 pattern)
     const updatedItems = items.filter(item => item.id !== itemId);
     setItems(updatedItems);
 
-    if (!user) {
-      // Just show optimistic update for mock users
-      refreshCartCount();
-      return;
-    }
-
-    // Remove from Supabase
-    const success = await removeFromCartSupabase(itemId);
-    if (success) {
-      refreshCartCount();
-      // No toast - cart UI shows updated state (Swiggy 2025 pattern)
-    } else {
-      // Revert on failure
+    // Phase 1 Cleanup: Always use CartContext handler (now mock-based)
+    const success = await removeCartItem(itemId);
+    if (!success) {
+      // Revert on failure - optimistic update already reverted (Swiggy 2025 pattern)
       loadCart();
-      console.error('Failed to remove cart item');
-      // No toast - optimistic update already reverted (Swiggy 2025 pattern)
     }
   };
 
@@ -121,12 +135,8 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
       return;
     }
 
-    if (!user) {
-      // Silent navigation to login (user knows they need to login)
-      navigate(RouteMap.login());
-      return;
-    }
-
+    // Phase 1 Cleanup: Always allow checkout - mock mode doesn't require auth
+    // Swiggy 2025: Guest mode allows browsing, checkout can proceed
     onClose();
     setShowCheckout(true);
   };
@@ -135,22 +145,23 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
   const gst = calculateGST(subtotal);
   const total = calculateTotalWithGST(subtotal);
 
+  // Swiggy 2025: Show empty cart only when cart is actually empty (no loading state needed - synchronous)
   if (items.length === 0 && isOpen) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
         <SheetContent
           side="bottom"
-          className="h-[85vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+          className="max-h-[75vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 flex flex-col overflow-hidden"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Shopping Cart</SheetTitle>
             <SheetDescription>View and manage items in your cart</SheetDescription>
           </SheetHeader>
-          {/* Grabber */}
-          <div className="flex justify-center pt-2 pb-4">
+          {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+          <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
             <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
           </div>
-          <div className="flex flex-col items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center flex-1 px-6">
             <div className="text-center space-y-4">
               <p className="text-lg text-muted-foreground">Your cart is empty</p>
               <Button onClick={onClose}>Continue Shopping</Button>
@@ -165,18 +176,18 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
     <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
       <SheetContent
         side="bottom"
-        className="h-[85vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+        className="max-h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Shopping Cart</SheetTitle>
           <SheetDescription>View and manage items in your cart</SheetDescription>
         </SheetHeader>
-        {/* Grabber */}
-        <div className="flex justify-center pt-2">
+        {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+        <div className="flex justify-center pt-2 flex-shrink-0">
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
+        {/* Header - Sticky (Swiggy 2025 pattern) */}
+        <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 flex-shrink-0">
           <h2 className="text-lg font-semibold">My Cart ({items.length})</h2>
           {storeName && (
             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
@@ -186,8 +197,8 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
           )}
         </div>
 
-        {/* Items List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Items List - Swiggy 2025 Pattern: Snap scrolling */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory p-4 space-y-4">
           {items.map((item) => (
             <div key={item.id} className="flex gap-3 bg-card rounded-lg p-3 border border-border">
               {item.image && (
@@ -225,18 +236,18 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
 
           <Separator className="my-4" />
 
-          {/* File Upload Notice - Show if any cart item requires preview (Fiverr 2025) */}
-          {items.some((item: any) => 
-            item.personalizations?.some((p: any) => p.requiresPreview === true)
+          {/* File Upload Notice - Show if any cart item has personalizations (simplified rule) */}
+          {items.some((item: CartItem) => 
+            item.personalizations?.length > 0
           ) && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 dark:bg-blue-950 dark:border-blue-800">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <Upload className="h-5 w-5 text-blue-600 flex-shrink-0" />
                 <div className="flex-1 text-sm">
-                  <p className="font-semibold text-blue-900 dark:text-blue-100">
+                  <p className="font-semibold text-blue-900">
                     File Upload After Payment
                   </p>
-                  <p className="text-blue-700 dark:text-blue-300 mt-1">
+                  <p className="text-blue-700 mt-1">
                     Your order includes custom items. You'll upload design files after checkout, and we'll create a preview for your approval.
                   </p>
                 </div>
@@ -260,8 +271,8 @@ export const CartSheet = ({ isOpen, onClose }: CartSheetProps) => {
           </div>
         </div>
 
-        {/* Footer with Total and Checkout */}
-        <div className="sticky bottom-0 bg-white border-t border-border p-4 space-y-3">
+        {/* Footer with Total and Checkout - Sticky (Swiggy 2025 pattern) */}
+        <div className="sticky bottom-0 bg-background border-t border-border p-4 space-y-3 flex-shrink-0">
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Subtotal</span>

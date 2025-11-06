@@ -31,13 +31,15 @@ export const TimeSlotSheet = ({ isOpen, onClose, selectedDate, onTimeSelect }: T
   
   return (
     <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
-      <SheetContent side="bottom" className="h-auto rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2">
-        {/* Grabber */}
-        <div className="flex justify-center pt-2">
+      <SheetContent side="bottom" className="max-h-[75vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 flex flex-col overflow-hidden">
+        {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+        <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
         
-        <div className="p-4 space-y-6">
+        {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-4">
+          <div className="space-y-6 pb-4">
           <div>
             <h2 className="text-lg font-semibold">Pick delivery time</h2>
             <p className="text-sm text-muted-foreground">
@@ -91,6 +93,7 @@ export const TimeSlotSheet = ({ isOpen, onClose, selectedDate, onTimeSelect }: T
           >
             Confirm Time Slot
           </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

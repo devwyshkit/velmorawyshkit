@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { useStockAlerts } from "@/hooks/useStockAlerts";
+import { useStockAlerts } from "@/hooks/use-stock-alerts";
 import type { StockAlert } from "@/types/stockAlerts";
 
 export const StockAlertsWidget = () => {

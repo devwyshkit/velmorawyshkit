@@ -14,7 +14,6 @@ import { DataTable } from "@/components/ui/data-table";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { ProductApprovalCard } from "@/components/admin/mobile/ProductApprovalCard";
 import { ProductPreviewDialog } from "@/components/admin/products/ProductPreviewDialog";
-import { BulkApprovalActions } from "@/components/admin/products/BulkApprovalActions";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,7 +42,6 @@ export const AdminProductApprovals = () => {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<PendingProduct[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [previewProduct, setPreviewProduct] = useState<PendingProduct | null>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -125,49 +123,6 @@ export const AdminProductApprovals = () => {
       // Handle error silently in production
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleBulkApprove = async () => {
-    if (selectedProducts.length === 0) {
-      toast({
-        title: "No products selected",
-        description: "Please select products to approve",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      // Update store_items status to 'approved'
-      const { error } = await supabase
-        .from('store_items')
-        .update({
-          status: 'approved',
-          approved_by: user?.id,
-          approved_at: new Date().toISOString(),
-          reviewed_at: new Date().toISOString(),
-        })
-        .in('id', selectedProducts);
-
-      if (error) throw error;
-
-      toast({
-        title: "Products approved",
-        description: `${selectedProducts.length} product(s) are now live`,
-      });
-
-      setSelectedProducts([]);
-      loadProducts();
-    } catch (error: any) {
-      toast({
-        title: "Approval failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setProcessing(false);
     }
   };
 
@@ -376,25 +331,6 @@ export const AdminProductApprovals = () => {
         />
       </div>
 
-      {/* Bulk Actions */}
-      {selectedProducts.length > 0 && (
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <BulkApprovalActions
-              selectedCount={selectedProducts.length}
-              onBulkApprove={handleBulkApprove}
-              onBulkReject={() => {
-                const reason = prompt('Rejection reason for all selected:');
-                if (reason) {
-                  selectedProducts.forEach(id => handleReject(id, reason));
-                }
-              }}
-              processing={processing}
-            />
-          </CardContent>
-        </Card>
-      )}
-
       {/* Tabs */}
       <Tabs defaultValue="pending" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
@@ -422,12 +358,6 @@ export const AdminProductApprovals = () => {
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onPreview={setPreviewProduct}
-                  selected={selectedProducts.includes(product.id)}
-                  onSelect={(id, selected) => {
-                    setSelectedProducts(prev =>
-                      selected ? [...prev, id] : prev.filter(p => p !== id)
-                    );
-                  }}
                 />
               ))}
             </div>
@@ -435,7 +365,6 @@ export const AdminProductApprovals = () => {
             <DataTable
               columns={columns}
               data={products.filter(p => p.approval_status === 'pending_review')}
-              onSelectionChange={setSelectedProducts}
             />
           )}
         </TabsContent>

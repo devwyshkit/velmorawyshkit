@@ -53,13 +53,7 @@ CREATE POLICY "Vendor can manage own settings"
 
 CREATE POLICY "Admins can view all settings"
   ON vendor_settings FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid()
-      AND role IN ('admin', 'kam')
-    )
-  );
+  USING (is_admin_user(auth.uid()));
 
 -- Trigger
 CREATE TRIGGER update_vendor_settings_updated_at

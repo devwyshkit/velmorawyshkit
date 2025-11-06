@@ -1,84 +1,32 @@
-import { createContext, useContext, useEffect, useState, useMemo, type ReactNode } from "react";
-
-type Theme = "dark" | "light" | "system";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 
 type ThemeProviderProps = {
   children: ReactNode;
-  defaultTheme?: Theme;
-  storageKey?: string;
 };
 
 type ThemeProviderState = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+  theme: "light";
 };
 
 const initialState: ThemeProviderState = {
-  theme: "system",
-  setTheme: () => null,
+  theme: "light",
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = "system",
-  storageKey = "wyshkit-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  // Use lazy initialization to avoid SSR issues
-  const [theme, setTheme] = useState<Theme>(defaultTheme);
-  
-  // Initialize from localStorage in useEffect to avoid SSR issues
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem(storageKey);
-        if (stored && ['dark', 'light', 'system'].includes(stored)) {
-          setTheme(stored as Theme);
-        }
-      } catch (error) {
-        // Handle localStorage errors silently
-        console.error('Failed to read theme from localStorage:', error);
-      }
-    }
-  }, [storageKey]);
-
+  // Force light mode only (Swiggy 2025 pattern)
   useEffect(() => {
     const root = window.document.documentElement;
-
-    root.classList.remove("light", "dark");
-
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
-
-      root.classList.add(systemTheme);
-      return;
-    }
-
-    root.classList.add(theme);
-  }, [theme]);
-
-  const value = useMemo(() => ({
-    theme,
-    setTheme: (newTheme: Theme) => {
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(storageKey, newTheme);
-        }
-        setTheme(newTheme);
-      } catch (error) {
-        console.error('Failed to save theme to localStorage:', error);
-        setTheme(newTheme);
-      }
-    },
-  }), [theme, storageKey]);
+    root.classList.remove("dark");
+    root.classList.add("light");
+  }, []);
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext.Provider {...props} value={initialState}>
       {children}
     </ThemeProviderContext.Provider>
   );

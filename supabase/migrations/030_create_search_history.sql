@@ -103,3 +103,10 @@ COMMENT ON FUNCTION get_trending_searches IS 'Get trending searches from real an
 
 
 
+
+
+
+
+
+
+

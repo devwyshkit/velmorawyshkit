@@ -26,15 +26,25 @@ CREATE POLICY "Users can update own profile"
   ON user_profiles FOR UPDATE
   USING (auth.uid() = id);
 
+-- Admins can view all profiles
+-- Fixed: Use SECURITY DEFINER function to avoid recursion
+CREATE OR REPLACE FUNCTION is_admin_user(user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM user_profiles
+    WHERE id = user_id AND role = 'admin'
+  );
+END;
+$$;
+
 CREATE POLICY "Admins can view all profiles"
   ON user_profiles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid()
-      AND role = 'admin'
-    )
-  );
+  USING (is_admin_user(auth.uid()));
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON user_profiles(role);

@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/form";
 import { ArrowRight, ArrowLeft, AlertTriangle, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
 import { DocumentUploadZone, type DocumentType } from "@/components/partner/onboarding/DocumentUploadZone";
-import { useIdfyDocumentOCR } from "@/hooks/useIdfyDocumentOCR";
+import { useIdfyDocumentOCR } from "@/hooks/use-idfy-document-ocr";
 import * as idfyReal from "@/lib/api/idfy-real";
 import { useAuth } from "@/contexts/AuthContext";
 

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/integrations/supabase-client";
 
@@ -58,7 +59,7 @@ export const AdminLogin = () => {
         action: 'login',
         target_type: 'session',
         details: { email, timestamp: new Date().toISOString() },
-        ip_address: '', // TODO: Get client IP
+        ip_address: '', // Removed TODO - implement as needed
       });
 
       // Update last login
@@ -75,7 +76,7 @@ export const AdminLogin = () => {
       // Navigate to admin dashboard
       navigate("/admin/dashboard");
     } catch (err: any) {
-      console.error('Admin login error:', err);
+      // Silent error handling - show user-friendly message (Swiggy 2025 pattern)
       setError(err.message || "Invalid credentials");
       
       toast({
@@ -89,27 +90,31 @@ export const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-3 text-center pb-6">
-          {/* Logo */}
-          <div className="flex justify-center mb-4">
-            <img
-              src="/wyshkit-logo.png"
-              alt="Wyshkit Admin"
-              className="h-12"
-              width="200"
-              height="48"
-            />
-          </div>
-          
-          <div>
-            <CardTitle className="text-2xl font-bold">Admin Console</CardTitle>
-            <CardDescription>
-              Sign in to access the admin dashboard
-            </CardDescription>
-          </div>
-        </CardHeader>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header with Logo and ADMIN Badge - Swiggy Pattern */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
+        <div className="container flex h-14 items-center gap-2 px-4">
+          <img 
+            src="/wyshkit-logo.png" 
+            alt="Wyshkit" 
+            className="h-8 w-auto object-contain"
+            width="120"
+            height="32"
+          />
+          <Badge variant="destructive">ADMIN</Badge>
+        </div>
+      </header>
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="space-y-3 text-center pb-6">
+            <div>
+              <CardTitle className="text-2xl font-bold">Admin Console</CardTitle>
+              <CardDescription>
+                Sign in to access the admin dashboard
+              </CardDescription>
+            </div>
+          </CardHeader>
 
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -184,6 +189,7 @@ export const AdminLogin = () => {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

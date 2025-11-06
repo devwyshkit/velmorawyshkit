@@ -2,16 +2,19 @@
 import { Suspense } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { DeliveryProvider } from "@/contexts/DeliveryContext";
+import { ScrollProvider } from "@/contexts/ScrollContext";
 import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { OfflineBanner } from "@/components/system/OfflineBanner";
 import { PreviewNotificationBanner } from "@/components/customer/shared/PreviewNotificationBanner";
 import { NavigationInitializer } from "@/components/system/NavigationInitializer";
+// Phase 1 Cleanup: Removed MockModeToggle - always in mock mode
 
 // Lazy Loaded Pages - Code Splitting
 import * as LazyPages from "./components/LazyRoutes";
@@ -19,12 +22,14 @@ import * as LazyPages from "./components/LazyRoutes";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="system" storageKey="wyshkit-ui-theme">
-      <AuthProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
         <CartProvider>
           <DeliveryProvider>
-            <TooltipProvider>
+            <ScrollProvider>
+              <TooltipProvider>
               <OfflineBanner />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 {/* Initialize navigation service */}
@@ -59,14 +64,42 @@ const App = () => (
                           <LazyPages.Orders />
                         </ProtectedRoute>
                       } />
-                    <Route path="/account/addresses" element={
+                    <Route path="/order/:id" element={
                         <ProtectedRoute requiredRole="customer">
-                          <LazyPages.AddressBook />
+                          <LazyPages.OrderDetails />
                         </ProtectedRoute>
                       } />
-                    <Route path="/account/addresses/add" element={
+                    <Route path="/order/:id/cancel" element={
                         <ProtectedRoute requiredRole="customer">
-                          <LazyPages.AddAddress />
+                          <LazyPages.OrderCancellation />
+                        </ProtectedRoute>
+                      } />
+                    <Route path="/order/:id/return" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.ReturnRequest />
+                        </ProtectedRoute>
+                      } />
+                    {/* Address management now via AddressBookSheet (Swiggy 2025 pattern) */}
+                    <Route path="/account/addresses" element={<Navigate to="/" replace />} />
+                    <Route path="/account/addresses/add" element={<Navigate to="/" replace />} />
+                    <Route path="/account/payment-methods" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.PaymentMethods />
+                        </ProtectedRoute>
+                      } />
+                    <Route path="/account/settings" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.Settings />
+                        </ProtectedRoute>
+                      } />
+                    <Route path="/account/reviews" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.MyReviews />
+                        </ProtectedRoute>
+                      } />
+                    <Route path="/support/chat" element={
+                        <ProtectedRoute requiredRole="customer">
+                          <LazyPages.SupportChat />
                         </ProtectedRoute>
                       } />
                     <Route path="/help" element={<LazyPages.HelpCenter />} />
@@ -105,6 +138,8 @@ const App = () => (
                         <Route path="products/create" element={<LazyPages.PartnerProductCreate />} />
                         <Route path="orders" element={<LazyPages.PartnerOrders />} />
                         <Route path="earnings" element={<LazyPages.PartnerEarnings />} />
+                        <Route path="dashboard/promotions" element={<LazyPages.PartnerPromotions />} />
+                        <Route path="dashboard/advertising" element={<LazyPages.PartnerAdvertising />} />
                         <Route path="reviews" element={<LazyPages.PartnerReviews />} />
                         <Route path="help" element={<LazyPages.PartnerHelp />} />
                         <Route path="profile" element={<LazyPages.PartnerProfile />} />
@@ -132,6 +167,14 @@ const App = () => (
                         <Route path="audit" element={<LazyPages.AdminAudit />} />
                         <Route path="commission" element={<LazyPages.CommissionManagement />} />
                         <Route path="fees" element={<LazyPages.FeeManagement />} />
+                        <Route path="promotional-offers" element={<LazyPages.AdminPromotionalOffers />} />
+
+                        <Route path="advertising" element={<LazyPages.AdminAdvertisingManagement />} />
+                        <Route path="locations" element={<LazyPages.AdminLocationManagement />} />
+                        <Route path="categories" element={<LazyPages.AdminCategoryManagement />} />
+                        <Route path="notifications" element={<LazyPages.AdminNotificationManagement />} />
+                        <Route path="preview-monitoring" element={<LazyPages.AdminPreviewMonitoring />} />
+                        <Route path="logistics" element={<LazyPages.AdminLogisticsManagement />} />
                         {/* Legacy route redirect */}
                         <Route path="partner-approvals" element={<Navigate to="/admin/partners" replace />} />
                       </Route>
@@ -142,15 +185,17 @@ const App = () => (
                     {/* Utility Routes */}
                     <Route path="/unauthorized" element={<LazyPages.Unauthorized />} />
                     <Route path="*" element={<LazyPages.NotFound />} />
-                  </Routes>
-                </Suspense>
-              </BrowserRouter>
-            </TooltipProvider>
-          </DeliveryProvider>
-        </CartProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ScrollProvider>
+      </DeliveryProvider>
+    </CartProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

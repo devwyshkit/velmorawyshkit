@@ -2,7 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { 
   Home, Package, ShoppingBag, DollarSign, User, Bell, LogOut, Menu,
-  Star, HelpCircle
+  Star, HelpCircle, Tag, Megaphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PartnerBottomNav } from "@/components/partner/PartnerBottomNav";
-import { StockAlertListener } from "@/components/StockAlertListener";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
 import { SkeletonComponents } from "@/components/ui/skeleton-screen";
+import { logger } from "@/lib/logger";
 
 /**
  * Partner Dashboard Layout
@@ -68,8 +68,10 @@ export const PartnerLayout = () => {
   const navItems = [
     { icon: Home, label: "Dashboard", path: "/partner/dashboard" },
     { icon: Package, label: "Products", path: "/partner/products" },
-    { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // TODO: Real-time count
+    { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // Removed TODO - implement as needed
     { icon: DollarSign, label: "Earnings", path: "/partner/earnings" },
+    { icon: Tag, label: "Promotions", path: "/partner/dashboard/promotions" },
+    { icon: Megaphone, label: "Advertising", path: "/partner/dashboard/advertising" },
     { icon: Star, label: "Reviews", path: "/partner/reviews" },
     { icon: HelpCircle, label: "Help", path: "/partner/help" },
     { icon: User, label: "Profile", path: "/partner/profile" },
@@ -82,20 +84,15 @@ export const PartnerLayout = () => {
       
       // 🔒 SECURITY: Clear sensitive data
       sessionStorage.clear();
-      localStorage.removeItem('wyshkit_guest_cart');
+      // Guest cart removed - authentication required (Swiggy 2025 pattern)
       localStorage.removeItem('wyshkit_location');
       
-      // 🔒 SECURITY: Prevent back button from showing cached data
-      window.history.pushState(null, '', window.location.href);
-      window.addEventListener('popstate', () => {
-        window.history.pushState(null, '', window.location.href);
-      });
-      
-      // Silent success - navigation implies success (Swiggy 2025 pattern)
+      // 🔒 SECURITY: Use React Router replace to prevent back button from showing cached data
+      // Swiggy 2025: No direct window.history manipulation - use React Router
       navigate("/partner/login", { replace: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Silent error - logout should always succeed or redirect
-      console.error('Logout error:', error);
+      logger.error('Logout error', error instanceof Error ? error : new Error(String(error)));
       navigate("/partner/login", { replace: true });
     }
   };
@@ -202,7 +199,7 @@ export const PartnerLayout = () => {
                 <img
                   src="/wyshkit-logo.png"
                   alt="Wyshkit"
-                  className="h-6 w-auto max-w-[120px] object-contain"
+                  className="h-6 w-auto object-contain"
                   width="120"
                   height="30"
                 />
@@ -261,9 +258,6 @@ export const PartnerLayout = () => {
 
       {/* Mobile Bottom Navigation - Optimized to 5 items */}
       <PartnerBottomNav />
-
-      {/* Stock Alert Listener - Feature 3 (PROMPT 10) */}
-      <StockAlertListener />
     </div>
   );
 };

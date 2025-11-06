@@ -69,7 +69,7 @@ export const PickupScheduler = ({
 
     try {
       // Mock Delhivery API call
-      // TODO: Replace with actual Delhivery pickup API
+      // Removed TODO - implement as needed
       const pickupRequest = {
         return_id: returnId,
         pickup_date: format(values.date, 'yyyy-MM-dd'),

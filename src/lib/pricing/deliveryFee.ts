@@ -2,6 +2,7 @@
 // Swiggy/Zomato-like dynamic delivery fees with order value thresholds
 
 import { DeliveryFeeConfig, DeliveryFeeCalculation } from '@/types/tiered-pricing';
+import { calculateSurgeMultiplier, applySurgeToDeliveryFee } from './surgePricing';
 
 export interface DeliveryFeeConfig {
   id: string;
@@ -50,11 +51,13 @@ export function createDefaultDeliveryFeeConfig(): DeliveryFeeConfig {
 
 /**
  * Calculate delivery fee based on order value and distance
+ * Optionally applies surge pricing multiplier
  */
 export function calculateDeliveryFee(
   orderValuePaise: number,
   distanceKm: number,
-  config: DeliveryFeeConfig
+  config: DeliveryFeeConfig,
+  surgeMultiplier?: number
 ): DeliveryFeeCalculation {
   // Find applicable order value tier
   let baseFee = 0;
@@ -81,7 +84,12 @@ export function calculateDeliveryFee(
   
   // Calculate distance fee
   const distanceFee = Math.round(baseFee * (distanceMultiplier - 1.0));
-  const totalFee = baseFee + distanceFee;
+  let totalFee = baseFee + distanceFee;
+  
+  // Apply surge pricing if multiplier provided
+  if (surgeMultiplier && surgeMultiplier > 1.0) {
+    totalFee = applySurgeToDeliveryFee(totalFee, surgeMultiplier);
+  }
   
   // Check if free delivery applies
   const isFreeDelivery = orderValuePaise >= config.freeDeliveryThresholdPaise || totalFee === 0;

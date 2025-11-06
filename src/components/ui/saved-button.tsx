@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
+import { safeJsonParse } from "@/lib/utils/safe-json";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -41,7 +42,7 @@ export const SavedButton = ({
       setIsSaved(newState);
       
       // Update localStorage
-      const savedItems = JSON.parse(localStorage.getItem('wyshkit-favorites') || '[]');
+      const savedItems = safeJsonParse(localStorage.getItem('wyshkit-favorites'), [] as Array<{ id: string; [key: string]: unknown }>);
       if (newState) {
         savedItems.push({
           productId,

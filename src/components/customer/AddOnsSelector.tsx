@@ -111,9 +111,9 @@ export function AddOnsSelector({
       {hasBulkAddOns && hasUnlockedBulkAddOns && (
         <div className="space-y-3">
           {/* Unlock Success Message */}
-          <Alert className="border-green-500 bg-green-50 dark:bg-green-950/20">
-            <Unlock className="h-4 w-4 text-green-600 dark:text-green-500" />
-            <AlertDescription className="text-sm font-medium text-green-600 dark:text-green-500">
+          <Alert className="border-green-500 bg-green-50">
+            <Unlock className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-sm font-medium text-green-600">
               ✅ Corporate Customization Now Available!
             </AlertDescription>
           </Alert>
@@ -218,7 +218,7 @@ function AddOnItem({
   
   return (
     <div
-      className={`border rounded-lg p-4 transition-all ${isNewlyUnlocked ? 'border-green-500 bg-green-50 dark:bg-green-950/10' : ''} ${isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'}`}
+      className={`border rounded-lg p-4 ${isNewlyUnlocked ? 'border-green-500 bg-green-50' : ''} ${isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'}`}
     >
       <div className="flex items-start gap-3">
         <Checkbox
@@ -253,12 +253,6 @@ function AddOnItem({
             
             {/* Additional Info */}
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              {addon.requiresPreview && (
-                <span className="flex items-center gap-1">
-                  <Eye className="h-3 w-3" />
-                  Preview before production
-                </span>
-              )}
               {addon.requiresProof && (
                 <span className="flex items-center gap-1">
                   <Upload className="h-3 w-3" />

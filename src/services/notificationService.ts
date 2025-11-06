@@ -48,7 +48,7 @@ class NotificationService {
       this.permission = permission;
       return permission === 'granted';
     } catch (error) {
-      console.error('Failed to request notification permission:', error);
+      // Silent error handling (Swiggy 2025 pattern)
       return false;
     }
   }
@@ -88,7 +88,7 @@ class NotificationService {
         notification.close();
       };
     } catch (error) {
-      console.error('Failed to send notification:', error);
+      // Silent error handling (Swiggy 2025 pattern)
     }
   }
 

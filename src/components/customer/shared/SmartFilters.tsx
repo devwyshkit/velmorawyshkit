@@ -83,7 +83,7 @@ export const SmartFilters = ({
         className,
       )}
     >
-      <div className="max-w-screen-xl mx-auto px-4 py-3">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3">
         <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
           {/* Sort Dropdown - Desktop */}
           <div className="hidden md:flex items-center gap-2 flex-shrink-0">
@@ -145,11 +145,18 @@ export const SmartFilters = ({
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="h-[80vh]">
-              <SheetHeader>
-                <SheetTitle>Filters & Sort</SheetTitle>
-              </SheetHeader>
-              <div className="space-y-6 mt-6">
+            <SheetContent side="bottom" className="max-h-[75vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 flex flex-col overflow-hidden">
+              {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+              <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
+                <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+              </div>
+              
+              {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+              <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-6">
+                <SheetHeader>
+                  <SheetTitle>Filters & Sort</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-6 mt-6">
                 {/* Sort Section */}
                 <div>
                   <h3 className="text-sm font-semibold mb-3">Sort By</h3>
@@ -210,6 +217,7 @@ export const SmartFilters = ({
                       );
                     })}
                   </div>
+                </div>
                 </div>
               </div>
             </SheetContent>

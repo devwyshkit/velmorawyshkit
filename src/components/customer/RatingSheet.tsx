@@ -91,7 +91,7 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
       // Swiggy 2025: Silent operation - closing sheet confirms successful submission
       onClose();
     } catch (error) {
-      console.error('Review submission error:', error);
+      // Silent error handling - show inline error in rating UI (Swiggy 2025 pattern)
       setSubmitError("Failed to submit rating. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -159,14 +159,16 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
     <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
       <SheetContent
         side="bottom"
-        className="h-[90vh] rounded-t-xl p-0 overflow-y-auto sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+        className="max-h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
       >
-        {/* Drag Handle - Material Design 3 */}
-        <div className="flex justify-center py-2">
+        {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+        <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
 
-        <div className="px-4 pb-4 space-y-6">
+        {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-4">
+          <div className="space-y-6 pb-4">
           {/* Header */}
           <div className="text-center space-y-2">
             <h2 className="text-xl font-bold">Rate Your Experience</h2>
@@ -346,6 +348,7 @@ export const RatingSheet = ({ isOpen, onClose, orderId, orderItems }: RatingShee
             >
               {isSubmitting ? 'Submitting...' : 'Submit Rating'}
             </Button>
+          </div>
           </div>
         </div>
       </SheetContent>

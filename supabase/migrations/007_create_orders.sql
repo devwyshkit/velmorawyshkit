@@ -68,13 +68,7 @@ CREATE POLICY "Store owners can view store orders"
 
 CREATE POLICY "Admins can view all orders"
   ON orders FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid()
-      AND role = 'admin'
-    )
-  );
+  USING (is_admin_user(auth.uid()));
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);

@@ -78,13 +78,7 @@ CREATE POLICY "Store owners can update own store"
 
 CREATE POLICY "Admins can manage all stores"
   ON stores FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid()
-      AND role = 'admin'
-    )
-  );
+  USING (is_admin_user(auth.uid()));
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_stores_owner_id ON stores(owner_id);

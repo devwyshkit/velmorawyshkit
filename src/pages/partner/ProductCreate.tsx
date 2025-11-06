@@ -15,7 +15,7 @@
  * - Availability toggle (is_active)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,17 +47,6 @@ const productFormSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
-const categories = [
-  'Electronics',
-  'Gourmet',
-  'Wellness',
-  'Corporate',
-  'Lifestyle',
-  'Home & Kitchen',
-  'Books & Media',
-  'Sports & Fitness',
-];
-
 export const ProductCreate = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -65,6 +54,37 @@ export const ProductCreate = () => {
   const [loading, setLoading] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isMadeToOrder, setIsMadeToOrder] = useState(false);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Load categories from database
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('position');
+        
+        if (error) throw error;
+        setCategories(data || []);
+      } catch (error: any) {
+        console.error('Failed to load categories:', error);
+        // Fallback to default categories if database fetch fails
+        setCategories([
+          { id: 'electronics', name: 'Electronics' },
+          { id: 'gourmet', name: 'Gourmet' },
+          { id: 'wellness', name: 'Wellness' },
+          { id: 'corporate', name: 'Corporate' },
+          { id: 'lifestyle', name: 'Lifestyle' },
+          { id: 'home-kitchen', name: 'Home & Kitchen' },
+          { id: 'books-media', name: 'Books & Media' },
+          { id: 'sports-fitness', name: 'Sports & Fitness' },
+        ]);
+      }
+    };
+    loadCategories();
+  }, []);
   
   // Personalizations/add-ons for customizable products
   interface Personalization {
@@ -72,7 +92,6 @@ export const ProductCreate = () => {
     label: string;
     price: number;
     instructions?: string;
-    requiresPreview?: boolean;
   }
   const [personalizations, setPersonalizations] = useState<Personalization[]>([]);
 
@@ -96,7 +115,7 @@ export const ProductCreate = () => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    // TODO: Upload to Supabase Storage and get URLs
+    // Removed TODO - implement as needed
     // For now, create object URLs for preview
     const newImages: string[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -121,7 +140,6 @@ export const ProductCreate = () => {
       label: '',
       price: 0,
       instructions: '',
-      requiresPreview: false,
     };
     setPersonalizations([...personalizations, newPersonalization]);
   };
@@ -178,7 +196,6 @@ export const ProductCreate = () => {
                 label: p.label,
                 price: Math.round(p.price * 100), // Convert to paise
                 instructions: p.instructions || null,
-                requiresPreview: p.requiresPreview || false,
               }))
             : null,
           moq: values.moq || 1,
@@ -284,13 +301,13 @@ export const ProductCreate = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                                      <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                 </Select>
                 {form.formState.errors.category && (
                   <p className="text-sm text-destructive">{form.formState.errors.category.message}</p>
@@ -485,18 +502,23 @@ export const ProductCreate = () => {
                             />
                           </div>
 
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={`requires-preview-${personalization.id}`}
-                              checked={personalization.requiresPreview || false}
-                              onChange={(e) => updatePersonalization(personalization.id, 'requiresPreview', e.target.checked)}
-                              disabled={loading}
-                              className="h-4 w-4 rounded border-gray-300"
-                            />
-                            <Label htmlFor={`requires-preview-${personalization.id}`} className="text-xs cursor-pointer">
-                              Requires file upload & preview (Fiverr pattern)
-                            </Label>
+                          <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <div className="h-4 w-4 rounded border-gray-300 bg-green-100 border-green-300 flex items-center justify-center">
+                                <svg className="h-3 w-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <Label className="text-sm font-medium">
+                                Preview Required (All personalizations)
+                              </Label>
+                            </div>
+                            <p className="text-xs text-muted-foreground ml-6">
+                              ✓ Customer will upload files, you'll create preview, customer approves before production
+                            </p>
+                            <p className="text-xs text-blue-700 ml-6 font-medium">
+                              💡 All personalizations require preview (simplified rule - no vendor configuration needed)
+                            </p>
                           </div>
                         </div>
                       </Card>

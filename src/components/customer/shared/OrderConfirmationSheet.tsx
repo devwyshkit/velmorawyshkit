@@ -27,6 +27,7 @@ export const OrderConfirmationSheet = ({
   const navigate = useNavigate();
 
   const handleViewOrder = () => {
+    console.log('Navigating to track page:', { orderId, route: RouteMap.track(orderId) });
     onClose();
     navigate(RouteMap.track(orderId));
   };
@@ -37,6 +38,7 @@ export const OrderConfirmationSheet = ({
   };
 
   const handleUploadFiles = () => {
+    console.log('Navigating to track page for file upload:', { orderId, route: RouteMap.track(orderId) });
     onClose();
     if (onUploadFiles) {
       onUploadFiles();
@@ -49,19 +51,26 @@ export const OrderConfirmationSheet = ({
     <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
       <SheetContent 
         side="bottom" 
-        className="h-auto rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+        className="max-h-[75vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 flex flex-col overflow-hidden"
       >
+        {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+        <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
+          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+        </div>
+
+        {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-6">
         <SheetHeader className="sr-only">
           <SheetTitle>Order Confirmation</SheetTitle>
           <SheetDescription>Your order has been placed successfully</SheetDescription>
         </SheetHeader>
 
-        <div className="p-6 space-y-6">
+        <div className="space-y-6 pb-4">
           {/* Success Icon */}
           <div className="flex justify-center">
             <div className="relative">
               <CheckCircle2 className="h-16 w-16 text-green-500" />
-              <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" />
+              <div className="absolute inset-0 bg-green-500/20 rounded-full" />
             </div>
           </div>
 
@@ -214,18 +223,18 @@ export const OrderConfirmationSheet = ({
 
           {/* File Upload CTA (Only if needsFileUpload) */}
           {needsFileUpload && (
-            <Card className="p-4 bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+            <Card className="p-4 bg-blue-50 border-blue-200">
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
                   <Upload className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 space-y-1">
-                    <p className="font-medium text-blue-900 dark:text-blue-100">
+                    <p className="font-medium text-blue-900">
                       Upload Your Design Files
                     </p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <p className="text-sm text-blue-700">
                       Your order needs design files for customization. Upload them on the tracking page to start the preview process.
                     </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    <p className="text-xs text-blue-600 mt-1">
                       💡 2 free changes included
                     </p>
                   </div>
@@ -252,6 +261,7 @@ export const OrderConfirmationSheet = ({
               Continue Shopping
             </Button>
           </div>
+        </div>
         </div>
       </SheetContent>
     </Sheet>

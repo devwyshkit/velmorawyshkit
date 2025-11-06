@@ -36,7 +36,7 @@ export const EmailVerificationBanner = ({ email }: EmailVerificationBannerProps)
 
   return (
     <div className="relative bg-warning/10 border-b border-warning/20">
-      <div className="flex items-center justify-between gap-3 px-4 py-3 max-w-screen-xl mx-auto">
+      <div className="flex items-center justify-between gap-3 px-4 md:px-6 lg:px-8 py-3 max-w-7xl mx-auto">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Mail className="h-4 w-4 text-warning flex-shrink-0" />
           <div className="flex-1 min-w-0">

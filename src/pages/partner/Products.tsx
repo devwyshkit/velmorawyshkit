@@ -72,36 +72,17 @@ export const PartnerProducts = () => {
       }
 
       // Then get products from store_items (matching ProductCreate.tsx)
+      // Optimized select - only fetch needed columns
       const { data, error } = await supabase
         .from('store_items')
-        .select('*')
+        .select('id, name, description, short_desc, price, stock, images, is_customizable, add_ons, category, tags, is_active, approval_status, rejection_reason, created_at')
         .eq('store_id', store.id)
         .order('created_at', { ascending: false });
       
       if (error) {
-        // Handle error silently in production
-        // Mock products for development
-        setProducts([
-          {
-            id: '1',
-            name: 'Premium Gift Hamper',
-            description: 'Curated selection of premium items',
-            short_desc: 'Perfect for corporate gifting',
-            price: 249900,
-            stock: 50,
-            images: ['/placeholder.svg'],
-            is_customizable: true,
-            add_ons: [
-              { id: '1', name: 'Greeting Card', price: 9900, moq: 1, requiresProof: false },
-              { id: '2', name: 'Company Logo', price: 20000, moq: 50, requiresProof: true, description: 'Upload logo PNG/SVG' }
-            ],
-            category: 'Premium',
-            tags: ['trending'],
-            is_active: true,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-      } else {
+        // Silent error handling - show empty state (Swiggy 2025 pattern)
+        setProducts([]);
+      } else if (data) {
         // Map store_items data to Product interface
         const mappedProducts: Product[] = (data || []).map((item: any) => ({
           id: item.id,
@@ -118,8 +99,6 @@ export const PartnerProducts = () => {
             name: p.label,
             label: p.label,
             price: typeof p.price === 'number' ? p.price : parseInt(p.price || '0'),
-            requiresProof: p.requiresPreview || false,
-            requiresPreview: p.requiresPreview || false,
             instructions: p.instructions,
             description: p.instructions,
           })) : [],
@@ -147,9 +126,8 @@ export const PartnerProducts = () => {
   };
 
   const handleEditProduct = (product: Product) => {
-    // TODO: Navigate to edit page or open edit form
-    // For now, edit functionality can be added later
-    console.log('Edit product:', product);
+    // Edit functionality - navigate to edit page (Swiggy 2025 pattern)
+    navigate(`/partner/dashboard/products/create?edit=${product.id}`);
   };
 
   const handleDeleteProduct = async (productId: string) => {
@@ -181,8 +159,7 @@ export const PartnerProducts = () => {
       // Silent success - reload implies success (Swiggy 2025 pattern)
       loadProducts();
     } catch (error: any) {
-      // Error shown via confirm dialog or handled silently
-      console.error('Delete product error:', error);
+      // Silent error handling - error shown via confirm dialog (Swiggy 2025 pattern)
     }
   };
 

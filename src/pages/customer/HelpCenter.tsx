@@ -13,10 +13,10 @@ import { MessageCircle, Phone, Mail } from "lucide-react";
 
 export const HelpCenter = () => {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-[112px]">
       <CustomerMobileHeader title="Help & Support" showBackButton />
       
-      <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-6">
         <Input 
           placeholder="🔍 Search your issue..." 
           className="w-full"

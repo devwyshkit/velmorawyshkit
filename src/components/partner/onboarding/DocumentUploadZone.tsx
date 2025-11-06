@@ -1,232 +1,229 @@
-/**
- * Document Upload Zone Component (Swiggy 2025 Pattern)
- * Large, prominent upload area for document-first onboarding
- * Used in Step2KYC for PAN, GST, Cancelled Cheque, FSSAI uploads
- */
+import { useState, useRef } from "react";
+import { Upload, FileText, CheckCircle2, XCircle, Loader2, Image as ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-import { useState } from "react"
-import { Upload, FileText, X, CheckCircle2, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-
-export type DocumentType = 'pan' | 'gst' | 'cancelled_cheque' | 'fssai' | 'msme'
+export type DocumentType = "pan" | "gst" | "fssai" | "cancelled_cheque";
 
 interface DocumentUploadZoneProps {
-  documentType: DocumentType
-  label: string
-  description?: string
-  acceptedFormats?: string[]
-  maxSizeMB?: number
-  onUploadComplete: (file: File, fileUrl: string) => void
-  extractedData?: any
-  isProcessing?: boolean
-  error?: string | null
-  className?: string
+  documentType: DocumentType;
+  label: string;
+  description?: string;
+  onUploadComplete: (file: File, fileUrl: string) => void;
+  extractedData?: Record<string, any>;
+  isProcessing?: boolean;
+  error?: string | null;
+  disabled?: boolean;
 }
 
 export const DocumentUploadZone = ({
   documentType,
   label,
   description,
-  acceptedFormats = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'],
-  maxSizeMB = 5,
   onUploadComplete,
-  onExtractionComplete,
   extractedData,
   isProcessing = false,
   error,
-  className,
+  disabled = false,
 }: DocumentUploadZoneProps) => {
-  const [isDragging, setIsDragging] = useState(false)
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [fileUrl, setFileUrl] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (file: File) => {
-    // Validate file
-    if (!acceptedFormats.includes(file.type)) {
-      alert(`Please upload ${acceptedFormats.map(f => f.split('/')[1]).join(', ')} files only`)
-      return
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+    if (!validTypes.includes(file.type)) {
+      return;
     }
 
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      alert(`File size must be less than ${maxSizeMB}MB`)
-      return
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return;
     }
 
-    setUploadedFile(file)
+    setUploadedFile(file);
 
-    // Upload to Supabase Storage
+    // Create preview for images
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Upload to Supabase storage
     try {
-      // Generate preview URL
-      const previewUrl = URL.createObjectURL(file)
-      setFileUrl(previewUrl)
+      const { supabase } = await import("@/lib/integrations/supabase-client");
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${documentType}_${Date.now()}.${fileExt}`;
+      const filePath = `documents/${fileName}`;
 
-      // In production, upload to Supabase Storage here
-      // const { data, error } = await supabase.storage
-      //   .from('partner-documents')
-      //   .upload(`${documentType}/${Date.now()}_${file.name}`, file)
+      const { data, error: uploadError } = await supabase.storage
+        .from("partner-documents")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
 
-      // For now, use local URL and call OCR
-      const fileUrl = previewUrl
-      onUploadComplete(file, fileUrl)
+      if (uploadError) {
+        throw uploadError;
+      }
 
-      // Trigger OCR extraction (handled by parent component)
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("partner-documents")
+        .getPublicUrl(filePath);
+
+      onUploadComplete(file, urlData.publicUrl);
     } catch (err) {
-      console.error('File upload error:', err)
+      // Silent error handling - let parent handle it
+      console.error("Upload error:", err);
     }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-
-    const file = e.dataTransfer.files[0]
-    if (file) {
-      handleFileSelect(file)
-    }
-  }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
+    e.preventDefault();
+    if (!disabled) {
+      setIsDragging(true);
+    }
+  };
 
-  const handleDragLeave = () => {
-    setIsDragging(false)
-  }
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (disabled) return;
+
+    const file = e.dataTransfer.files[0];
     if (file) {
-      handleFileSelect(file)
+      handleFileSelect(file);
     }
-  }
+  };
 
-  const handleRemove = () => {
-    setUploadedFile(null)
-    setFileUrl(null)
-    if (fileUrl) {
-      URL.revokeObjectURL(fileUrl)
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
     }
-  }
+  };
 
-  const hasFile = uploadedFile !== null
-  const hasData = extractedData && Object.keys(extractedData).length > 0
+  const handleClick = () => {
+    if (!disabled && !isProcessing) {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const hasFile = uploadedFile !== null || previewUrl !== null;
+  const hasError = error !== null && error !== undefined;
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div>
-        <label className="text-sm font-medium">{label}</label>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        )}
-      </div>
-
-      {/* Upload Area */}
+    <div className="space-y-2">
       <div
-        onDrop={handleDrop}
+        className={cn(
+          "border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer",
+          {
+            "border-primary bg-primary/5": isDragging && !disabled,
+            "border-muted-foreground/25": !isDragging && !hasFile && !hasError,
+            "border-green-500/50 bg-green-500/5": hasFile && !hasError,
+            "border-destructive/50 bg-destructive/5": hasError,
+            "opacity-50 cursor-not-allowed": disabled || isProcessing,
+          }
+        )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={cn(
-          "border-2 border-dashed rounded-lg p-6 text-center",
-          isDragging
-            ? "border-primary bg-primary/5"
-            : hasFile
-            ? "border-green-500 bg-green-50"
-            : "border-muted-foreground/25 hover:border-muted-foreground/50",
-          error && "border-destructive"
-        )}
+        onDrop={handleDrop}
+        onClick={handleClick}
       >
-        {!hasFile ? (
-          <>
-            <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm font-medium mb-1">Drop document here or click to browse</p>
-            <p className="text-xs text-muted-foreground mb-4">
-              {acceptedFormats.map(f => f.split('/')[1].toUpperCase()).join(', ')} up to {maxSizeMB}MB
-            </p>
-            <input
-              type="file"
-              accept={acceptedFormats.join(',')}
-              onChange={handleFileInput}
-              className="hidden"
-              id={`upload-${documentType}`}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => document.getElementById(`upload-${documentType}`)?.click()}
-            >
-              Select File
-            </Button>
-          </>
-        ) : (
-          <div className="space-y-3">
-            {/* File Info */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1">
-                <FileText className="h-8 w-8 text-primary" />
-                <div className="text-left flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{uploadedFile.name}</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+          className="hidden"
+          onChange={handleInputChange}
+          disabled={disabled || isProcessing}
+        />
+
+        <div className="flex flex-col items-center justify-center space-y-3 text-center">
+          {isProcessing ? (
+            <>
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Processing document...</p>
+                <p className="text-xs text-muted-foreground">Extracting data from document</p>
+              </div>
+            </>
+          ) : hasFile && !hasError ? (
+            <>
+              <CheckCircle2 className="h-8 w-8 text-green-500" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                  {uploadedFile?.name || "Document uploaded"}
+                </p>
+                {extractedData && (
                   <p className="text-xs text-muted-foreground">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                    Data extracted successfully
                   </p>
-                </div>
+                )}
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleRemove}
-                className="flex-shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Processing State */}
-            {isProcessing && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <span>Extracting data from document...</span>
+              {previewUrl && (
+                <img
+                  src={previewUrl}
+                  alt="Document preview"
+                  className="max-h-32 rounded border"
+                />
+              )}
+            </>
+          ) : hasError ? (
+            <>
+              <XCircle className="h-8 w-8 text-destructive" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-destructive">Upload failed</p>
+                <p className="text-xs text-muted-foreground">{error}</p>
               </div>
-            )}
-
-            {/* Extracted Data Badge */}
-            {hasData && !isProcessing && (
-              <div className="flex items-center justify-center gap-2 text-sm text-green-600">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Data extracted successfully</span>
+            </>
+          ) : (
+            <>
+              <div className="rounded-full bg-primary/10 p-3">
+                <Upload className="h-6 w-6 text-primary" />
               </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <div className="flex items-center justify-center gap-2 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
-                <span>{error}</span>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">{label}</p>
+                {description && (
+                  <p className="text-xs text-muted-foreground">{description}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Click to upload or drag and drop
+                </p>
               </div>
-            )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Extracted Data Preview (if available) */}
-      {hasData && extractedData && (
-        <div className="p-3 bg-muted rounded-lg text-xs space-y-1">
-          <p className="font-medium mb-2">Extracted from document:</p>
-          {Object.entries(extractedData).map(([key, value]) => (
-            value && (
-              <div key={key} className="flex justify-between">
-                <span className="text-muted-foreground capitalize">
-                  {key.replace(/_/g, ' ')}:
-                </span>
-                <span className="font-medium">{String(value)}</span>
-              </div>
-            )
-          ))}
-        </div>
+      {extractedData && Object.keys(extractedData).length > 0 && (
+        <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertDescription className="text-xs text-green-800 dark:text-green-200">
+            Data extracted from document. Please verify the information below.
+          </AlertDescription>
+        </Alert>
       )}
     </div>
-  )
-}
+  );
+};
+
+
+
 

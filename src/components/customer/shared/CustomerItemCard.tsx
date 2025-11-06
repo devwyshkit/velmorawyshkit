@@ -11,7 +11,10 @@ import {
   Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
+import { useCart } from "@/contexts/CartContext";
+// Phase 1 Cleanup: Use mock cart instead of Supabase
+import { getCartItems } from "@/lib/mock-cart";
 
 interface CustomerItemCardProps {
   id: string;
@@ -36,7 +39,7 @@ interface CustomerItemCardProps {
   className?: string;
 }
 
-export const CustomerItemCard = ({
+export const CustomerItemCardComponent = ({
   id,
   name,
   image,
@@ -59,6 +62,34 @@ export const CustomerItemCard = ({
   className,
 }: CustomerItemCardProps) => {
   const [quantity, setQuantity] = useState(0);
+  const { cartCount } = useCart();
+
+  // Memoize cart item lookup to prevent flickering (Swiggy 2025 pattern)
+  // Only recalculate when cartCount, id, or store_id changes
+  const cartItem = useMemo(() => {
+    if (!store_id || !id) return null;
+    
+      try {
+        // Phase 1 Cleanup: Always use mock cart - no conditionals
+        const cartItems = getCartItems();
+      // Find cart item by matching product item_id and store_id (exact match required)
+      return cartItems.find(
+        (item) => item.item_id === id && item.store_id === store_id
+      ) || null;
+    } catch (error) {
+      // Silent error handling (Swiggy 2025 pattern)
+      return null;
+    }
+  }, [cartCount, id, store_id]);
+
+  // Sync quantity with cart (Swiggy 2025 pattern - real-time sync)
+  useEffect(() => {
+    if (cartItem && cartItem.quantity > 0) {
+      setQuantity(cartItem.quantity);
+    } else {
+      setQuantity(0);
+    }
+  }, [cartItem]);
 
   // Grid variant (global e-commerce standard) - Swiggy 2025 pattern
   return (
@@ -74,9 +105,11 @@ export const CustomerItemCard = ({
         }
       }}
     >
-      <CardContent className="p-2 md:p-2.5">
+      {/* Swiggy 2025: Compact mobile padding - 8px mobile, 16px desktop */}
+      <CardContent className="p-2 md:p-4">
         {/* Image - 1:1 square (Amazon/Flipkart standard for vendor image reuse) */}
-        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2 md:mb-2.5">
+        {/* Swiggy 2025: Consistent 8px margin on all screens */}
+        <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted mb-2">
           <img
             src={image}
             alt={name}
@@ -126,7 +159,7 @@ export const CustomerItemCard = ({
                 e.stopPropagation();
                 onFavouriteToggle(id, !isFavourited);
               }}
-              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 backdrop-blur-sm border border-border shadow-sm hover:bg-white transition-all duration-200 flex items-center justify-center z-10"
+              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 backdrop-blur-sm border border-border shadow-sm hover:bg-white flex items-center justify-center z-10"
               aria-label={
                 isFavourited ? "Remove from favourites" : "Add to favourites"
               }
@@ -159,19 +192,12 @@ export const CustomerItemCard = ({
               <Gift className="h-3 w-3 text-primary" />
             </Badge>
           )}
-          {/* MOQ Badge - Bottom Left */}
-          {moq && moq > 1 && (
-            <Badge
-              variant="secondary"
-              className="absolute bottom-2 left-2 text-xs px-1.5 py-0.5"
-            >
-              Min {moq}
-            </Badge>
-          )}
+          {/* MOQ Badge removed - no MOQ requirement (Swiggy 2025 pattern) */}
         </div>
 
         {/* Content */}
-        <div className="space-y-1 md:space-y-1.5">
+        {/* Swiggy 2025: Consistent 8px spacing on all screens */}
+        <div className="space-y-2">
           {/* Name - 16px bold per spec */}
           <h3 className="text-base font-bold line-clamp-1 leading-tight">
             {name}
@@ -192,8 +218,8 @@ export const CustomerItemCard = ({
                 ₹{price.toLocaleString("en-IN")}
               </p>
             )}
-            {/* Rating - 12px with count per spec */}
-            {rating && (
+            {/* Rating - 12px with count per spec (Swiggy 2025: only show if count > 0) */}
+            {rating && ratingCount && ratingCount > 0 && (
               <div
                 className={cn(
                   "flex items-center gap-1 text-xs text-muted-foreground",
@@ -202,17 +228,18 @@ export const CustomerItemCard = ({
               >
                 <span>★</span>
                 <span>{rating}</span>
-                {ratingCount && <span>({ratingCount})</span>}
+                <span>({ratingCount})</span>
               </div>
             )}
           </div>
 
           {/* ADD Button / Quantity Stepper - Swiggy 2025 pattern */}
-          <div className="mt-2 flex justify-end">
+          {/* Swiggy 2025: Tighter top margin - 6px for compact layout, button padding - 12px horizontal */}
+          <div className="mt-1.5 flex justify-end">
             {quantity === 0 ? (
               <Button
                 size="sm"
-                className="h-8 px-4 text-sm"
+                className="h-8 px-3 text-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   // If customizable: open ProductSheet (via onClick)
@@ -244,6 +271,7 @@ export const CustomerItemCard = ({
                       setQuantity(newQuantity);
                       // Update cart if not customizable
                       if (!isCustomizable && store_id && onAddToCart) {
+                        // Call with newQuantity (parent handler handles quantity 0 removal)
                         onAddToCart(id, newQuantity, store_id);
                       }
                     }
@@ -278,3 +306,8 @@ export const CustomerItemCard = ({
     </Card>
   );
 };
+
+// Swiggy 2025: Memoize to prevent unnecessary re-renders when parent re-renders
+// Only re-render if props actually change
+export const CustomerItemCard = memo(CustomerItemCardComponent);
+export default CustomerItemCard;

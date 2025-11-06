@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Info, Star, MapPin, Clock, Store as StoreIcon, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,22 +13,43 @@ import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNa
 import { StickyCartBar } from "@/components/customer/shared/StickyCartBar";
 import { ProductSheet } from "@/components/customer/shared/ProductSheet";
 import { CustomerItemCard } from "@/components/customer/shared/CustomerItemCard";
+// Swiggy 2025: Removed AddToCartNotification - using ONLY StickyCartBar for consistency
+import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
+import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
 import { RouteMap } from "@/routes";
 import { supabase } from "@/lib/integrations/supabase-client";
-import { fetchStoreById, fetchItemsByStore } from "@/lib/integrations/supabase-data";
-import { useToast } from "@/hooks/use-toast";
+import { fetchStoreById, fetchItemsByStore, removeCartItemByProductId, CartItemData } from "@/lib/integrations/supabase-data";
+import { isAuthenticated } from "@/lib/integrations/supabase-client";
+// Swiggy 2025: Removed toast - using ONLY StickyCartBar for feedback
 import { OptimizedImage } from "@/components/ui/skeleton-screen";
 import { EmptyStates } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Store, Item } from "@/lib/integrations/supabase-data";
 
 export const PartnerCatalog = () => {
   const { storeId } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { refreshCartCount, currentStoreId, clearCart, addToCart, cartCount, cartTotal } = useCart();
   const [store, setStore] = useState<Store | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  
+  // Swiggy 2025: Removed notification state - using ONLY StickyCartBar for consistency
+  
+  // Login prompt and cart replacement modals
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showCartReplacementModal, setShowCartReplacementModal] = useState(false);
+  const [currentStoreName, setCurrentStoreName] = useState<string>("");
+  const [pendingAddToCart, setPendingAddToCart] = useState<{
+    itemId: string;
+    quantity: number;
+    storeId: string;
+    itemName: string;
+  } | null>(null);
   
   // Search & Category filters (Swiggy 2025 pattern)
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,33 +74,63 @@ export const PartnerCatalog = () => {
 
       setLoading(true);
       try {
-        // Try to fetch from Supabase first
-        const storeData = await fetchStoreById(storeId);
-        
-        if (storeData) {
-          setStore(storeData);
-          
-          // Fetch items from this store
-          const { data: itemsData, error } = await supabase
+        // 2025 Pattern: Parallelize store and items queries for performance
+        const [storeResult, itemsResult] = await Promise.all([
+          fetchStoreById(storeId),
+          supabase
             .from('store_items')
-            .select('*')
+            .select('id, name, description, price, images, is_customizable, customization_options, category, tags, is_active, created_at, image_url, short_desc')
             .eq('store_id', storeId)
             .eq('is_active', true)
-            .order('created_at', { ascending: false });
-
-          if (!error && itemsData && itemsData.length > 0) {
-            setItems(itemsData);
-          } else {
-            // No items found - show empty state
-            setItems([]);
-          }
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false }),
+        ]);
+        
+        // Process store
+        if (storeResult) {
+          setStore(storeResult);
         } else {
-          // Store not found - show empty state
-          setItems([]);
           setStore(null);
         }
+        
+        // Process items - map database response to Item interface (Swiggy 2025 pattern)
+        const { data: itemsData, error } = itemsResult;
+        if (!error && itemsData && itemsData.length > 0) {
+          // Map database fields to Item interface (camelCase conversion)
+          const mappedItems: Item[] = itemsData.map((dbItem: {
+            id: string;
+            name: string;
+            description?: string;
+            image_url?: string;
+            images?: string[];
+            price: number;
+            short_desc?: string;
+            is_customizable?: boolean;
+            customization_options?: any[];
+            category?: string;
+            tags?: string[];
+          }) => ({
+            id: dbItem.id,
+            name: dbItem.name,
+            description: dbItem.description || '',
+            image: dbItem.image_url || dbItem.images?.[0] || '/placeholder.svg',
+            images: dbItem.images || [],
+            price: dbItem.price || 0,
+            rating: 0, // Default - can be fetched separately if needed
+            store_id: storeId, // Use storeId from params
+            shortDesc: dbItem.short_desc || '',
+            isCustomizable: dbItem.is_customizable || false, // Convert snake_case to camelCase
+            personalizations: dbItem.customization_options || [],
+            category: dbItem.category || '',
+            tags: dbItem.tags || [],
+          }));
+          setItems(mappedItems);
+        } else {
+          // No items found - show empty state
+          setItems([]);
+        }
       } catch (error) {
-        console.error('Error loading store catalog:', error);
+        // Silent error handling - show empty state (Swiggy 2025 pattern)
         // Swiggy 2025: Silent error - show empty state instead of toast
         setItems([]);
         setStore(null);
@@ -94,21 +146,124 @@ export const PartnerCatalog = () => {
     setSelectedItemId(itemId);
   };
 
+  // Quick add to cart handler (Swiggy 2025 pattern - for non-customizable items)
+  const handleQuickAddToCart = async (itemId: string, quantity: number, storeId: string) => {
+    // Check authentication
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    // Find item details
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+
+    // Check store mismatch
+    if (currentStoreId && currentStoreId !== storeId) {
+      // Fetch store names for modal
+      try {
+        const currentStore = await fetchStoreById(currentStoreId);
+        setCurrentStoreName(currentStore?.name || "Current Store");
+        setPendingAddToCart({ itemId, quantity, storeId, itemName: item.name });
+        setShowCartReplacementModal(true);
+        return;
+      } catch (error) {
+        // Silent error - proceed with add
+      }
+    }
+
+    // Handle quantity 0 (remove from cart)
+    if (quantity === 0) {
+      try {
+        const success = await removeCartItemByProductId(itemId, storeId);
+        if (success) {
+          await refreshCartCount();
+        }
+      } catch (error) {
+        // Silent error handling
+      }
+      return;
+    }
+
+    // Proceed with add to cart (using CartContext handler - DRY principle)
+    try {
+      const cartItem: CartItemData = {
+        id: itemId,
+        item_id: itemId, // Set item_id for product matching (CustomerItemCard looks for this)
+        name: item.name,
+        price: item.price,
+        quantity,
+        store_id: storeId,
+        addOns: [],
+        isCustomizable: false,
+        personalizations: [],
+      };
+
+      const success = await addToCart(cartItem);
+
+      // Swiggy 2025: No separate notification - StickyCartBar will update automatically
+      // Cart count change triggers banner update
+    } catch (error) {
+      // Silent error handling - notification will show on success only
+    }
+  };
+
+  // Handle cart replacement confirmation
+  const handleReplaceCart = async () => {
+    if (!pendingAddToCart) return;
+    
+    // Clear existing cart
+    await clearCart();
+    setShowCartReplacementModal(false);
+
+    // Proceed with adding new item
+    const item = items.find(i => i.id === pendingAddToCart.itemId);
+    if (!item) return;
+
+    try {
+      const cartItem: CartItemData = {
+        id: pendingAddToCart.itemId,
+        name: item.name,
+        price: item.price,
+        quantity: pendingAddToCart.quantity,
+        store_id: pendingAddToCart.storeId,
+        addOns: [],
+        isCustomizable: false,
+        personalizations: [],
+      };
+
+      // Swiggy 2025: No separate notification - StickyCartBar will update automatically
+      await addToCart(cartItem);
+    } catch (error) {
+      // Silent error handling
+    }
+    
+    setPendingAddToCart(null);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <CustomerMobileHeader showBackButton={true} title={store?.name || "Loading..."} />
-        <div className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6 space-y-6">
+      <>
+        <Helmet>
+          <title>Store | Wyshkit</title>
+        </Helmet>
+        <div className="min-h-screen bg-background pb-[112px]">
+          <CustomerMobileHeader showBackButton={true} title={store?.name || "Loading..."} />
+        {/* Swiggy 2025: Tighter mobile spacing - 16px mobile, 24px desktop */}
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3 md:py-6 space-y-4 md:space-y-6">
           {/* Store Header Skeleton */}
           <div className="space-y-4">
-            <Skeleton className="w-full h-[160px] rounded-lg" />
-            <div className="px-3 md:px-4 space-y-2">
+            {/* Swiggy 2025: Compact store header on mobile - 120px mobile, 160px desktop */}
+            <Skeleton className="w-full h-[120px] md:h-[160px] rounded-lg" />
+            <div className="px-4 md:px-6 lg:px-8 space-y-2">
               <Skeleton className="h-6 w-48" />
               <Skeleton className="h-4 w-32" />
             </div>
           </div>
           {/* Items Grid Skeleton */}
-          <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {/* Swiggy 2025: 12px gap on all screens - consistent spacing */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
             {[...Array(8)].map((_, i) => (
               <Skeleton key={i} className="w-full aspect-square rounded-lg" />
             ))}
@@ -116,12 +271,13 @@ export const PartnerCatalog = () => {
         </div>
         <CustomerBottomNav />
       </div>
+      </>
     );
   }
 
   if (!store) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-[112px]">
         <CustomerMobileHeader showBackButton={true} title="Store not found" />
         <EmptyStates.NoResults
           title="Store not found"
@@ -137,13 +293,19 @@ export const PartnerCatalog = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <CustomerMobileHeader showBackButton={true} title={store.name} />
+    <>
+      <Helmet>
+        <title>{store?.name ? `${store.name} | Wyshkit` : 'Store | Wyshkit'}</title>
+        <meta name="description" content={store?.description || `Browse products from ${store?.name || 'this store'}`} />
+      </Helmet>
+      <div className="min-h-screen bg-background pb-[112px]">
+        <CustomerMobileHeader showBackButton={true} title={store.name} />
       
       {/* Store Header - Swiggy 2025 Pattern (No Overlap) */}
       <div className="bg-card border-b border-border">
         {/* Banner Image (full-width) */}
-        <div className="relative w-full h-[160px] overflow-hidden bg-muted">
+        {/* Swiggy 2025: Compact store header on mobile - 120px mobile, 160px desktop */}
+        <div className="relative w-full h-[120px] md:h-[160px] overflow-hidden bg-muted">
           {store.image && (
             <OptimizedImage
               src={store.image}
@@ -156,7 +318,8 @@ export const PartnerCatalog = () => {
         </div>
         
         {/* Store Info Card (separate, no overlap) */}
-        <div className="px-3 md:px-4 py-4">
+        {/* Swiggy 2025: Reduced mobile padding - 12px mobile, 16px desktop */}
+        <div className="px-4 md:px-6 lg:px-8 py-3 md:py-4">
           <div className="flex items-start gap-3">
             {/* Store Logo (circle) */}
             <div className="relative w-16 h-16 rounded-full border border-border bg-background overflow-hidden flex-shrink-0">
@@ -216,7 +379,7 @@ export const PartnerCatalog = () => {
 
       {/* Search Bar - Swiggy 2025 Pattern */}
       {items.length > 0 && (
-        <div className="sticky top-14 z-30 bg-background px-3 md:px-4 py-3 border-b">
+        <div className="sticky top-14 z-30 bg-background px-4 md:px-6 lg:px-8 py-3 border-b">
           <div className="relative max-w-7xl mx-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -272,7 +435,8 @@ export const PartnerCatalog = () => {
       )}
 
       {/* Items Grid */}
-      <main className="max-w-7xl mx-auto px-3 md:px-4 py-4 md:py-6">
+      {/* Swiggy 2025: Reduced mobile padding - 12px mobile, 24px desktop */}
+      <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3 md:py-6">
         {items.length === 0 ? (
           <EmptyStates.NoResults
             title="No items available"
@@ -306,7 +470,8 @@ export const PartnerCatalog = () => {
               </span>
             </div>
             
-            <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {/* Swiggy 2025: Tighter mobile gap - 12px mobile, 24px desktop */}
+            <div className="grid grid-cols-2 gap-3 md:gap-6 md:grid-cols-3 lg:grid-cols-4">
               {filteredItems.map((item) => (
                 <CustomerItemCard
                   key={item.id}
@@ -321,10 +486,10 @@ export const PartnerCatalog = () => {
                   sponsored={item.sponsored}
                   isCustomizable={item.isCustomizable}
                   campaignDiscount={item.campaignDiscount}
-                  moq={item.moq}
                   eta={item.eta}
                   store_id={item.store_id}
                   onClick={() => handleItemClick(item.id)}
+                  onAddToCart={handleQuickAddToCart}
                   className="h-full"
                 />
               ))}
@@ -349,12 +514,41 @@ export const PartnerCatalog = () => {
             </SheetHeader>
             <ProductSheet
               itemId={selectedItemId}
-              onClose={() => setSelectedItemId(null)}
+              onClose={(productName?: string, quantity?: number) => {
+                setSelectedItemId(null);
+                // Swiggy 2025: No separate notification - StickyCartBar will update automatically
+                // Cart count change triggers banner update
+              }}
             />
           </SheetContent>
         </Sheet>
       )}
-    </div>
+
+      {/* Swiggy 2025: Removed AddToCartNotification - using ONLY StickyCartBar for consistency */}
+
+      {/* Login Prompt Sheet */}
+      <LoginPromptSheet
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+      />
+
+      {/* Cart Replacement Modal - Swiggy 2025 Pattern */}
+      {store && (
+        <CartReplacementModal
+          isOpen={showCartReplacementModal}
+          currentPartner={currentStoreName}
+          newPartner={store.name}
+          currentCartCount={cartCount}
+          currentCartTotal={cartTotal}
+          onConfirm={handleReplaceCart}
+          onCancel={() => {
+            setShowCartReplacementModal(false);
+            setPendingAddToCart(null);
+          }}
+        />
+      )}
+      </div>
+    </>
   );
 };
 

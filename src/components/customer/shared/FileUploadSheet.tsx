@@ -1,18 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Upload, X, Image as ImageIcon, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/integrations/supabase-client";
+import { Upload, X, Image as ImageIcon, CheckCircle, AlertCircle, Loader2, Type, FileText, Layers, Palette } from "lucide-react";
+// Phase 1 Cleanup: Removed Supabase imports - pure mock mode
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { updateOrderItemFiles, generatePreview } from "@/lib/mock-orders";
 
 interface Personalization {
   id: string;
   label: string;
-  requiresPreview: boolean;
 }
 
 interface FileUploadSheetProps {
@@ -46,9 +47,15 @@ export const FileUploadSheet = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // Swiggy 2025: Upload tracking states
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'complete'>('idle');
+  // Swiggy 2025: Store timer IDs in refs for proper cleanup
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Filter personalizations that require preview
-  const previewRequiredPersonalizations = personalizations.filter(p => p.requiresPreview);
+  // All personalizations require preview (simplified rule - no conditional)
+  const previewRequiredPersonalizations = personalizations;
 
   // Initialize uploaded files state
   useEffect(() => {
@@ -57,7 +64,7 @@ export const FileUploadSheet = ({
         previewRequiredPersonalizations.map(p => ({
           personalizationId: p.id,
           personalizationName: p.label,
-          file: null as any,
+          file: null as File | null,
           uploading: false,
         }))
       );
@@ -113,57 +120,65 @@ export const FileUploadSheet = ({
 
     setIsSubmitting(true);
     setError(null);
+    setUploadStatus('uploading');
+    setUploadProgress(0);
 
     try {
-      // Upload files to Supabase Storage
-      const fileUrls: any[] = [];
-
-      for (const uploadedFile of uploadedFiles) {
-        if (!uploadedFile.file) continue;
-
-        // Create unique file path
-        const fileExt = uploadedFile.file.name.split('.').pop();
-        const fileName = `${orderItemId}/${uploadedFile.personalizationId}-${Date.now()}.${fileExt}`;
-        const filePath = `design-files/${fileName}`;
-
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('design-files')
-          .upload(filePath, uploadedFile.file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('design-files')
-          .getPublicUrl(filePath);
-
-        fileUrls.push({
-          personalization_id: uploadedFile.personalizationId,
-          name: uploadedFile.personalizationName,
-          url: urlData.publicUrl,
-          file_name: uploadedFile.file.name,
-          uploaded_at: new Date().toISOString()
-        });
-      }
-
-      // Call Edge Function to process files
-      const { data: functionData, error: functionError } = await supabase.functions.invoke(
-        'process-design-files',
-        {
-          body: {
-            orderItemId,
-            fileUrls,
-            instructions: instructions.trim() || null
+      // Swiggy 2025: Simulate upload progress (0-100%)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
           }
-        }
-      );
+          return prev + 10;
+        });
+      }, 200);
 
-      if (functionError) throw functionError;
+      // Phase 1 Cleanup: Always use mock upload - no conditionals
+      // Create mock file URLs (using object URLs as placeholders)
+      const fileUrls: string[] = uploadedFiles
+        .filter(f => f.file)
+        .map(f => {
+          // Use object URL as mock file URL
+          return f.preview || URL.createObjectURL(f.file!);
+        });
 
+      // Update order item with customization files
+      updateOrderItemFiles(orderItemId, fileUrls);
+
+      // Swiggy 2025: Complete upload progress
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Swiggy 2025: Show processing status
+      setUploadStatus('processing');
+      setUploadProgress(0);
+
+      // Simulate vendor processing delay (2 seconds) with progress
+      const processingInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(processingInterval);
+            return 90;
+          }
+          return prev + 15;
+        });
+      }, 300);
+
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Swiggy 2025: Complete processing
+      clearInterval(processingInterval);
+      setUploadProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Generate mock preview after upload (simulate vendor creating preview)
+      generatePreview(orderItemId);
+
+      // Swiggy 2025: Show completion status
+      setUploadStatus('complete');
       setSuccess(true);
       
       // Call callback after delay
@@ -172,9 +187,11 @@ export const FileUploadSheet = ({
         onClose();
       }, 1500);
 
-    } catch (err: any) {
-      console.error('Error uploading files:', err);
-      setError(err.message || 'Failed to upload files. Please try again.');
+    } catch (err: unknown) {
+      // Silent error handling - show inline error in upload UI (Swiggy 2025 pattern)
+      setError(err instanceof Error ? err.message : 'Failed to upload files. Please try again.');
+      setUploadStatus('idle');
+      setUploadProgress(0);
     } finally {
       setIsSubmitting(false);
     }
@@ -186,6 +203,8 @@ export const FileUploadSheet = ({
       setInstructions("");
       setError(null);
       setSuccess(false);
+      setUploadStatus('idle');
+      setUploadProgress(0);
       onClose();
     }
   };
@@ -193,13 +212,72 @@ export const FileUploadSheet = ({
   // Check if all files uploaded
   const allFilesUploaded = uploadedFiles.length > 0 && uploadedFiles.every(f => f.file);
 
+  // Phase 1: Helper functions for file type detection and labeling
+  const getFileTypeIcon = (label: string) => {
+    const lowerLabel = label.toLowerCase();
+    if (lowerLabel.includes('front')) return <Type className="h-5 w-5 text-primary" />;
+    if (lowerLabel.includes('back')) return <Type className="h-5 w-5 text-primary rotate-180" />;
+    if (lowerLabel.includes('logo')) return <Palette className="h-5 w-5 text-primary" />;
+    if (lowerLabel.includes('design')) return <Layers className="h-5 w-5 text-primary" />;
+    if (lowerLabel.includes('text')) return <Type className="h-5 w-5 text-primary" />;
+    return <ImageIcon className="h-5 w-5 text-primary" />;
+  };
+
+  const getFileTypeDescription = (label: string) => {
+    const lowerLabel = label.toLowerCase();
+    if (lowerLabel.includes('front')) {
+      return "This design will be printed on the front side of your item";
+    }
+    if (lowerLabel.includes('back')) {
+      return "This design will be printed on the back side of your item";
+    }
+    if (lowerLabel.includes('logo')) {
+      return "Upload your logo file (PNG, SVG, or high-resolution image)";
+    }
+    if (lowerLabel.includes('design')) {
+      return "Upload your custom design file for printing";
+    }
+    if (lowerLabel.includes('text')) {
+      return "Upload text/typography design for customization";
+    }
+    return "Upload your design file for customization";
+  };
+
+  const getFileTypeLabel = (label: string) => {
+    const lowerLabel = label.toLowerCase();
+    if (lowerLabel.includes('front')) {
+      return "Front Print Design";
+    }
+    if (lowerLabel.includes('back')) {
+      return "Back Print Design";
+    }
+    return label;
+  };
+
+  // Group related uploads (Front + Back Print together)
+  const groupedUploads = uploadedFiles.reduce((acc, file) => {
+    const label = file.personalizationName.toLowerCase();
+    if (label.includes('front') || label.includes('back')) {
+      const groupKey = 'print';
+      if (!acc[groupKey]) acc[groupKey] = [];
+      acc[groupKey].push(file);
+    } else {
+      const groupKey = file.personalizationId;
+      acc[groupKey] = [file];
+    }
+    return acc;
+  }, {} as Record<string, typeof uploadedFiles>);
+
   return (
     <Sheet open={isOpen} onOpenChange={handleClose} modal={false}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 overflow-y-auto">
-        {/* Grabber */}
-        <div className="flex justify-center pt-2 pb-4">
+      <SheetContent side="bottom" className="max-h-[75vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 flex flex-col overflow-hidden">
+        {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+        <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
+
+        {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-6">
 
         <SheetHeader className="text-left pb-4">
           <SheetTitle>Upload Design Files</SheetTitle>
@@ -207,6 +285,24 @@ export const FileUploadSheet = ({
             Upload your design files for production. Our vendor will create a preview for your approval.
           </p>
         </SheetHeader>
+
+        {/* Swiggy 2025: Upload Progress & Status Tracking */}
+        {(uploadStatus === 'uploading' || uploadStatus === 'processing') && (
+          <div className="mb-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium">
+                {uploadStatus === 'uploading' ? 'Uploading files...' : 'Processing files...'}
+              </span>
+              <span className="text-muted-foreground">{uploadProgress}%</span>
+            </div>
+            <Progress value={uploadProgress} className="h-2" />
+            <p className="text-xs text-muted-foreground">
+              {uploadStatus === 'uploading' 
+                ? 'Please wait while we upload your files' 
+                : 'Our vendor is processing your files. This may take a few moments.'}
+            </p>
+          </div>
+        )}
 
         {success ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -228,12 +324,30 @@ export const FileUploadSheet = ({
               </Alert>
             )}
 
-            {/* File Upload Fields */}
-            {uploadedFiles.map((uploadedFile, index) => (
-              <div key={uploadedFile.personalizationId} className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Upload {uploadedFile.personalizationName} {uploadedFile.file && <span className="text-green-600">✓</span>}
-                </Label>
+            {/* File Upload Fields - Grouped by type (Phase 1: Enhanced labels) */}
+            {Object.entries(groupedUploads).map(([groupKey, groupFiles]) => (
+              <div key={groupKey} className="space-y-4">
+                {/* Group Header for Print-related uploads */}
+                {groupKey === 'print' && groupFiles.length > 1 && (
+                  <div className="pb-2 border-b border-border">
+                    <h4 className="text-sm font-semibold text-muted-foreground">Print Customization</h4>
+                  </div>
+                )}
+                
+                {groupFiles.map((uploadedFile) => (
+                  <div key={uploadedFile.personalizationId} className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      {getFileTypeIcon(uploadedFile.personalizationName)}
+                      <div className="flex-1">
+                        <Label className="text-sm font-semibold">
+                          {getFileTypeLabel(uploadedFile.personalizationName)} *
+                          {uploadedFile.file && <span className="text-green-600 ml-2">✓</span>}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {getFileTypeDescription(uploadedFile.personalizationName)}
+                        </p>
+                      </div>
+                    </div>
                 
                 {uploadedFile.error && (
                   <Alert variant="destructive" className="py-2">
@@ -245,7 +359,7 @@ export const FileUploadSheet = ({
                 )}
 
                 {uploadedFile.preview ? (
-                  <div className="relative border-2 border-green-200 rounded-lg p-3 bg-green-50 dark:bg-green-950">
+                  <div className="relative border-2 border-green-200 rounded-lg p-3 bg-green-50">
                     <div className="flex items-center gap-3">
                       <img 
                         src={uploadedFile.preview} 
@@ -253,10 +367,10 @@ export const FileUploadSheet = ({
                         className="w-16 h-16 object-cover rounded"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100 truncate">
+                        <p className="text-sm font-medium text-green-900 truncate">
                           {uploadedFile.file?.name}
                         </p>
-                        <p className="text-xs text-green-700 dark:text-green-300">
+                        <p className="text-xs text-green-700">
                           {(uploadedFile.file?.size || 0) / 1024 / 1024} MB
                         </p>
                       </div>
@@ -294,6 +408,8 @@ export const FileUploadSheet = ({
                     />
                   </label>
                 )}
+                  </div>
+                ))}
               </div>
             ))}
 
@@ -338,6 +454,7 @@ export const FileUploadSheet = ({
             </div>
           </div>
         )}
+        </div>
       </SheetContent>
     </Sheet>
   );

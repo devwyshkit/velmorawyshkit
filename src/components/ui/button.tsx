@@ -20,11 +20,12 @@ const buttonVariants = cva(
         elevated: "bg-card-elevated text-card-foreground shadow-md hover:shadow-lg border border-border/50",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        xl: "h-12 rounded-lg px-8 text-base",
-        icon: "h-10 w-10",
+        // Swiggy 2025: Standard button sizes
+        default: "h-10 px-4 py-2", // 40px (md) - standard
+        sm: "h-8 rounded-md px-3", // 32px (sm) - Swiggy 2025
+        lg: "h-12 rounded-md px-8", // 48px (lg) - Swiggy 2025
+        xl: "h-14 rounded-lg px-8 text-base", // 56px (xl) - for CTAs
+        icon: "h-10 w-10", // 40px - standard
       },
     },
     defaultVariants: {

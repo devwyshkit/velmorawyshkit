@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/components/theme-provider";
 import { Loader2, Mail, Lock, Eye, EyeOff, Smartphone } from "lucide-react";
 import { PhoneInput } from "@/components/auth/PhoneInput";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -20,7 +19,6 @@ export const CustomerMobileLogin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { theme } = useTheme();
   const [step, setStep] = useState<LoginStep>('phone');
   const [loading, setLoading] = useState(false);
   
@@ -34,12 +32,6 @@ export const CustomerMobileLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Determine if dark mode is active
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  // Check if Supabase has real credentials
-  const hasRealCredentials = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   // Resend OTP timer countdown
   useEffect(() => {
@@ -60,21 +52,7 @@ export const CustomerMobileLogin = () => {
     }
   }, [step]);
 
-  // Migrate guest cart after login
-  const migrateGuestCart = async () => {
-    try {
-      const guestCart = JSON.parse(localStorage.getItem('mock_cart') || '[]');
-      if (guestCart.length > 0) {
-        // Cart is already in mock_cart, addToCartSupabase will handle Supabase sync
-        // No need to manually migrate since fetchCartItems already merges
-      }
-    } catch (error) {
-      console.error('Error migrating guest cart:', error);
-      // Non-critical, continue with login
-    }
-  };
-
-  // Send OTP (Mock implementation until Supabase connected)
+  // Send OTP - Backend only (Supabase)
   const handleSendOTP = async () => {
     if (!phone || phone.length !== 10) {
       toast({
@@ -87,39 +65,23 @@ export const CustomerMobileLogin = () => {
 
     setLoading(true);
     try {
-      if (hasRealCredentials) {
-        try {
-          // Real Supabase implementation
-          const { error } = await supabase.auth.signInWithOtp({
-            phone: `+91${phone}`,
-            options: {
-              channel: 'sms',
-            },
-          });
-          if (error) throw error;
-        } catch (supabaseError: any) {
-          console.warn('Supabase OTP failed, using mock auth:', supabaseError);
-          // Fall through to mock implementation
-          localStorage.setItem('mock_auth_phone', `+91${phone}`);
-          localStorage.setItem('mock_otp', '123456'); // For testing: use 123456
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } else {
-        // Mock implementation: Store phone and OTP in localStorage for testing
-        localStorage.setItem('mock_auth_phone', `+91${phone}`);
-        localStorage.setItem('mock_otp', '123456'); // For testing: use 123456
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: `+91${phone}`,
+        options: {
+          channel: 'sms',
+        },
+      });
+      
+      if (error) throw error;
 
       setOtpSent(true);
       setStep('otp');
       setResendTimer(60); // 60 second countdown
       // Swiggy 2025: Silent operation - step change indicates OTP sent
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to send OTP",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -127,7 +89,7 @@ export const CustomerMobileLogin = () => {
     }
   };
 
-  // Verify OTP (Mock implementation until Supabase connected)
+  // Verify OTP - Backend only (Supabase)
   const handleVerifyOTP = async () => {
     if (!otp || otp.length !== 6) {
       toast({
@@ -140,90 +102,20 @@ export const CustomerMobileLogin = () => {
 
     setLoading(true);
     try {
-      if (hasRealCredentials) {
-        try {
-          // Real Supabase implementation
-          const { data, error } = await supabase.auth.verifyOtp({
-            phone: `+91${phone}`,
-            token: otp,
-            type: 'sms',
-          });
-          if (error) throw error;
-          
-          // Success - Supabase auth state will update automatically
-          // Migrate guest cart
-          await migrateGuestCart();
-          
-          // Swiggy 2025: Silent operation - navigation confirms success
-          // Navigate to redirect URL or home
-          const redirect = searchParams.get('redirect');
-          navigate(redirect || RouteMap.home());
-        } catch (supabaseError: any) {
-          console.warn('Supabase verify failed, using mock auth:', supabaseError);
-          // Fall through to mock verification
-          const mockOTP = localStorage.getItem('mock_otp');
-          const mockPhone = localStorage.getItem('mock_auth_phone');
-          
-          if (otp === mockOTP && mockPhone === `+91${phone}`) {
-            // Create mock session in localStorage
-            const mockUser = {
-              id: 'mock-user-' + Date.now(),
-              email: '',
-              name: 'User',
-              phone: `+91${phone}`,
-              isEmailVerified: false,
-              isPhoneVerified: true,
-              role: 'customer' as const,
-            };
-            localStorage.setItem('mock_user', JSON.stringify(mockUser));
-            localStorage.setItem('mock_session', 'true');
-            
-            // Dispatch custom event to notify AuthContext immediately
-            window.dispatchEvent(new Event('mockAuthChange'));
-            
-            // Migrate guest cart
-            await migrateGuestCart();
-            
-            // Delay to let AuthContext update, then navigate
-            setTimeout(() => {
-              const redirect = searchParams.get('redirect');
-              navigate(redirect || RouteMap.home());
-            }, 300);
-          } else {
-            throw new Error('Invalid OTP. Use 123456 for testing.');
-          }
-        }
-      } else {
-        // Mock implementation: Verify against stored OTP
-        const mockOTP = localStorage.getItem('mock_otp');
-        const mockPhone = localStorage.getItem('mock_auth_phone');
-        
-        if (otp === mockOTP && mockPhone === `+91${phone}`) {
-          // Create mock session in localStorage
-          const mockUser = {
-            id: 'mock-user-' + Date.now(),
-            email: '',
-            name: 'User',
-            phone: `+91${phone}`,
-            isEmailVerified: false,
-            isPhoneVerified: true,
-            role: 'customer' as const,
-          };
-          localStorage.setItem('mock_user', JSON.stringify(mockUser));
-          localStorage.setItem('mock_session', 'true');
-          
-          // Dispatch custom event to notify AuthContext immediately
-          window.dispatchEvent(new Event('mockAuthChange'));
-          
-          // Delay to let AuthContext update, then navigate
-          setTimeout(() => {
-            navigate(RouteMap.home());
-          }, 300);
-        } else {
-          throw new Error('Invalid OTP. Use 123456 for testing.');
-        }
-      }
-    } catch (error: any) {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: `+91${phone}`,
+        token: otp,
+        type: 'sms',
+      });
+      
+      if (error) throw error;
+      
+      // Success - Supabase auth state will update automatically
+      // Swiggy 2025: Silent operation - navigation confirms success
+      // Navigate to redirect URL or home
+      const redirect = searchParams.get('redirect');
+      navigate(redirect || RouteMap.home());
+    } catch (error: unknown) {
       toast({
         title: "Verification failed",
         description: error.message || "Invalid OTP. Please try again.",
@@ -240,64 +132,22 @@ export const CustomerMobileLogin = () => {
     await handleSendOTP();
   };
 
-  // Email/password login (secondary option)
+  // Email/password login (secondary option) - Backend only
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (hasRealCredentials) {
-    try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
       if (error) throw error;
-        } catch (supabaseError: any) {
-          console.warn('Supabase email login failed, using mock auth:', supabaseError);
-          // Fall through to mock implementation
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const mockUser = {
-            id: 'mock-user-' + Date.now(),
-            email,
-            name: 'User',
-            phone: '',
-            isEmailVerified: false,
-            isPhoneVerified: false,
-            role: 'customer' as const,
-          };
-          localStorage.setItem('mock_user', JSON.stringify(mockUser));
-          localStorage.setItem('mock_session', 'true');
-          window.dispatchEvent(new Event('mockAuthChange'));
-          setTimeout(() => {
-            navigate(RouteMap.home());
-          }, 300);
-          return;
-        }
-      } else {
-        // Mock implementation
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const mockUser = {
-          id: 'mock-user-' + Date.now(),
-          email,
-          name: 'User',
-          phone: '',
-          isEmailVerified: false,
-          isPhoneVerified: false,
-          role: 'customer' as const,
-        };
-        localStorage.setItem('mock_user', JSON.stringify(mockUser));
-        localStorage.setItem('mock_session', 'true');
-        window.dispatchEvent(new Event('mockAuthChange'));
-        setTimeout(() => {
-          navigate(RouteMap.home());
-        }, 300);
-        return;
-      }
 
       // Swiggy 2025: Silent operation - navigation confirms success
       navigate(RouteMap.home());
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Login failed",
         description: error.message || "Invalid credentials",
@@ -308,37 +158,19 @@ export const CustomerMobileLogin = () => {
     }
   };
 
-  // Google OAuth login
+  // Google OAuth login - Backend only
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      if (hasRealCredentials) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin + RouteMap.home(),
         },
       });
+      
       if (error) throw error;
-      } else {
-        // Mock: Create mock user and navigate
-        const mockUser = {
-          id: 'mock-user-' + Date.now(),
-          email: email || '',
-          name: 'User',
-          phone: '',
-          isEmailVerified: false,
-          isPhoneVerified: false,
-          role: 'customer' as const,
-        };
-        localStorage.setItem('mock_user', JSON.stringify(mockUser));
-        localStorage.setItem('mock_session', 'true');
-        window.dispatchEvent(new Event('mockAuthChange'));
-        setTimeout(() => {
-          navigate(RouteMap.home());
-        }, 300);
-      }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Login failed",
         description: error.message,
@@ -374,7 +206,7 @@ export const CustomerMobileLogin = () => {
         title={step === 'otp' ? 'Verify OTP' : 'Sign in'}
         onBackClick={handleBackClick}
       />
-      <div className="flex-1 flex items-center justify-center p-4 pb-20">
+      <div className="flex-1 flex items-center justify-center p-4 pb-[112px]">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl text-center">

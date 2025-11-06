@@ -13,6 +13,13 @@ import {
   LogOut,
   Bell,
   User,
+  Tag,
+  TrendingUp,
+  Megaphone,
+  MapPin,
+  Grid,
+  Eye,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -78,8 +85,16 @@ export const AdminLayout = () => {
     { icon: Users, label: "Partners", path: "/admin/partners", badge: 18 }, // Pending approvals
     { icon: Package, label: "Products", path: "/admin/product-approvals", badge: 12 }, // Pending products
     { icon: ShoppingBag, label: "Orders", path: "/admin/orders" },
+    { icon: Eye, label: "Preview Monitor", path: "/admin/dashboard/preview-monitoring" },
+    { icon: Truck, label: "Logistics", path: "/admin/dashboard/logistics" },
     { icon: AlertCircle, label: "Disputes", path: "/admin/disputes", badge: 5 }, // Escalated
     { icon: DollarSign, label: "Payouts", path: "/admin/payouts", badge: 120 }, // Due
+    { icon: Tag, label: "Promotions", path: "/admin/promotional-offers" },
+    { icon: TrendingUp, label: "Surge Pricing", path: "/admin/surge-pricing" },
+    { icon: Megaphone, label: "Advertising", path: "/admin/advertising" },
+    { icon: MapPin, label: "Locations", path: "/admin/locations" },
+    { icon: Grid, label: "Categories", path: "/admin/categories" },
+    { icon: Bell, label: "Notifications", path: "/admin/notifications" },
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: FileText, label: "Content", path: "/admin/content" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
@@ -92,7 +107,7 @@ export const AdminLayout = () => {
 
       // 🔒 SECURITY: Clear sensitive data
       sessionStorage.clear();
-      localStorage.removeItem('wyshkit_guest_cart');
+      // Guest cart removed - authentication required (Swiggy 2025 pattern)
       localStorage.removeItem('wyshkit_location');
       
       // 🔒 SECURITY: Prevent back button from showing cached data

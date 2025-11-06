@@ -25,46 +25,51 @@ import {
 } from "@/components/ui/carousel";
 import { Stepper } from "@/components/customer/shared/Stepper";
 import { CartReplacementModal } from "@/components/customer/shared/CartReplacementModal";
-import { useToast } from "@/hooks/use-toast";
-import { isAuthenticated } from "@/lib/integrations/supabase-client";
+import { LoginPromptSheet } from "@/components/customer/shared/LoginPromptSheet";
 import {
-  addToCartSupabase,
   fetchStoreById,
   fetchItemById,
   addToSavedItemsSupabase,
   removeFromSavedItemsSupabase,
   fetchSavedItems,
+  CartItemData,
+  type Item,
+  type Store,
 } from "@/lib/integrations/supabase-data";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { fetchReviews } from "@/lib/services/reviews";
 import { formatDistanceToNow } from "date-fns";
 
 interface ProductSheetProps {
   itemId: string;
-  onClose: () => void;
+  onClose: (productName?: string, quantity?: number) => void;
 }
 
 export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
-  const { toast } = useToast();
-  const { refreshCartCount, currentStoreId, clearCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const { currentStoreId, clearCart, addToCart, cartCount, cartTotal } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedPersonalizations, setSelectedPersonalizations] = useState<
     string[]
   >([]);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [item, setItem] = useState<any>(null);
-  const [store, setStore] = useState<any>(null);
+  const [item, setItem] = useState<Item | null>(null);
+  const [store, setStore] = useState<Store | null>(null);
   const [showCartReplacementModal, setShowCartReplacementModal] =
     useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [addToCartError, setAddToCartError] = useState<string | null>(null);
   const [currentStoreName, setCurrentStoreName] = useState<string>("");
   const [newStoreName, setNewStoreName] = useState<string>("");
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isFavourited, setIsFavourited] = useState(false);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<Array<{ id: string; rating: number; comment?: string; user_name?: string; created_at?: string; title?: string; is_verified?: boolean }>>([]);
 
   // Load item and partner data
   useEffect(() => {
@@ -102,11 +107,10 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           const reviewsData = await fetchReviews('product', itemId);
           setReviews(reviewsData);
         } catch (reviewError) {
-          console.error('Error loading reviews:', reviewError);
-          // Reviews are non-critical, continue silently
+          // Reviews are non-critical, continue silently (Swiggy 2025 pattern)
         }
       } catch (error) {
-        console.error('Error loading item:', error);
+        // Silent error handling - show empty state (Swiggy 2025 pattern)
         setItem(null);
       }
     };
@@ -144,7 +148,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
     const personalizationsPrice = selectedPersonalizations.reduce(
       (sum, optionId) => {
         const option = item.personalizations?.find(
-          (p: any) => p.id === optionId,
+          (p) => p.id === optionId,
         );
         return sum + (option?.price || 0);
       },
@@ -156,6 +160,11 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   };
 
   const handleAddToCart = async () => {
+    if (!item) {
+      setAddToCartError('Item not loaded. Please try again.');
+      return;
+    }
+
     // Check if adding item from different store
     if (currentStoreId && currentStoreId !== item.store_id) {
       // Fetch store names for modal
@@ -173,53 +182,61 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   };
 
   const proceedWithAddToCart = async () => {
-    const authenticated = await isAuthenticated();
-    
-    // Always allow add to cart (guest or authenticated)
-    const personalizationsList = selectedPersonalizations
-      .map((id) => item.personalizations?.find((p: any) => p.id === id))
-      .filter(Boolean);
-    const personalizationsTotal = personalizationsList.reduce(
-      (sum: number, p: any) => sum + (p?.price || 0),
-      0,
-    );
-
-    const cartItem = {
-      id: item.id,
-      name: item.name,
-      price: item.price + personalizationsTotal, // Include personalizations in price
-      quantity,
-      store_id: item.store_id,
-      addOns: personalizationsList,
-      isCustomizable: item.isCustomizable || false,
-      personalizations: personalizationsList,
-    };
-
-    if (authenticated) {
-      // Authenticated: save to Supabase
-      const success = await addToCartSupabase(cartItem);
-      
-      if (success) {
-        refreshCartCount();
-        // No toast - StickyCartBar provides feedback (Swiggy 2025 pattern)
-      } else {
-        // Show inline error instead of toast
-        console.error('Failed to add item to cart');
-      }
-    } else {
-      // Guest cart: Save to localStorage via addToCartSupabase (handles localStorage)
-      const success = await addToCartSupabase(cartItem);
-      
-      if (success) {
-        refreshCartCount();
-        // No toast - StickyCartBar provides feedback (Swiggy 2025 pattern)
-      } else {
-        // Show inline error instead of toast
-        console.error('Failed to add item to cart');
-      }
+    // Check authentication before allowing add to cart (Swiggy 2025 pattern)
+    // Use AuthContext which properly handles mock mode
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
     }
 
-    onClose();
+    setIsAddingToCart(true);
+    setAddToCartError(null);
+
+    if (!item) {
+      setAddToCartError('Item not loaded. Please try again.');
+      return;
+    }
+
+    try {
+      const personalizationsList = selectedPersonalizations
+        .map((id) => item.personalizations?.find((p) => p.id === id))
+        .filter((p): p is NonNullable<typeof p> => Boolean(p));
+      const personalizationsTotal = personalizationsList.reduce(
+        (sum, p) => sum + (p?.price || 0),
+        0,
+      );
+
+      const cartItem: CartItemData = {
+        id: item.id,
+        item_id: item.id, // Set item_id for product matching (CustomerItemCard looks for this)
+        name: item.name,
+        price: item.price + personalizationsTotal, // Include personalizations in price
+        quantity,
+        store_id: item.store_id,
+        addOns: personalizationsList.map((p) => ({ id: p.id, name: p.label, price: p.price })), // Convert label to name
+        isCustomizable: item.isCustomizable || false,
+        personalizations: personalizationsList.map((p) => ({ id: p.id, label: p.label, price: p.price })), // Keep label format
+      };
+
+      // Authenticated: save to Supabase (using CartContext handler - DRY principle)
+      const success = await addToCart(cartItem);
+      
+      if (success) {
+        // Close bottom sheet automatically after success (Swiggy 2025 pattern)
+        // Pass product name and quantity for notification bar
+        onClose(item.name, quantity);
+      } else {
+        // Show inline error
+        setAddToCartError('Failed to add item to cart. Please try again.');
+      }
+    } catch (error: unknown) {
+      // Handle error with user-friendly message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add item to cart. Please try again.';
+      setAddToCartError(errorMessage);
+      // Silent error handling - don't spam console (Swiggy 2025 pattern)
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   const handleReplaceCart = async () => {
@@ -246,8 +263,8 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
         <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+      <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-4 py-4">
         {/* Image Carousel */}
         <div className="space-y-3">
           <Carousel className="w-full" setApi={setCarouselApi}>
@@ -280,7 +297,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
                     key={idx}
                     onClick={() => carouselApi?.scrollTo(idx)}
                     className={cn(
-                      "h-1.5 rounded-full transition-all duration-300",
+                      "h-1.5 rounded-full",
                       idx === currentSlide
                         ? "w-6 bg-primary"
                         : "w-1.5 bg-muted-foreground/30",
@@ -373,7 +390,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
             <div>
               <Label className="text-sm font-medium mb-2">Size</Label>
               <div className="flex flex-wrap gap-2">
-                {item.variants.sizes.map((size: any) => (
+                {item.variants.sizes.map((size) => (
                   <Button
                     key={size.id}
                     variant={selectedSize === size.id ? "default" : "outline"}
@@ -397,17 +414,19 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
             <div>
               <Label className="text-sm font-medium mb-2">Color</Label>
               <div className="flex flex-wrap gap-3">
-                {item.variants.colors.map((color: any) => (
+                {item.variants.colors.map((color) => (
                   <button
                     key={color.id}
                     onClick={() => setSelectedColor(color.id)}
                     className={cn(
-                      "relative w-8 h-8 rounded-full border-2 transition-all",
+                      "relative w-8 h-8 rounded-full border-2",
                       selectedColor === color.id
                         ? "border-primary ring-2 ring-primary ring-offset-2"
                         : "border-border",
                     )}
-                    style={{ backgroundColor: color.hex }}
+                    style={{ 
+                      backgroundColor: color.hex,
+                    } as React.CSSProperties}
                     aria-label={color.name}
                   >
                     {selectedColor === color.id && (
@@ -439,7 +458,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
             <div>
               <Label className="text-sm font-medium mb-2 block">Add ons</Label>
               <div className="space-y-3">
-                {item.personalizations.map((option: any) => (
+                {item.personalizations.map((option) => (
                   <div key={option.id} className="flex items-start space-x-2">
                     <Checkbox
                       id={option.id}
@@ -473,11 +492,8 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           </>
         )}
 
-        {/* File Upload Notice - Show if any selected personalization requires preview (Fiverr 2025) */}
-        {selectedPersonalizations.some(id => {
-          const option = item.personalizations?.find((p: any) => p.id === id);
-          return option?.requiresPreview === true;
-        }) && (
+        {/* File Upload Notice - Show if any personalizations are selected (all require preview) */}
+        {selectedPersonalizations.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-start gap-2">
               <Upload className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -622,8 +638,11 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
                     <span className="w-8">{rating}★</span>
                     <div className="flex-1 h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-yellow-400" 
-                        style={{ width: `${percentage}%` }}
+                        className="h-full bg-yellow-400 transition-all duration-300"
+                        style={{ 
+                          width: `${percentage}%`,
+                          minWidth: percentage > 0 ? '2px' : '0',
+                        } as React.CSSProperties}
                       />
                     </div>
                     <span className="w-8 text-muted-foreground">{count}</span>
@@ -635,7 +654,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           
           {/* Recent Reviews */}
           <div className="space-y-3">
-            {reviews.slice(0, 3).map((review: any) => (
+            {reviews.slice(0, 3).map((review) => (
               <div key={review.id} className="p-3 border border-border rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -658,9 +677,11 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
                       </Badge>
                     )}
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
-                  </span>
+                  {review.created_at && (
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
+                    </span>
+                  )}
                 </div>
                 {review.title && (
                   <h4 className="font-medium text-sm mb-1">{review.title}</h4>
@@ -687,7 +708,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
             </div>
             {selectedPersonalizations.map((id) => {
               const option = item.personalizations?.find(
-                (p: any) => p.id === id,
+                (p) => p.id === id,
               );
               return option ? (
                 <div
@@ -715,23 +736,46 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
           </span>
         </div>
 
+        {/* Error Message */}
+        {addToCartError && (
+          <div className="mb-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-sm text-destructive flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              {addToCartError}
+            </p>
+          </div>
+        )}
+
         {/* Add to Cart Button */}
         <Button
           onClick={handleAddToCart}
           className="w-full h-12 text-base font-semibold"
           size="lg"
+          disabled={isAddingToCart}
         >
-          Add to Cart • ₹{calculateTotal().toLocaleString("en-IN")}
+          {isAddingToCart ? (
+            <>Adding to cart...</>
+          ) : (
+            <>Add to Cart • ₹{calculateTotal().toLocaleString("en-IN")}</>
+          )}
         </Button>
       </div>
 
-      {/* Cart Replacement Modal - Swiggy Pattern */}
+      {/* Cart Replacement Modal - Swiggy 2025 Pattern */}
       <CartReplacementModal
         isOpen={showCartReplacementModal}
         currentPartner={currentStoreName}
         newPartner={newStoreName}
+        currentCartCount={cartCount}
+        currentCartTotal={cartTotal}
         onConfirm={handleReplaceCart}
         onCancel={() => setShowCartReplacementModal(false)}
+      />
+
+      {/* Login Prompt Sheet - Swiggy 2025 Pattern */}
+      <LoginPromptSheet
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
       />
     </div>
   );

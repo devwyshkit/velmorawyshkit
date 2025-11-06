@@ -23,6 +23,7 @@ All colors MUST be HSL. Visual-first approach with warm, gift-focused palette.
     --primary: 7 79% 45%;             /* #CD1C18 - Wyshkit brand red */
     --primary-foreground: 0 0% 100%;  /* White text on primary */
     --primary-light: 15 85% 92%;      /* Lighter primary variant */
+    --primary-dark: 7 79% 35%;        /* Darker primary variant */
     --primary-glow: 7 79% 87%;        /* Primary with glow effect */
     --primary-container: 7 75% 95%;   /* Primary container M3 */
     --on-primary-container: 7 75% 10%; /* Text on primary container */
@@ -32,6 +33,7 @@ All colors MUST be HSL. Visual-first approach with warm, gift-focused palette.
     --secondary-foreground: 220 14% 11%;
     --secondary-container: 220 14% 96%;
     --on-secondary-container: 220 14% 10%;
+    --secondary-accent: 220 14% 85%;  /* Secondary accent variant */
     
     /* WYSHKIT Tertiary Colors */
     --tertiary: 49 100% 50%;          /* Complementary tertiary */
@@ -88,13 +90,7 @@ All colors MUST be HSL. Visual-first approach with warm, gift-focused palette.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Success and status colors */
-    --success: 120 60% 50%;
-    --success-foreground: 0 0% 98%;
-    --warning: 45 100% 60%;
-    --warning-foreground: 45 30% 10%;
-    --info: 200 80% 60%;
-    --info-foreground: 0 0% 98%;
+    /* Success and status colors - REMOVED DUPLICATES (already defined above) */
 
     --border: 25 20% 88%;
     --input: 25 20% 88%;
@@ -138,56 +134,7 @@ All colors MUST be HSL. Visual-first approach with warm, gift-focused palette.
   }
 }
 
-  .dark {
-    --background: 220 20% 8%;
-    --foreground: 25 10% 95%;
-
-    --card: 220 20% 10%;
-    --card-foreground: 25 10% 95%;
-    --card-elevated: 220 15% 12%;
-
-    --popover: 220 20% 10%;
-    --popover-foreground: 25 10% 95%;
-
-    --primary: 2 76% 55%;
-    --primary-foreground: 0 0% 98%;
-    --primary-light: 2 76% 65%;
-    --primary-dark: 2 76% 45%;
-
-    --secondary: 220 15% 15%;
-    --secondary-foreground: 25 10% 90%;
-    --secondary-accent: 220 10% 18%;
-
-    --muted: 220 15% 15%;
-    --muted-foreground: 25 5% 65%;
-
-    --accent: 220 10% 18%;
-    --accent-foreground: 25 10% 90%;
-    --accent-warm: 220 8% 22%;
-
-    --destructive: 0 84% 65%;
-    --destructive-foreground: 0 0% 98%;
-
-    --success: 120 60% 55%;
-    --success-foreground: 0 0% 98%;
-    --warning: 45 100% 65%;
-    --warning-foreground: 45 30% 10%;
-    --info: 200 80% 65%;
-    --info-foreground: 0 0% 98%;
-
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
-    --ring: 2 76% 55%;
-
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary-dark)), hsl(var(--primary)));
-    --gradient-warm: linear-gradient(45deg, hsl(var(--accent-warm)), hsl(var(--secondary-accent)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--primary-dark)) 0%, hsl(var(--primary)) 100%);
-    
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 12px 0 hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 8px 25px 0 hsl(0 0% 0% / 0.5);
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.4);
-  }
+  /* Dark mode removed - Swiggy 2025 pattern: light mode only */
 
 @layer base {
   * {
@@ -249,9 +196,26 @@ All colors MUST be HSL. Visual-first approach with warm, gift-focused palette.
   
   /* Z-Index Utility Classes */
   .z-app-bar { z-index: 50; }
-  .z-bottom-bar { z-index: 40; } 
+  .z-bottom-bar { z-index: 40; }
+  
+  /* PWA Safe Area Utilities (Swiggy 2025 pattern) */
+  .pwa-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  .pwa-safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  .pwa-safe-left {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+  
+  .pwa-safe-right {
+    padding-right: env(safe-area-inset-right, 0);
+  } 
   .z-floating-cart { z-index: 35; }
-  .z-live-chat { z-index: 30; }
+  .z-support-chat { z-index: 30; }
   .z-modal { z-index: var(--z-modal); }
   .z-popover { z-index: var(--z-popover); }
   .z-tooltip { z-index: var(--z-tooltip); }

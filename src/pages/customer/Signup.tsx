@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/components/theme-provider";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import { PhoneInput } from "@/components/auth/PhoneInput";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -19,7 +18,6 @@ export const CustomerMobileSignup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { theme } = useTheme();
   const [step, setStep] = useState<SignupStep>('phone');
   const [loading, setLoading] = useState(false);
   
@@ -36,12 +34,6 @@ export const CustomerMobileSignup = () => {
   
   // Email/password states (secondary option)
   const [password, setPassword] = useState("");
-  
-  // Determine if dark mode is active
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  // Check if Supabase has real credentials
-  const hasRealCredentials = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   // Resend OTP timer countdown
   useEffect(() => {
@@ -61,7 +53,7 @@ export const CustomerMobileSignup = () => {
     }
   }, [step]);
 
-  // Send OTP (Mock implementation until Supabase connected)
+  // Send OTP - Backend only (Supabase)
   const handleSendOTP = async () => {
     if (!phone || phone.length !== 10) {
       toast({
@@ -74,36 +66,27 @@ export const CustomerMobileSignup = () => {
 
     setLoading(true);
     try {
-      if (hasRealCredentials) {
-        // Real Supabase implementation
-        const { error } = await supabase.auth.signInWithOtp({
-          phone: `+91${phone}`,
-          options: {
-            channel: 'sms',
-            data: {
-              // Mark as new signup
-              is_signup: true,
-            },
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: `+91${phone}`,
+        options: {
+          channel: 'sms',
+          data: {
+            // Mark as new signup
+            is_signup: true,
           },
-        });
-        if (error) throw error;
-      } else {
-        // Mock implementation: Store phone and OTP in localStorage for testing
-        localStorage.setItem('mock_auth_phone', `+91${phone}`);
-        localStorage.setItem('mock_otp', '123456'); // For testing: use 123456
-        setIsNewUser(true); // Assume new user for mock
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+        },
+      });
+      
+      if (error) throw error;
 
       setOtpSent(true);
       setStep('otp');
       setResendTimer(60); // 60 second countdown
       // Swiggy 2025: Silent operation - step change indicates OTP sent
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to send OTP",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -111,7 +94,7 @@ export const CustomerMobileSignup = () => {
     }
   };
 
-  // Verify OTP (Mock implementation until Supabase connected)
+  // Verify OTP - Backend only (Supabase)
   const handleVerifyOTP = async () => {
     if (!otp || otp.length !== 6) {
       toast({
@@ -124,51 +107,27 @@ export const CustomerMobileSignup = () => {
 
     setLoading(true);
     try {
-      if (hasRealCredentials) {
-        // Real Supabase implementation
-        const { data, error } = await supabase.auth.verifyOtp({
-          phone: `+91${phone}`,
-          token: otp,
-          type: 'sms',
-        });
-        if (error) throw error;
-        
-        // Check if user is new (no email or name in metadata)
-        const isNew = !data.user?.user_metadata?.full_name && !data.user?.email;
-        setIsNewUser(isNew);
-        
-        if (isNew) {
-          // New user - show profile step (optional)
-          setStep('profile');
-        } else {
-          // Existing user - redirect to home
-          // Swiggy 2025: Silent operation - navigation confirms success
-          navigate(RouteMap.home());
-        }
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: `+91${phone}`,
+        token: otp,
+        type: 'sms',
+      });
+      
+      if (error) throw error;
+      
+      // Check if user is new (no email or name in metadata)
+      const isNew = !data.user?.user_metadata?.full_name && !data.user?.email;
+      setIsNewUser(isNew);
+      
+      if (isNew) {
+        // New user - show profile step (optional)
+        setStep('profile');
       } else {
-        // Mock implementation: Verify against stored OTP
-        const mockOTP = localStorage.getItem('mock_otp');
-        const mockPhone = localStorage.getItem('mock_auth_phone');
-        
-        if (otp === mockOTP && mockPhone === `+91${phone}`) {
-          // Check if user already exists (in real app, check Supabase)
-          // For mock, assume new user if no session exists
-          const existingSession = localStorage.getItem('mock_session');
-          
-          if (existingSession) {
-            // Existing user
-            setIsNewUser(false);
-            navigate(RouteMap.home());
-          } else {
-            // New user - show profile step
-            setIsNewUser(true);
-            setStep('profile');
-          }
-        } else {
-          throw new Error('Invalid OTP. Use 123456 for testing.');
-        }
+        // Existing user - redirect to home
+        // Swiggy 2025: Silent operation - navigation confirms success
+        navigate(RouteMap.home());
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Verification failed",
         description: error.message || "Invalid OTP. Please try again.",
@@ -185,36 +144,25 @@ export const CustomerMobileSignup = () => {
     await handleSendOTP();
   };
 
-  // Complete profile (optional - Swiggy pattern: can skip)
+  // Complete profile (optional - Swiggy pattern: can skip) - Backend only
   const handleCompleteProfile = async () => {
     setLoading(true);
     try {
-      if (hasRealCredentials) {
-        // Update user metadata with name and email (if provided)
-        const updates: any = {};
-        if (name) updates.full_name = name;
-        if (email) updates.email = email;
-        
-        if (Object.keys(updates).length > 0) {
-          const { error } = await supabase.auth.updateUser({
-            data: updates,
-          });
-          if (error) throw error;
-        }
-      } else {
-        // Mock: Update stored user
-        const mockUserStr = localStorage.getItem('mock_user');
-        if (mockUserStr) {
-          const mockUser = JSON.parse(mockUserStr);
-          if (name) mockUser.name = name;
-          if (email) mockUser.email = email;
-          localStorage.setItem('mock_user', JSON.stringify(mockUser));
-        }
+      // Update user metadata with name and email (if provided)
+      const updates: Record<string, string> = {};
+      if (name) updates.full_name = name;
+      if (email) updates.email = email;
+      
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.auth.updateUser({
+          data: updates,
+        });
+        if (error) throw error;
       }
       
       // Swiggy 2025: Silent operation - navigation confirms success
       navigate(RouteMap.home());
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
         description: error.message || "Could not update profile",
@@ -225,37 +173,18 @@ export const CustomerMobileSignup = () => {
     }
   };
 
-  // Skip profile (Swiggy pattern - allows skipping)
+  // Skip profile (Swiggy pattern - allows skipping) - Backend only
   const handleSkipProfile = async () => {
-    if (hasRealCredentials) {
-      // User already authenticated via OTP, just navigate
-      navigate(RouteMap.home());
-    } else {
-      // Mock: Create minimal user and navigate
-      const mockUser = {
-        id: 'mock-user-' + Date.now(),
-        email: '',
-        name: 'User',
-        phone: `+91${phone}`,
-        isPhoneVerified: true,
-        role: 'customer' as const,
-      };
-      localStorage.setItem('mock_user', JSON.stringify(mockUser));
-      localStorage.setItem('mock_session', 'true');
-      window.dispatchEvent(new Event('mockAuthChange'));
-      setTimeout(() => {
-        navigate(RouteMap.home());
-      }, 100);
-    }
+    // User already authenticated via OTP, just navigate
+    navigate(RouteMap.home());
   };
 
-  // Email/password signup (secondary option)
+  // Email/password signup (secondary option) - Backend only
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (hasRealCredentials) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -266,6 +195,7 @@ export const CustomerMobileSignup = () => {
           emailRedirectTo: window.location.origin + RouteMap.home(),
         },
       });
+      
       if (error) throw error;
 
       if (data.session) {
@@ -274,24 +204,6 @@ export const CustomerMobileSignup = () => {
       } else {
         // Swiggy 2025: Silent operation - navigate to login (email verification UI will show message)
         navigate(RouteMap.login());
-        }
-      } else {
-        // Mock implementation
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const mockUser = {
-          id: 'mock-user-' + Date.now(),
-          email: email,
-          name: name || 'User',
-          phone: '',
-          isEmailVerified: false,
-          role: 'customer' as const,
-        };
-        localStorage.setItem('mock_user', JSON.stringify(mockUser));
-        localStorage.setItem('mock_session', 'true');
-        window.dispatchEvent(new Event('mockAuthChange'));
-        setTimeout(() => {
-          navigate(RouteMap.home());
-        }, 100);
       }
     } catch (error: unknown) {
       toast({
@@ -304,35 +216,18 @@ export const CustomerMobileSignup = () => {
     }
   };
 
-  // Google OAuth signup
+  // Google OAuth signup - Backend only
   const handleGoogleSignup = async () => {
     setLoading(true);
     try {
-      if (hasRealCredentials) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin + RouteMap.home(),
         },
       });
+      
       if (error) throw error;
-      } else {
-        // Mock: Create mock user and navigate
-        const mockUser = {
-          id: 'mock-user-' + Date.now(),
-          email: '',
-          name: 'User',
-          phone: '',
-          isPhoneVerified: false,
-          role: 'customer' as const,
-        };
-        localStorage.setItem('mock_user', JSON.stringify(mockUser));
-        localStorage.setItem('mock_session', 'true');
-        window.dispatchEvent(new Event('mockAuthChange'));
-        setTimeout(() => {
-          navigate(RouteMap.home());
-        }, 100);
-      }
     } catch (error: unknown) {
       toast({
         title: "Signup failed",
@@ -374,7 +269,7 @@ export const CustomerMobileSignup = () => {
         }
         onBackClick={handleBackClick}
       />
-      <div className="flex-1 flex items-center justify-center p-4 pb-20">
+      <div className="flex-1 flex items-center justify-center p-4 pb-[112px]">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">

@@ -5,7 +5,7 @@ import { RouteMap } from "@/routes";
 export const HomeFooter = () => {
   return (
     <footer className="hidden md:block bg-background border-t border-border py-12 px-4">
-      <div className="max-w-screen-xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Main Footer Content - 5 Columns */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-8">
           {/* Brand Column */}

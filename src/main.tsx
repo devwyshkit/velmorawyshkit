@@ -9,10 +9,13 @@ import { mobilePerformanceOptimizer } from '@/lib/mobile-performance-optimizer';
 MobileOverflowFix.initialize();
 mobilePerformanceOptimizer.initialize();
 
-// Register service worker only in production
+// Service Worker: Completely disabled in development mode
+// In production, SW is registered only when explicitly needed
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Silent fail - SW registration is optional
+    });
   });
 }
 

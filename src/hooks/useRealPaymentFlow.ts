@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useBusinessLogic } from '@/hooks/useBusinessLogic';
 
 export type PaymentStatus = 'pending' | 'authorized' | 'captured' | 'failed' | 'refunded';
@@ -44,6 +44,18 @@ export interface PaymentCaptureResult {
 export const useRealPaymentFlow = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { analyzePaymentFlow } = useBusinessLogic();
+  // Swiggy 2025: AbortController for fetch cancellation
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Swiggy 2025: Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   // Create Razorpay order - authorize payment without capture
   const authorizePayment = useCallback(async (
@@ -56,11 +68,16 @@ export const useRealPaymentFlow = () => {
   ): Promise<PaymentAuthorizationResult> => {
     setIsProcessing(true);
     
+    // Swiggy 2025: Cancel previous request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    
     try {
       const paymentFlow = analyzePaymentFlow(orderData.items);
       
-      // TODO: Replace with actual Supabase Edge Function call
-      // This should call /api/payments/create-order
+      // Call Supabase Edge Function for payment order creation
       const response = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: {
@@ -76,7 +93,8 @@ export const useRealPaymentFlow = () => {
             has_custom_items: paymentFlow.hasCustomItems.toString(),
             auto_capture: paymentFlow.requiresCapture.toString()
           }
-        })
+        }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -86,7 +104,7 @@ export const useRealPaymentFlow = () => {
       const razorpayOrder: RazorpayCreateOrderResponse = await response.json();
       
       const paymentOrder: PaymentOrder = {
-        id: `pay_${Date.now()}`,
+        id: generatePaymentId(),
         orderId: orderData.orderId,
         amount: orderData.amount,
         currency: 'INR',
@@ -104,6 +122,16 @@ export const useRealPaymentFlow = () => {
       };
 
     } catch (error) {
+      // Swiggy 2025: Handle abort gracefully
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          paymentOrder: {} as PaymentOrder,
+          razorpayOrder: {} as RazorpayCreateOrderResponse,
+          requiresUserAction: false,
+          errorMessage: 'Request cancelled'
+        };
+      }
       return {
         success: false,
         paymentOrder: {} as PaymentOrder,
@@ -113,6 +141,7 @@ export const useRealPaymentFlow = () => {
       };
     } finally {
       setIsProcessing(false);
+      abortControllerRef.current = null;
     }
   }, [analyzePaymentFlow]);
 
@@ -122,6 +151,12 @@ export const useRealPaymentFlow = () => {
     amount: number
   ): Promise<PaymentCaptureResult> => {
     setIsProcessing(true);
+
+    // Swiggy 2025: Cancel previous request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       // TODO: Replace with actual Supabase Edge Function call
@@ -134,7 +169,8 @@ export const useRealPaymentFlow = () => {
         body: JSON.stringify({
           payment_id: paymentId,
           amount: amount * 100 // Razorpay expects paise
-        })
+        }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -151,6 +187,16 @@ export const useRealPaymentFlow = () => {
       };
 
     } catch (error) {
+      // Swiggy 2025: Handle abort gracefully
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          paymentId: '',
+          amount: 0,
+          capturedAmount: 0,
+          errorMessage: 'Request cancelled'
+        };
+      }
       return {
         success: false,
         paymentId: '',
@@ -160,6 +206,7 @@ export const useRealPaymentFlow = () => {
       };
     } finally {
       setIsProcessing(false);
+      abortControllerRef.current = null;
     }
   }, []);
 
@@ -170,6 +217,12 @@ export const useRealPaymentFlow = () => {
     reason: string = 'Customer cancellation'
   ): Promise<PaymentCaptureResult> => {
     setIsProcessing(true);
+
+    // Swiggy 2025: Cancel previous request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       // TODO: Replace with actual Supabase Edge Function call
@@ -186,7 +239,8 @@ export const useRealPaymentFlow = () => {
             reason: reason,
             processed_at: new Date().toISOString()
           }
-        })
+        }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -203,6 +257,16 @@ export const useRealPaymentFlow = () => {
       };
 
     } catch (error) {
+      // Swiggy 2025: Handle abort gracefully
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          paymentId: '',
+          amount: 0,
+          capturedAmount: 0,
+          errorMessage: 'Request cancelled'
+        };
+      }
       return {
         success: false,
         paymentId: '',
@@ -212,6 +276,7 @@ export const useRealPaymentFlow = () => {
       };
     } finally {
       setIsProcessing(false);
+      abortControllerRef.current = null;
     }
   }, []);
 

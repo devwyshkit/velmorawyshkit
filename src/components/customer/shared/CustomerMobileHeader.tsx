@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search } from "lucide-react";
+import { MapPin, User, ShoppingBag, Heart, ArrowLeft, Search, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,11 @@ import { useDelivery } from "@/contexts/DeliveryContext";
 import { SearchBar } from "@/components/customer/shared/SearchBar";
 import { CartSheet } from "@/components/customer/shared/CartSheet";
 import { AccountSheet } from "@/components/customer/shared/AccountSheet";
+import { NotificationCenter } from "@/components/customer/shared/NotificationCenter";
+import { getUnreadCount } from "@/lib/mock-notifications";
 import { loadGooglePlaces, initAutocomplete, formatAddress, reverseGeocode, extractAreaAndCity } from "@/lib/integrations/google-places";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CustomerMobileHeaderProps {
   showBackButton?: boolean;
@@ -30,8 +34,20 @@ export const CustomerMobileHeader = ({
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [locationInput, setLocationInput] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
+
+  // Update unread count periodically (Swiggy 2025 pattern: polling)
+  useEffect(() => {
+    const updateUnreadCount = () => {
+      setUnreadCount(getUnreadCount());
+    };
+    updateUnreadCount();
+    const interval = setInterval(updateUnreadCount, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (isLocationSheetOpen && addressInputRef.current) {
@@ -89,26 +105,35 @@ export const CustomerMobileHeader = ({
     "Ahmedabad",
   ];
 
-  // Scroll-aware hide/reveal
+  // Swiggy 2025: Scroll-aware hide/reveal - ONLY on mobile, desktop always visible
+  const isMobile = useIsMobile();
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
+  
   useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const goingDown = y > lastY.current + 4;
-      const goingUp = y < lastY.current - 4;
-      if (goingDown && y > 24) setHidden(true);
-      else if (goingUp) setHidden(false);
-      lastY.current = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    // Swiggy 2025: Only hide on scroll for mobile, desktop always visible
+    if (isMobile) {
+      const onScroll = () => {
+        const y = window.scrollY;
+        const goingDown = y > lastY.current + 4;
+        const goingUp = y < lastY.current - 4;
+        if (goingDown && y > 24) setHidden(true);
+        else if (goingUp) setHidden(false);
+        lastY.current = y;
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      return () => window.removeEventListener('scroll', onScroll);
+    }
+  }, [isMobile]);
 
   return (
-    <header className={"sticky top-0 z-40 bg-white border-b border-border transition-transform duration-200 " + (hidden ? "-translate-y-full" : "translate-y-0") }>
+    <header className={cn(
+      "sticky top-0 z-[55] bg-background border-b border-border transition-transform duration-200",
+      // Swiggy 2025: Only hide on mobile scroll, desktop always visible
+      hidden && isMobile ? "-translate-y-full" : "translate-y-0"
+    )}>
       {/* Mobile: Two-row layout | Desktop: Single row */}
-      <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-0 h-auto md:h-14">
+      <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 px-4 md:px-6 lg:px-8 py-2 md:py-0 h-auto md:h-14">
         {/* Row 1: Logo + Location (Mobile) | Logo + Location | SearchBar | Icons (Desktop) */}
           {showBackButton ? (
           // Back button mode: Single row on all screens
@@ -124,7 +149,7 @@ export const CustomerMobileHeader = ({
             <>
             {/* Mobile Row 1: Logo (left) + Location (right) */}
             {/* Desktop: Logo + Location (left) */}
-            <div className="flex items-center justify-between w-full md:w-auto md:flex-shrink-0 md:justify-start gap-2 md:gap-2.5">
+            <div className="flex items-center justify-between w-full md:w-auto md:flex-shrink-0 md:justify-start gap-3 md:gap-4">
               {/* Logo - Responsive sizing (Swiggy 2025 pattern) */}
               <Link to={RouteMap.home()} className="flex-shrink-0" aria-label="Go to home">
                 <img 
@@ -151,8 +176,8 @@ export const CustomerMobileHeader = ({
               <SearchBar variant="navigation" placeholder="Search for gifts, occasions..." showSuggestions={true} />
         </div>
         
-            {/* Desktop Only: Cart, Wishlist, Account icons (mobile uses bottom nav) */}
-            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+            {/* Desktop Only: Cart, Notifications, Wishlist, Account icons (mobile uses bottom nav) */}
+            <div className="hidden md:flex items-center gap-2 md:gap-3 flex-shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -167,6 +192,23 @@ export const CustomerMobileHeader = ({
                 className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs pointer-events-none"
               >
                 {cartCount > 9 ? '9+' : cartCount}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-11 w-11"
+            onClick={() => setIsNotificationCenterOpen(true)}
+            aria-label={`Notifications${unreadCount > 0 ? ` with ${unreadCount} unread` : ''}`}
+          >
+            <Bell className="h-6 w-6" />
+            {unreadCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs pointer-events-none"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
               </Badge>
             )}
           </Button>
@@ -197,7 +239,7 @@ export const CustomerMobileHeader = ({
       <Sheet open={isLocationSheetOpen} onOpenChange={setIsLocationSheetOpen} modal={false}>
         <SheetContent
           side="bottom"
-          className="h-[80vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+          className="max-h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Location Selection</SheetTitle>
@@ -247,13 +289,13 @@ export const CustomerMobileHeader = ({
                     },
                     (error) => {
                       // Handle error gracefully - show toast instead of alert (better UX)
-                      console.error("Geolocation error:", error);
+                      // Silent error handling - geolocation unavailable (Swiggy 2025 pattern)
                       setLocationInput("Your Current Location");
                     }
                   );
                 } else {
                   // Geolocation not supported - gracefully handle
-                  console.warn("Geolocation is not supported by your browser");
+                  // Silent error handling - geolocation unavailable (Swiggy 2025 pattern)
                   setLocationInput("Your Current Location");
                 }
               }}
@@ -320,6 +362,12 @@ export const CustomerMobileHeader = ({
       
       {/* Account Sheet Modal (Swiggy 2025 pattern - bottom sheet) */}
       <AccountSheet isOpen={isAccountOpen} onClose={() => setIsAccountOpen(false)} />
+
+      {/* Notification Center (Swiggy 2025 pattern - bell icon) */}
+      <NotificationCenter
+        isOpen={isNotificationCenterOpen}
+        onClose={() => setIsNotificationCenterOpen(false)}
+      />
     </header>
   );
 };

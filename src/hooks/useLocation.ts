@@ -28,7 +28,7 @@ export const useLocation = () => {
         displayText: `${newCity} • ${deliveryTime}`
       });
     } catch (error) {
-      console.error('Failed to update location:', error);
+      // Silent error handling (Swiggy 2025 pattern)
     } finally {
       setIsLoading(false);
     }

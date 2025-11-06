@@ -73,14 +73,12 @@ export const createTestProduct = async (
       label: 'Company Logo',
       price: 20000, // ₹200 in paise
       instructions: 'Upload PNG/SVG format',
-      requiresPreview: true,
     },
     {
       id: 'test-card',
       label: 'Greeting Card',
       price: 5000, // ₹50 in paise
       instructions: 'Custom message',
-      requiresPreview: false,
     },
   ] : null;
 
@@ -167,9 +165,6 @@ export const verifyProductStructure = (product: any) => {
         if (!p.id) errors.push(`personalizations[${idx}] missing id`);
         if (!p.label) errors.push(`personalizations[${idx}] missing label`);
         if (typeof p.price !== 'number') errors.push(`personalizations[${idx}] price must be number`);
-        if (p.requiresPreview !== undefined && typeof p.requiresPreview !== 'boolean') {
-          errors.push(`personalizations[${idx}] requiresPreview must be boolean`);
-        }
       });
     }
   }

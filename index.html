@@ -7,6 +7,24 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Aggressive cache prevention for development -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    
+    <!-- Font Optimization - Swiggy 2025 Pattern -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Resource Hints - Swiggy 2025 Pattern -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
     <link rel="icon" href="/favicon.png" type="image/png">
     <link rel="manifest" href="/manifest.json" />
     <title>WYSHKIT - Visual Gifting Platform</title>
@@ -46,6 +64,40 @@
 
   <body>
     <div id="root"></div>
+    <!-- CRITICAL: Clear all caches and service workers BEFORE loading any modules -->
+    <script>
+      (function() {
+        'use strict';
+        // Immediately unregister all service workers
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
+          });
+        }
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (var i = 0; i < names.length; i++) {
+              caches.delete(names[i]);
+            }
+          });
+        }
+        // Force cache reload on module imports
+        var originalFetch = window.fetch;
+        window.fetch = function() {
+          var args = Array.prototype.slice.call(arguments);
+          if (args[0] && typeof args[0] === 'string' && 
+              (args[0].includes('/src/') || args[0].includes('.ts') || args[0].includes('.tsx'))) {
+            // Add cache-busting query parameter
+            var separator = args[0].includes('?') ? '&' : '?';
+            args[0] = args[0] + separator + '_cb=' + Date.now();
+          }
+          return originalFetch.apply(this, args);
+        };
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

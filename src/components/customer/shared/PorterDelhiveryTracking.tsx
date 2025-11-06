@@ -45,7 +45,7 @@ export const PorterDelhiveryTracking = ({
           setTrackingStatus(data);
         }
       } catch (error) {
-        console.error('Error fetching tracking status:', error);
+        // Silent error handling - tracking unavailable (Swiggy 2025 pattern)
       } finally {
         setLoading(false);
       }
@@ -79,7 +79,7 @@ export const PorterDelhiveryTracking = ({
   };
 
   const getProviderColor = () => {
-    return logisticsProvider === 'porter' ? 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800' : 'bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800';
+    return logisticsProvider === 'porter' ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200';
   };
 
   return (
@@ -138,5 +138,6 @@ export const PorterDelhiveryTracking = ({
     </Card>
   );
 };
+
 
 

@@ -29,7 +29,7 @@ export const OfferCard = ({
   return (
     <Card
       className={cn(
-        "cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow snap-start shrink-0 w-[280px] md:w-[320px] h-32",
+        "cursor-pointer overflow-hidden rounded-xl border-0 shadow-sm hover:shadow-md snap-start shrink-0 w-[280px] md:w-[320px] h-32",
         className
       )}
       onClick={onClick}

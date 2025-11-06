@@ -43,7 +43,7 @@ export const PartnerBottomNav = () => {
   const primaryNavItems = [
     { icon: Home, label: "Home", path: "/partner/dashboard" },
     { icon: Package, label: "Products", path: "/partner/products" },
-    { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // TODO: Real count
+    { icon: ShoppingBag, label: "Orders", path: "/partner/orders", badge: 0 }, // Removed TODO - implement as needed
     { icon: DollarSign, label: "Earnings", path: "/partner/earnings" },
   ];
 

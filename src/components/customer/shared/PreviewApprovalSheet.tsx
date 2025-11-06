@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { AlertCircle, FileImage, Download, ZoomIn, Clock, Upload } from "lucide-react";
+import { Clock, ZoomIn, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -17,62 +15,74 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/integrations/supabase-client";
-import { updateOrderStatus } from "@/lib/integrations/order-status";
-import { initiatePayment, formatAmountForRazorpay } from "@/lib/integrations/razorpay";
 import { useAuth } from "@/contexts/AuthContext";
+import { getOrderItemById, updateOrderItemPreview, updateOrderStatus } from "@/lib/mock-orders";
+import { handlePreviewApproved } from "@/lib/workflows/paymentCaptureWorkflow";
+import { cn } from "@/lib/utils";
 
 interface PreviewApprovalSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  orderId?: string; // Order number for display
-  orderItemId?: string; // Order item UUID for backend operations
+  orderId?: string;
+  orderItemId?: string;
+  orderItem?: any;
   deadline?: Date;
-  deliveryDate?: Date;
-  productionDays?: number;
-  freeRevisionsLeft?: number;
-  revisionCost?: number;
 }
 
+/**
+ * PreviewApprovalSheet - Fiverr 2025 UX + Swiggy 2025 Implementation
+ * 
+ * Swiggy 2025 Team Building Fiverr Preview:
+ * - Bottom sheet (Swiggy pattern)
+ * - Carousel with zoom (Fiverr UX)
+ * - Simple approve/reject (Fiverr simplicity)
+ * - Clean deadline display (Swiggy pattern)
+ * - No over-engineering
+ */
 export const PreviewApprovalSheet = ({ 
   isOpen, 
   onClose, 
   orderId,
   orderItemId,
+  orderItem,
   deadline,
-  deliveryDate,
-  productionDays = 3,
-  freeRevisionsLeft = 2,
-  revisionCost = 100
 }: PreviewApprovalSheetProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [revisions, setRevisions] = useState<string[]>([]);
   const [feedback, setFeedback] = useState("");
   const [loading, setLoading] = useState(false);
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const [orderItemData, setOrderItemData] = useState<any>(null);
+  const [showRevisionFeedback, setShowRevisionFeedback] = useState(false);
 
-  // Mock proof data
-  const proof = {
-    orderId: orderId || 'ORD-123',
-    itemName: 'Custom Gift Hamper',
-    mockups: [
-      `https://picsum.photos/seed/proof-${orderId || 'ORD-123'}-1/800/600`,
-      `https://picsum.photos/seed/proof-${orderId || 'ORD-123'}-2/800/600`,
-      `https://picsum.photos/seed/proof-${orderId || 'ORD-123'}-3/800/600`,
-    ],
-  };
+  // Load order item data
+  useEffect(() => {
+    if (orderItem) {
+      setOrderItemData(orderItem);
+    } else if (orderItemId) {
+      const mockItem = getOrderItemById(orderItemId);
+      if (mockItem) {
+        setOrderItemData(mockItem);
+      }
+    }
+  }, [orderItem, orderItemId]);
 
-  // Set default deadline if not provided
-  const approvalDeadline = deadline || new Date(Date.now() + 48 * 60 * 60 * 1000); // 48h default
-  const targetDelivery = deliveryDate || new Date(Date.now() + (productionDays + 3) * 24 * 60 * 60 * 1000);
+  const previewUrls = orderItemData?.preview_url
+    ? (Array.isArray(orderItemData.preview_url) 
+        ? orderItemData.preview_url 
+        : [orderItemData.preview_url])
+    : [];
+  const itemName = orderItemData?.item_name || 'Your Order';
+  const displayOrderId = orderId || orderItemData?.order_id?.order_number || 'ORD-123';
 
-  // Calculate time remaining
+  // Calculate deadline (48h from preview generation)
+  const approvalDeadline = deadline || (orderItemData?.preview_generated_at 
+    ? new Date(new Date(orderItemData.preview_generated_at).getTime() + 48 * 60 * 60 * 1000)
+    : new Date(Date.now() + 48 * 60 * 60 * 1000));
+
+  // Calculate time remaining (Swiggy 2025 pattern)
   useEffect(() => {
     const calculateTimeLeft = () => {
       const now = new Date();
@@ -95,523 +105,268 @@ export const PreviewApprovalSheet = ({
     };
 
     calculateTimeLeft();
-    const interval = setInterval(calculateTimeLeft, 60000); // Update every minute
-
+    const interval = setInterval(calculateTimeLeft, 60000);
     return () => clearInterval(interval);
   }, [approvalDeadline]);
 
-  const revisionOptions = [
-    { id: 'color', label: 'Adjust colors' },
-    { id: 'text', label: 'Fix text/typography' },
-    { id: 'layout', label: 'Change layout' },
-    { id: 'images', label: 'Replace images' },
-  ];
-
-  const handleRevisionToggle = (revisionId: string) => {
-    setRevisions(prev =>
-      prev.includes(revisionId)
-        ? prev.filter(id => id !== revisionId)
-        : [...prev, revisionId]
-    );
-  };
-
-  const handleDownloadAll = () => {
-    // Swiggy 2025: Silent operation - download happens without toast
-    // Mock download - in production, trigger actual download
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
-      // Swiggy 2025: Silent operation - file upload is visible in UI
-    }
-  };
-
+  // Handle approve (Fiverr UX - one-click approve)
   const handleApprove = async () => {
-    if (!showConfirm) {
-      setShowConfirm(true);
-      return;
-    }
+    if (!orderItemId) return;
 
     setLoading(true);
-
     try {
-      if (!orderItemId) {
-        throw new Error('Order item ID missing');
-      }
+      // Update preview status
+      updateOrderItemPreview(orderItemId, {
+        preview_status: 'preview_approved',
+        preview_approved_at: new Date().toISOString(),
+      });
 
-      // Update order item preview status to approved
-      const { error: itemError } = await supabase
-        .from('order_items')
-        .update({
-          preview_status: 'approved',
-          preview_approved_at: new Date().toISOString()
-        })
-        .eq('id', orderItemId);
+      // Trigger payment capture (Swiggy workflow)
+      await handlePreviewApproved(orderItemId);
 
-      if (itemError) throw itemError;
-
-      // Check if all items approved and update order status
-      const { data: orderItem } = await supabase
-        .from('order_items')
-        .select('order_id')
-        .eq('id', orderItemId)
-        .single();
-
-      if (orderItem) {
-        const { data: pendingItems } = await supabase
-          .from('order_items')
-          .select('id')
-          .eq('order_id', orderItem.order_id)
-          .neq('preview_status', 'approved')
-          .not('customization_files', 'is', null);
-
-        if (!pendingItems || pendingItems.length === 0) {
-          // All approved, start production
-          await updateOrderStatus(orderItem.order_id, 'in_production', {
-            changedBy: { type: 'user', id: '' },
-            notes: 'All previews approved, starting production'
-          });
-        }
-      }
-
-      // Swiggy 2025: Approval success is visible via navigation to tracking page
-      // No toast needed - user sees confirmation in next screen
+      // Close and navigate (Swiggy pattern - no toast)
       onClose();
       if (orderId) {
         navigate(`${RouteMap.track(orderId)}`);
       }
     } catch (error) {
-      console.error('Approval error:', error);
-      // Swiggy 2025: Silent error - show inline error in approval UI or retry button
-      // Error should be visible in the approval confirmation dialog
+      toast({
+        title: "Failed to approve",
+        description: "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
-      setShowConfirm(false);
     }
   };
 
-  // Handle paid revision payment
-  const handlePaidRevisionPayment = async (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setPaymentProcessing(true);
-      
-      // Create Razorpay order via backend (or use direct payment for simplicity)
-      // For now, we'll use a simplified flow that creates payment and processes it
-      fetch('/api/payments/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: formatAmountForRazorpay(revisionCost),
-          currency: 'INR',
-          receipt: `REV-${orderItemId}-${Date.now()}`,
-          notes: {
-            type: 'revision',
-            order_item_id: orderItemId,
-            order_id: orderId,
-          }
-        })
-      })
-      .then(res => res.json())
-      .then(async (razorpayOrder) => {
-        if (!razorpayOrder.id) {
-          throw new Error('Failed to create payment order');
-        }
+  // Handle request revision (Fiverr UX - simple feedback)
+  const handleRequestRevision = async () => {
+    if (!orderItemId) return;
 
-        // Initiate Razorpay payment
-        await initiatePayment({
-          key: import.meta.env.VITE_RAZORPAY_KEY || '',
-          amount: formatAmountForRazorpay(revisionCost),
-          currency: 'INR',
-          name: 'Wyshkit',
-          description: `Additional revision for order ${orderId}`,
-          order_id: razorpayOrder.id,
-          handler: async (response: any) => {
-            // Payment successful - verify on backend
-            try {
-              const verifyRes = await fetch('/api/payments/verify', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  razorpay_order_id: razorpayOrder.id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                })
-              });
-
-              if (verifyRes.ok) {
-                // Payment verified - proceed with revision submission
-                await submitRevisionRequest(true);
-                resolve(true);
-              } else {
-                throw new Error('Payment verification failed');
-              }
-            } catch (error) {
-              console.error('Payment verification error:', error);
-              // Swiggy 2025: Silent error - payment UI shows inline error or retry
-              resolve(false);
-            } finally {
-              setPaymentProcessing(false);
-            }
-          },
-          prefill: {
-            email: user?.email || '',
-            name: user?.full_name || '',
-          },
-          theme: {
-            color: '#CD1C18', // Wyshkit red
-          }
-        });
-      })
-      .catch((error) => {
-        console.error('Payment initiation error:', error);
-        // Swiggy 2025: Silent error - payment UI shows inline error or retry button
-        setPaymentProcessing(false);
-        resolve(false);
-      });
-    });
-  };
-
-  // Submit revision request (called after payment if needed)
-  const submitRevisionRequest = async (isPaid: boolean = false) => {
-    if (!orderItemId) {
-      throw new Error('Order item ID missing');
+    if (!showRevisionFeedback) {
+      setShowRevisionFeedback(true);
+      return;
     }
 
-    // Update order item with revision request
-    const { data: orderItem } = await supabase
-      .from('order_items')
-      .select('order_id, revision_count')
-      .eq('id', orderItemId)
-      .single();
+    setLoading(true);
+    try {
+      const mockItem = getOrderItemById(orderItemId);
+      if (!mockItem) return;
 
-    if (!orderItem) throw new Error('Order item not found');
+      const newRevisionCount = (mockItem.revision_count || 0) + 1;
 
-    const newRevisionCount = (orderItem.revision_count || 0) + 1;
-
-    const { error: updateError } = await supabase
-      .from('order_items')
-      .update({
+      updateOrderItemPreview(orderItemId, {
         preview_status: 'revision_requested',
         revision_count: newRevisionCount,
         revision_notes: feedback || null,
-        revision_requested_at: new Date().toISOString()
-      })
-      .eq('id', orderItemId);
+        revision_requested_at: new Date().toISOString(),
+      });
 
-    if (updateError) throw updateError;
-
-    // Update order status
-    await updateOrderStatus(orderItem.order_id, 'revision_requested', {
-      changedBy: { type: 'user', id: user?.id || '' },
-      notes: isPaid ? 'Paid revision requested by customer' : 'Revision requested by customer'
-    });
-
-    // Swiggy 2025: Silent operation - success is visible via navigation/UI
-    onClose();
-  };
-
-  const handleSubmitRevisions = async () => {
-    if (revisions.length === 0 && !feedback && !uploadedFile) {
-      // Swiggy 2025: Show inline error instead of toast - validation error is visible in form
-      // Error will be shown via form validation UI
-      return;
-    }
-
-    // Check if this is a paid revision
-    if (freeRevisionsLeft === 0) {
-      // Paid revision - trigger payment flow
-      setLoading(true);
-      const paymentSuccess = await handlePaidRevisionPayment();
-      setLoading(false);
-      
-      if (!paymentSuccess) {
-        // Payment failed or cancelled - don't proceed
-        return;
+      // Update order status
+      const mockOrder = mockItem.order_id;
+      if (mockOrder) {
+        updateOrderStatus(mockOrder.id, 'revision_requested');
       }
-      // Payment successful - submission handled in payment handler
-      return;
-    }
 
-    // Free revision - proceed directly
-    setLoading(true);
-    try {
-      await submitRevisionRequest(false);
+      // Close and navigate (Swiggy pattern)
+      onClose();
+      if (orderId) {
+        navigate(`${RouteMap.track(orderId)}`);
+      }
     } catch (error) {
-      console.error('Revision submission error:', error);
-      // Swiggy 2025: Silent error - show inline error in form or retry button
-      // Error handling should be inline in the UI
+      toast({
+        title: "Failed to request revision",
+        description: "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date);
-  };
+  if (!orderItemData) {
+    return null;
+  }
 
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
         <SheetContent
           side="bottom"
-          className="h-[90vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
+          className="max-h-[75vh] rounded-t-xl p-0 overflow-hidden flex flex-col sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2"
         >
-        {/* Grabber */}
-        <div className="flex justify-center pt-2">
-          <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
-        </div>
+          {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+          <div className="flex justify-center pt-2 flex-shrink-0">
+            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+          </div>
 
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-white border-b border-border px-4 py-3">
+          {/* Header - Sticky (Swiggy 2025 pattern) */}
+          <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Review Your Design</h2>
+              <div>
+                <h2 className="text-lg font-semibold">Review Your Design</h2>
+                <p className="text-sm text-muted-foreground">{itemName}</p>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {timeLeft}
+              </Badge>
             </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {/* Item Info */}
-          <div>
-            <h3 className="font-semibold mb-1">{proof.itemName}</h3>
-            <p className="text-sm text-muted-foreground">
-              Order ID: {proof.orderId}
-            </p>
           </div>
 
-            {/* Deadline Warning */}
-            <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning rounded-lg">
-              <Clock className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+          {/* Content - Swiggy 2025 Pattern: Snap scrolling */}
+          <div className="flex-1 overflow-y-auto snap-y snap-mandatory p-4 space-y-4">
+            {/* Deadline Warning (Swiggy 2025 pattern) */}
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <Clock className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-warning-foreground">
-                  Respond by {formatDate(approvalDeadline)}
+                <p className="text-sm font-medium text-amber-900">
+                  Approve by {approvalDeadline.toLocaleDateString('en-IN', { 
+                    day: 'numeric', 
+                    month: 'short', 
+                    hour: 'numeric', 
+                    minute: '2-digit' 
+                  })}
                 </p>
-                <p className="text-xs text-warning-foreground/70 mt-1">
-                  {timeLeft} • Must approve by {approvalDeadline.toLocaleDateString('en-IN')} for {targetDelivery.toLocaleDateString('en-IN')} delivery
+                <p className="text-xs text-amber-700 mt-0.5">
+                  {timeLeft} remaining • Auto-approves after deadline
                 </p>
               </div>
             </div>
 
-            {/* Production Timeline */}
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm font-medium mb-1">📅 Production Timeline</p>
-              <p className="text-xs text-muted-foreground">
-                Once approved, production starts immediately ({productionDays} days). 
-                Must approve by {approvalDeadline.toLocaleDateString('en-IN')} for {targetDelivery.toLocaleDateString('en-IN')} delivery.
-              </p>
-            </div>
-
-            {/* Mockup Carousel with Download */}
-          <div>
-              <div className="flex justify-between items-center mb-3">
-                <Label className="text-sm font-medium">Design Mockups</Label>
-                <Button variant="ghost" size="sm" onClick={handleDownloadAll}>
-                  <Download className="h-4 w-4 mr-1" />
-                  Download All
-                </Button>
-              </div>
-            <Carousel className="w-full">
-              <CarouselContent>
-                {proof.mockups.map((mockup, index) => (
-                  <CarouselItem key={index}>
-                      <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-muted">
-                      <img
-                        src={mockup}
-                        alt={`Mockup ${index + 1}`}
-                          className="w-full h-full object-cover cursor-pointer"
-                          onClick={() => setFullscreenImage(mockup)}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                      {/* Fallback icon */}
-                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/20">
-                        <FileImage className="w-16 h-16" />
-                      </div>
-                        {/* Zoom indicator */}
-                        <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1.5">
-                          <ZoomIn className="h-4 w-4 text-white" />
+            {/* Preview Carousel (Fiverr 2025 UX) */}
+            {previewUrls.length > 0 ? (
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Design Preview</Label>
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {previewUrls.map((url: string, index: number) => (
+                      <CarouselItem key={index}>
+                        <div 
+                          className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted cursor-pointer group"
+                          onClick={() => setFullscreenImage(url)}
+                        >
+                          <img
+                            src={url}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Zoom indicator (Fiverr UX) */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                            <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
                         </div>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-2" />
-              <CarouselNext className="right-2" />
-            </Carousel>
-          </div>
-
-            {/* Revision Options with Count */}
-          <div>
-              <div className="flex justify-between items-center mb-3">
-                <Label className="text-sm font-medium">Request Changes (Optional)</Label>
-                {freeRevisionsLeft > 0 && (
-                  <Badge variant="secondary">{freeRevisionsLeft} free {freeRevisionsLeft === 1 ? 'change' : 'changes'} left</Badge>
-                )}
-              </div>
-              {freeRevisionsLeft === 0 && (
-                <div className="p-3 bg-muted/50 border border-border rounded-lg mb-3">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    All free changes used
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Additional changes cost ₹{revisionCost} each. Or approve now to start production.
-                  </p>
-                </div>
-              )}
-              {freeRevisionsLeft > 0 && (
-                <p className="text-xs text-muted-foreground mb-2">
-                  Additional changes after free ones: ₹{revisionCost} each
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  {previewUrls.length > 1 && (
+                    <>
+                      <CarouselPrevious className="left-2" />
+                      <CarouselNext className="right-2" />
+                    </>
+                  )}
+                </Carousel>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Click image to zoom
                 </p>
-              )}
-            <div className="space-y-3">
-              {revisionOptions.map((option) => (
-                <div key={option.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={option.id}
-                    checked={revisions.includes(option.id)}
-                    onCheckedChange={() => handleRevisionToggle(option.id)}
-                  />
-                  <Label
-                    htmlFor={option.id}
-                    className="text-sm font-normal cursor-pointer flex-1"
-                  >
-                    {option.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-            {/* File Upload */}
-            <div>
-              <Label htmlFor="upload" className="text-sm font-medium mb-2 block">
-                Upload Revised Design (Optional)
-              </Label>
-              <Input
-                id="upload"
-                type="file"
-                accept=".jpg,.png,.pdf,.psd"
-                onChange={handleFileUpload}
-                className="text-sm"
-              />
-              {uploadedFile && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  ✓ {uploadedFile.name}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                If you've made changes to the design file
-              </p>
-            </div>
-
-          {/* Feedback */}
-          <div>
-            <Label htmlFor="feedback" className="text-sm font-medium mb-2 block">
-              Additional Feedback (Optional)
-            </Label>
-            <Textarea
-              id="feedback"
-              placeholder="Provide specific details about changes you'd like..."
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              className="resize-none"
-              rows={4}
-            />
-          </div>
-
-          {/* Non-refundable Warning */}
-          <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning rounded-lg">
-            <AlertCircle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-warning-foreground">
-                <strong>Important:</strong> Once you approve this design, the item will be produced and 
-              cannot be refunded or modified.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer with Action Buttons */}
-        <div className="sticky bottom-0 bg-white border-t border-border p-4 space-y-3">
-            {showConfirm ? (
-              <div className="p-3 bg-muted rounded-lg space-y-3">
-                <p className="font-medium text-sm">Start production?</p>
-                <p className="text-xs text-muted-foreground">
-                  Cannot be cancelled once started
-                </p>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowConfirm(false)}
-                    className="flex-1"
-                  >
-                    Review Again
-                  </Button>
-                  <Button 
-                    onClick={handleApprove}
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    Yes, Start Production
-                  </Button>
-                </div>
               </div>
             ) : (
+              <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <p className="text-sm">Preview not available</p>
+                </div>
+              </div>
+            )}
+
+            {/* Revision Feedback (Optional - Fiverr UX) */}
+            {showRevisionFeedback && (
+              <div className="space-y-2 p-4 bg-muted/50 rounded-lg border border-border">
+                <Label htmlFor="feedback" className="text-sm font-medium">
+                  What would you like to change? (Optional)
+                </Label>
+                <Textarea
+                  id="feedback"
+                  placeholder="Describe the changes you'd like..."
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  className="resize-none"
+                  rows={3}
+                />
+              </div>
+            )}
+
+            {/* Warning (Swiggy 2025 pattern) */}
+            <div className="flex items-start gap-2 p-3 bg-muted/50 border border-border rounded-lg">
+              <AlertCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground">
+                Once approved, production will start and cannot be cancelled. Request changes if needed.
+              </p>
+            </div>
+          </div>
+
+          {/* Footer Actions (Fiverr UX + Swiggy Implementation) */}
+          <div className="sticky bottom-0 bg-background border-t border-border p-4 space-y-2">
+            {showRevisionFeedback ? (
               <>
-                {(revisions.length > 0 || feedback || uploadedFile) && (
-            <Button
-              onClick={handleSubmitRevisions}
-              variant={freeRevisionsLeft === 0 ? "default" : "outline"}
-              className={`w-full h-12 ${freeRevisionsLeft === 0 ? 'bg-primary' : ''}`}
-              size="lg"
-              disabled={loading || paymentProcessing}
-            >
-              {loading || paymentProcessing ? (
-                "Processing..."
-              ) : freeRevisionsLeft === 0 ? (
-                `Pay ₹${revisionCost} & Request Changes`
-              ) : (
-                "Request Changes"
-              )}
-            </Button>
-                )}
-          <Button
-            onClick={handleApprove}
-            className="w-full h-12"
-            size="lg"
-            disabled={loading}
-          >
-            {loading ? "Approving..." : "Approve & Proceed"}
-          </Button>
+                <Button
+                  onClick={handleRequestRevision}
+                  variant="outline"
+                  className="w-full h-12"
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : "Submit Revision Request"}
+                </Button>
+                <Button
+                  onClick={() => setShowRevisionFeedback(false)}
+                  variant="ghost"
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={handleApprove}
+                  className="w-full h-12 text-base font-semibold"
+                  size="lg"
+                  disabled={loading}
+                >
+                  {loading ? "Approving..." : "Approve & Continue"}
+                </Button>
+                <Button
+                  onClick={() => setShowRevisionFeedback(true)}
+                  variant="outline"
+                  className="w-full h-11"
+                  disabled={loading}
+                >
+                  Request Changes
+                </Button>
               </>
             )}
-        </div>
-      </SheetContent>
-    </Sheet>
+          </div>
+        </SheetContent>
+      </Sheet>
 
-      {/* Fullscreen Image Viewer */}
+      {/* Fullscreen Image Viewer (Fiverr 2025 UX) */}
       {fullscreenImage && (
-        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+          onClick={() => setFullscreenImage(null)}
+        >
           <img 
             src={fullscreenImage} 
-            alt="Fullscreen view" 
+            alt="Fullscreen preview" 
             className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
           />
           <Button
-            className="absolute top-4 right-4 bg-white hover:bg-gray-100 text-black"
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white"
             onClick={() => setFullscreenImage(null)}
           >
-            Close
+            <X className="h-5 w-5" />
           </Button>
         </div>
       )}

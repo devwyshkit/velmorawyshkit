@@ -25,12 +25,15 @@ export const LoginPromptSheet = ({ isOpen, onClose }: LoginPromptSheetProps) => 
     <Sheet open={isOpen} onOpenChange={onClose} modal={false}>
       <SheetContent
         side="bottom"
-        className="h-auto rounded-t-xl sm:max-w-[480px] sm:left-1/2 sm:-translate-x-1/2"
+        className="max-h-[75vh] rounded-t-xl sm:max-w-[480px] sm:left-1/2 sm:-translate-x-1/2 flex flex-col overflow-hidden"
       >
-        {/* Grabber */}
-        <div className="flex justify-center pt-2 pb-4">
+        {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+        <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
+
+        {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-4">
 
         {/* Header */}
         <div className="px-4 pb-4">
@@ -72,6 +75,7 @@ export const LoginPromptSheet = ({ isOpen, onClose }: LoginPromptSheetProps) => 
               Continue browsing as guest
             </button>
           </div>
+        </div>
         </div>
       </SheetContent>
     </Sheet>

@@ -107,23 +107,11 @@ CREATE POLICY "Users can view own refunds"
 
 CREATE POLICY "Admins can view all transactions"
   ON payment_transactions FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid()
-      AND role IN ('admin', 'kam')
-    )
-  );
+  USING (is_admin_user(auth.uid()));
 
 CREATE POLICY "Admins can view all refunds"
   ON payment_refunds FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE id = auth.uid()
-      AND role IN ('admin', 'kam')
-    )
-  );
+  USING (is_admin_user(auth.uid()));
 
 -- Triggers
 CREATE TRIGGER update_payment_transactions_updated_at

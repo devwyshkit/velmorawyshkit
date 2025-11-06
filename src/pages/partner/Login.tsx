@@ -179,22 +179,22 @@ export const PartnerLogin = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Header with Logo - Swiggy Pattern */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
+        <div className="container flex h-14 items-center px-4">
+          <img 
+            src="/wyshkit-business-logo.png" 
+            alt="Wyshkit Business" 
+            className="h-8 w-auto object-contain"
+            width="120"
+            height="32"
+          />
+        </div>
+      </header>
+
       {/* Mobile-first: Full-page layout, no Card wrapper */}
       <div className="flex-1 flex flex-col p-4 md:p-8 md:items-center md:justify-center">
         <div className="w-full max-w-md mx-auto space-y-6 md:space-y-8">
-          {/* Logo */}
-          <div className="flex justify-center pt-8 md:pt-0">
-            <Link to="/">
-              <img
-                src="/wyshkit-business-logo.png"
-                alt="Wyshkit Partner Portal"
-                className="h-12 cursor-pointer"
-                width="200"
-                height="48"
-              />
-            </Link>
-          </div>
-
           {/* Title */}
           <div className="text-center space-y-1">
             <h1 className="text-2xl md:text-3xl font-bold">Partner Login</h1>

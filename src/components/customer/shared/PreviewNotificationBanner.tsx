@@ -4,9 +4,10 @@ import { RouteMap } from "@/routes";
 import { X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { supabase, isSupabaseConfigured } from "@/lib/integrations/supabase-client";
+// Phase 1 Cleanup: Removed Supabase imports - pure mock mode
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { getOrdersByCustomer } from "@/lib/mock-orders";
 
 export const PreviewNotificationBanner = () => {
   const navigate = useNavigate();
@@ -19,128 +20,60 @@ export const PreviewNotificationBanner = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    if (!user && !localStorage.getItem('mock_session')) return;
-
-    // Check if Supabase is properly configured
-    if (!isSupabaseConfigured()) {
-      // Supabase not configured - silently skip (expected behavior)
-      return;
-    }
+    if (!user) return;
 
     const checkPreviewStatus = async () => {
       try {
-        // Fetch all orders with preview_ready items
-        const { data: orderItems, error } = await supabase
-          .from('order_items')
-          .select(`
-            id,
-            preview_status,
-            order_id,
-            orders!inner (
-              id,
-              order_number,
-              customer_id
-            ),
-            store_items!inner (
-              name
-            )
-          `)
-          .eq('preview_status', 'preview_ready');
-
-        if (error) {
-          // Swiggy 2025: Silent error handling - don't spam console or show toasts
-          // Only log if it's not a network/connection error
-          if (!error.message.includes('Failed to fetch') && !error.message.includes('ERR_NAME_NOT_RESOLVED')) {
-            console.error('Error fetching preview ready items:', error);
+        // Phase 1 Cleanup: Always use mock orders - no conditionals
+        const mockOrders = getOrdersByCustomer(user.id);
+        
+        // Find orders with preview_ready items
+        const previewReadyItems: Array<{
+          orderId: string;
+          orderNumber?: string;
+          itemName?: string;
+        }> = [];
+        
+        for (const order of mockOrders) {
+          // Swiggy 2025: Only show preview notification if item has personalizations
+          const readyItem = order.order_items.find((item: any) => 
+            item.preview_status === 'preview_ready' &&
+            item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+          );
+          
+          if (readyItem) {
+            previewReadyItems.push({
+              orderId: order.id,
+              orderNumber: order.order_number,
+              itemName: readyItem.item_name,
+            });
           }
-          return;
         }
-
-        if (orderItems && orderItems.length > 0) {
-          // Filter by current user's orders
-          const userOrders = orderItems.filter((item: any) => 
-            item.orders?.customer_id === user?.id || 
-            localStorage.getItem('mock_session') // Include mock users
-          );
-
-          const uniqueOrders = Array.from(
-            new Map(
-              userOrders.map((item: any) => [
-                item.order_id,
-                {
-                  orderId: item.order_id,
-                  orderNumber: item.orders?.order_number,
-                  itemName: item.store_items?.name,
-                }
-              ])
-            ).values()
-          );
-
-          setPreviewReadyOrders(uniqueOrders as any[]);
-          setIsVisible(uniqueOrders.length > 0);
-        } else {
-          setPreviewReadyOrders([]);
-          setIsVisible(false);
-        }
+        
+        // Remove duplicates
+        const uniqueOrders = Array.from(
+          new Map(
+            previewReadyItems.map(item => [item.orderId, item])
+          ).values()
+        );
+        
+        setPreviewReadyOrders(uniqueOrders);
+        setIsVisible(uniqueOrders.length > 0);
       } catch (error: any) {
-        // Swiggy 2025: Silent error handling - don't spam console
-        // Network errors are expected when Supabase is unavailable
-        if (error?.message && 
-            !error.message.includes('Failed to fetch') && 
-            !error.message.includes('ERR_NAME_NOT_RESOLVED')) {
-          console.error('Error checking preview status:', error);
-        }
+        // Silent error handling - show empty state (Swiggy 2025 pattern)
+        console.error('Failed to check preview status:', error);
       }
     };
 
     checkPreviewStatus();
 
-    // Subscribe to real-time updates
-    // Only subscribe if Supabase is properly configured
-    let channel: any = null;
-    try {
-      channel = supabase
-        .channel('preview-notifications')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'order_items',
-            filter: 'preview_status=eq.preview_ready',
-          },
-          (payload) => {
-            checkPreviewStatus();
-          }
-        )
-        .subscribe((status) => {
-          // Handle subscription errors silently
-          if (status === 'SUBSCRIBED') {
-            // Successfully subscribed
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            // Connection failed - silently fail, don't retry
-            if (channel) {
-              try {
-                supabase.removeChannel(channel);
-              } catch {
-                // Silent cleanup error
-              }
-            }
-          }
-        });
-    } catch (error) {
-      // Swiggy 2025: Silent error handling - WebSocket subscription failures are non-critical
-      // Preview banner will just not show realtime updates, but initial check will still work
-    }
+    // Phase 5: Optimized polling - Swiggy 2025 pattern (20s for better UX)
+    const intervalId = setInterval(() => {
+      checkPreviewStatus();
+    }, 20000);
 
     return () => {
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch (error) {
-          // Silent cleanup error
-        }
-      }
+      clearInterval(intervalId);
     };
   }, [user]);
 
@@ -160,10 +93,11 @@ export const PreviewNotificationBanner = () => {
 
   return (
     <div className={cn(
-      "fixed top-0 left-0 right-0 z-50 bg-primary text-primary-foreground shadow-lg",
-      "animate-in slide-in-from-top duration-300"
+      "fixed top-0 left-0 right-0 z-[60] bg-primary text-primary-foreground shadow-lg",
+      "animate-in slide-in-from-top duration-300 ease-out",
+      isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full"
     )}>
-      <div className="max-w-screen-xl mx-auto px-4 py-3">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 flex-1">
             <ImageIcon className="h-5 w-5" />

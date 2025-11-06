@@ -76,7 +76,7 @@ export const OrderDetailsSheet = ({
         .single();
 
       if (orderError || !order) {
-        console.error('Error loading order:', orderError);
+        // Silent error handling - show empty state (Swiggy 2025 pattern)
         setLoading(false);
         return;
       }
@@ -88,7 +88,7 @@ export const OrderDetailsSheet = ({
         .eq('order_id', orderId);
 
       if (itemsError) {
-        console.error('Error loading order items:', itemsError);
+        // Silent error handling - continue with empty items (Swiggy 2025 pattern)
       }
 
       setOrderDetails({
@@ -107,7 +107,7 @@ export const OrderDetailsSheet = ({
         items: items || [],
       });
     } catch (error) {
-      console.error('Error loading order details:', error);
+      // Silent error handling - show empty state (Swiggy 2025 pattern)
     } finally {
       setLoading(false);
     }
@@ -160,25 +160,27 @@ export const OrderDetailsSheet = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 overflow-y-auto">
-        {/* Grabber */}
-        <div className="flex justify-center pt-2 pb-4">
+      <SheetContent side="bottom" className="max-h-[75vh] rounded-t-xl sm:max-w-[640px] sm:left-1/2 sm:-translate-x-1/2 flex flex-col overflow-hidden">
+        {/* Grabber - Outside scroll container (Swiggy 2025 pattern) */}
+        <div className="flex justify-center pt-2 pb-4 flex-shrink-0">
           <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
         </div>
 
-        <SheetHeader className="text-left pb-4">
-          <SheetTitle>Order Details</SheetTitle>
-          <SheetDescription>Complete breakdown of your order</SheetDescription>
-        </SheetHeader>
+        {/* Scrollable Content - Swiggy 2025 Pattern: Snap scrolling */}
+        <div className="flex-1 overflow-y-auto snap-y snap-mandatory px-6">
+          <SheetHeader className="text-left pb-4">
+            <SheetTitle>Order Details</SheetTitle>
+            <SheetDescription>Complete breakdown of your order</SheetDescription>
+          </SheetHeader>
 
-        {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        ) : orderDetails ? (
-          <div className="space-y-4 mt-6">
+          {loading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          ) : orderDetails ? (
+            <div className="space-y-4 mt-6">
             {/* Order Header */}
             <Card>
               <CardContent className="p-4">
@@ -342,10 +344,12 @@ export const OrderDetailsSheet = ({
           <div className="text-center py-8 text-muted-foreground">
             <p>Order not found</p>
           </div>
-        )}
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
 };
+
 
 

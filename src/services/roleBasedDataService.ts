@@ -32,8 +32,8 @@ export interface AlertItem {
 class RoleBasedDataService {
   getProductsForRole(role: UserRole) {
     const baseProducts = [
-      { id: '1', name: 'Corporate Cotton T-Shirt', category: 'Apparel', price: 199, stock: 156, status: 'active' as const, sales: 89, views: 1247, rating: 4.7, image: '/placeholder.svg', sku: 'TSH-001', customizable: true, moq: 50, createdAt: '2024-01-15' },
-      { id: '2', name: 'Premium Coffee Mug', category: 'Drinkware', price: 299, stock: 23, status: 'active' as const, sales: 156, views: 892, rating: 4.5, image: '/placeholder.svg', sku: 'MUG-002', customizable: true, moq: 25, createdAt: '2024-01-10' }
+      { id: '1', name: 'Corporate Cotton T-Shirt', category: 'Apparel', price: 199, stock: 156, status: 'active' as const, sales: 89, views: 1247, rating: 4.7, image: '/placeholder.svg', sku: 'TSH-001', customizable: true, createdAt: '2024-01-15' },
+      { id: '2', name: 'Premium Coffee Mug', category: 'Drinkware', price: 299, stock: 23, status: 'active' as const, sales: 156, views: 892, rating: 4.5, image: '/placeholder.svg', sku: 'MUG-002', customizable: true, createdAt: '2024-01-10' }
     ];
     switch (role) {
       case 'seller': return baseProducts;

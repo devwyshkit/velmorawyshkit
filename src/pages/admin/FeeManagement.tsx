@@ -36,7 +36,7 @@ export const FeeManagement: React.FC<FeeManagementProps> = () => {
   );
   const [platformFee, setPlatformFee] = useState({
     enabled: true,
-    fixedFee: 10,
+    fixedFee: 15, // ₹15 base fee (Swiggy 2025 pattern)
     percentageFee: 0,
     categoryVariations: {} as Record<string, number>
   });

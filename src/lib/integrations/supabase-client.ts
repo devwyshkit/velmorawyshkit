@@ -42,7 +42,7 @@ export const supabase = hasRealCredentials
       }
     });
 
-// Guest cart deprecated and removed
+// Guest cart removed - authentication required for all cart operations (Swiggy 2025 pattern)
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = (): boolean => {
@@ -51,6 +51,16 @@ export const isSupabaseConfigured = (): boolean => {
 
 // Check if user is authenticated
 export const isAuthenticated = async () => {
+  // Check mock mode first - if enabled, mock user always exists
+  try {
+    const { isMockModeEnabled } = await import('@/lib/mock-mode');
+    if (isMockModeEnabled()) {
+      return true; // Mock mode always has a user
+    }
+  } catch {
+    // Mock mode module not available, continue with Supabase check
+  }
+  
   // If no real Supabase credentials, always return false (guest mode)
   if (!hasRealCredentials) {
     return false;
@@ -66,7 +76,7 @@ export const isAuthenticated = async () => {
           error.message.includes('NetworkError')) {
         return false; // Silent fail for network errors
       }
-      console.error('Auth error:', error);
+      // Silent error handling (Swiggy 2025 pattern)
       return false;
     }
     return !!session;
@@ -76,7 +86,7 @@ export const isAuthenticated = async () => {
     if (error?.message && 
         !error.message.includes('Failed to fetch') && 
         !error.message.includes('ERR_NAME_NOT_RESOLVED')) {
-      console.error('Auth exception:', error);
+      // Silent error handling (Swiggy 2025 pattern)
     }
     return false;
   }

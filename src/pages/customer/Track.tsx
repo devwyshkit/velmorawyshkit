@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import { Helmet } from "react-helmet-async";
 import { useParams, useNavigate } from "react-router-dom";
 import { RouteMap } from "@/routes";
-import { CheckCircle, Circle, Package, Truck, Home as HomeIcon, Phone, HelpCircle, RotateCcw, FileText, MessageCircle, Upload, Clock } from "lucide-react";
+import { CheckCircle, Circle, Package, Truck, Home as HomeIcon, Phone, HelpCircle, RotateCcw, FileText, MessageCircle, Upload, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
@@ -11,12 +12,15 @@ import { PorterDelhiveryTracking } from "@/components/customer/shared/PorterDelh
 import { QuickReorderSheet } from "@/components/customer/shared/QuickReorderSheet";
 import { PreviewApprovalSheet } from "@/components/customer/shared/PreviewApprovalSheet";
 import { OrderDetailsSheet } from "@/components/customer/shared/OrderDetailsSheet";
+import { DeliveryCompletionSheet } from "@/components/customer/shared/DeliveryCompletionSheet";
 import { getETAEstimate } from "@/lib/integrations/openai";
-import { supabase } from "@/lib/integrations/supabase-client";
-import { notificationService } from "@/services/notificationService";
+// Phase 1 Cleanup: Removed Supabase imports - pure mock mode
 import { RatingSheet } from "@/components/customer/RatingSheet";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { isDevelopment } from "@/lib/mock-mode";
+import { getOrderById, getOrdersByCustomer, prePopulateOrders, generatePreview, type Order } from "@/lib/mock-orders";
+import { downloadInvoice, downloadEstimate } from "@/lib/mock-invoice";
 
 interface TimelineStep {
   id: string;
@@ -25,6 +29,44 @@ interface TimelineStep {
   completed: boolean;
   active: boolean;
 }
+
+type OrderItem = {
+  id: string;
+  item_id?: string;
+  item_name?: string;
+  item_image_url?: string;
+  quantity?: number;
+  unit_price?: number;
+  total_price?: number;
+  personalizations?: Array<{ id: string; label?: string }>;
+  preview_status?: string | null;
+  preview_url?: string | string[] | null;
+  preview_generated_at?: string | null;
+  preview_approved_at?: string | null;
+  preview_deadline?: string | null;
+  revision_count?: number;
+  revision_notes?: string | null;
+  revision_requested_at?: string | null;
+  customization_files?: string | string[] | null;
+  order_id?: {
+    id: string;
+    order_number?: string;
+    status: string;
+    created_at: string;
+    scheduled_date?: string | null;
+  } | null;
+  orders?: {
+    id: string;
+    order_number?: string;
+    status: string;
+    created_at: string;
+    scheduled_date?: string | null;
+  } | null;
+  store_items?: {
+    id: string;
+    name?: string;
+  } | null;
+};
 
 export const Track = () => {
   const { id } = useParams();
@@ -36,83 +78,176 @@ export const Track = () => {
   const [timeline, setTimeline] = useState<TimelineStep[]>([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [hasCustomItems, setHasCustomItems] = useState(false);
-  const [orderData, setOrderData] = useState<any>(null);
+  const [orderData, setOrderData] = useState<OrderItem[] | null>(null);
   const [orderStatus, setOrderStatus] = useState<string>('confirmed');
-  const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isFileUploadOpen, setIsFileUploadOpen] = useState(false);
-  const [selectedOrderItemForUpload, setSelectedOrderItemForUpload] = useState<any>(null);
+  const [selectedOrderItemForUpload, setSelectedOrderItemForUpload] = useState<OrderItem | null>(null);
   const [isReorderOpen, setIsReorderOpen] = useState(false);
   const [isPreviewSheetOpen, setIsPreviewSheetOpen] = useState(false);
-  const [previewOrderItem, setPreviewOrderItem] = useState<any>(null);
+  const [previewOrderItem, setPreviewOrderItem] = useState<OrderItem | null>(null);
   const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
+  const [isDeliveryCompletionOpen, setIsDeliveryCompletionOpen] = useState(false);
+  const [hasShownDeliveryCompletion, setHasShownDeliveryCompletion] = useState(false);
   
-  // Fetch order data on mount
-  useEffect(() => {
-    const loadOrderData = async () => {
-      if (!user && !localStorage.getItem('mock_session')) return;
-      
-      try {
-        // Fetch order first to get status
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .select('id, status, created_at, order_number')
-          .eq('id', orderId)
-          .single();
-
-        if (orderError && !order) {
-          console.error('Error loading order:', orderError);
-          return;
-        }
-
-        if (order) {
-          setOrderStatus(order.status || 'confirmed');
-        }
-
-        // Fetch order items with preview status
-        const { data: items, error: itemsError } = await supabase
-          .from('order_items')
-          .select(`
-            *,
-            order_id (
-              id,
-              order_number,
-              status,
-              created_at
-            )
-          `)
-          .eq('order_id', orderId);
-        
-        if (items && !itemsError) {
-          setOrderItems(items);
-          setOrderData(items);
-          
-          // Check if any item needs preview (preview_status exists)
-          const hasPreview = items.some((item: any) => 
-            item.preview_status !== null && item.preview_status !== undefined
-          );
-          setHasCustomItems(hasPreview);
-
-          // Auto-open preview sheet if preview is ready (Swiggy 2025: inline preview)
-          // Check if navigated from PreviewNotificationBanner or URL hash
-          const hasPreviewReady = items.some((item: any) => item.preview_status === 'preview_ready');
-          const urlHash = window.location.hash;
-          if (hasPreviewReady && (urlHash === '#preview' || document.referrer.includes('preview'))) {
-            const readyItem = items.find((item: any) => item.preview_status === 'preview_ready');
-            if (readyItem) {
-              setPreviewOrderItem(readyItem);
-              setIsPreviewSheetOpen(true);
-              // Clear hash
-              window.history.replaceState(null, '', window.location.pathname);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading order data:', error);
-      }
-    };
+  // Helper function to refresh order data (Phase 4 cleanup - simplified)
+  // Enhanced lookup to handle multiple ID formats
+  const refreshOrderData = useCallback(() => {
+    if (!user) return;
     
-    loadOrderData();
+    try {
+      // Try multiple lookup strategies
+      let mockOrder = getOrderById(orderId);
+      
+      if (!mockOrder) {
+        // Try by order_number
+        const allOrders = getOrdersByCustomer(user.id);
+        mockOrder = allOrders.find(o => 
+          o.id === orderId || 
+          o.order_number === orderId ||
+          o.id === `mock_order_${orderId}` ||
+          o.order_number === `ORD-${orderId}` ||
+          // Handle cases where orderId might be just the numeric part
+          (orderId.startsWith('ORD-') && o.order_number === orderId) ||
+          (orderId.includes('mock_order_') && o.id === orderId) ||
+          // Handle URL format: /order/123/track where 123 is order_number
+          (o.order_number && o.order_number.endsWith(orderId.replace(/^ORD-/, '')))
+        ) || null;
+      }
+      
+      // Log for debugging
+      if (!mockOrder) {
+        console.warn('Order not found:', { 
+          orderId, 
+          userId: user.id,
+          availableOrders: getOrdersByCustomer(user.id).map(o => ({ id: o.id, order_number: o.order_number }))
+        });
+      } else {
+        console.log('Order found:', { id: mockOrder.id, order_number: mockOrder.order_number });
+      }
+      
+      if (mockOrder) {
+        setOrderStatus(mockOrder.status);
+        const mappedItems: OrderItem[] = mockOrder.order_items.map((item: Order['order_items'][0]) => ({
+          id: item.id,
+          item_id: item.item_id,
+          item_name: item.item_name,
+          item_image_url: item.item_image_url,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          personalizations: item.personalizations || [],
+          preview_status: item.preview_status,
+          preview_url: item.preview_url,
+          preview_generated_at: item.preview_generated_at,
+          preview_approved_at: item.preview_approved_at,
+          preview_deadline: item.preview_deadline,
+          revision_count: item.revision_count,
+          revision_notes: item.revision_notes,
+          revision_requested_at: item.revision_requested_at,
+          customization_files: item.customization_files,
+          order_id: {
+            id: mockOrder.id,
+            order_number: mockOrder.order_number,
+            status: mockOrder.status,
+            created_at: mockOrder.created_at,
+            scheduled_date: null,
+          },
+        }));
+        setOrderItems(mappedItems);
+        setOrderData(mockOrder.order_items);
+        setHasCustomItems(mockOrder.order_items.some((item: Order['order_items'][0]) => 
+          item.personalizations?.length > 0
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to refresh order:', error);
+    }
   }, [orderId, user]);
+  
+  // Phase 4: Load order data on mount
+  useEffect(() => {
+    if (!user) return;
+    prePopulateOrders(user.id);
+    refreshOrderData();
+  }, [orderId, user, refreshOrderData]);
+
+  // Rebuild timeline when order items change
+  useEffect(() => {
+    if (orderItems.length > 0) {
+      setTimeline(buildTimeline());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderItems, orderStatus]);
+
+  // Phase 3: Auto-open delivery completion sheet when order is delivered
+  useEffect(() => {
+    if (orderStatus === 'delivered' && !hasShownDeliveryCompletion && !isDeliveryCompletionOpen) {
+      // Auto-open after 1 second (Swiggy 2025 pattern)
+      const timer = setTimeout(() => {
+        setIsDeliveryCompletionOpen(true);
+        setHasShownDeliveryCompletion(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [orderStatus, hasShownDeliveryCompletion, isDeliveryCompletionOpen]);
+
+  // Phase 3: Auto-trigger rating is now handled in DeliveryCompletionSheet onClose
+
+  // Phase 2: Auto-open preview approval sheet when preview is ready (Swiggy 2025 pattern)
+  useEffect(() => {
+    if (orderItems.length === 0) return;
+
+    // Swiggy 2025: Auto-open preview sheet only if item has personalizations
+    const previewReadyItem = orderItems.find((item: OrderItem) => 
+      item.preview_status === 'preview_ready' &&
+      item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+    );
+    
+    if (previewReadyItem && !isPreviewSheetOpen && !previewOrderItem) {
+      // Auto-open after 1 second delay (Swiggy pattern - let page load first)
+      const timer = setTimeout(() => {
+        setPreviewOrderItem(previewReadyItem);
+        setIsPreviewSheetOpen(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [orderItems, isPreviewSheetOpen, previewOrderItem]);
+
+  // Phase 4: Handle hash URLs (#preview, #upload) - auto-open sheets
+  useEffect(() => {
+    if (orderItems.length === 0) return;
+
+    const urlHash = window.location.hash;
+    
+    // Swiggy 2025: Handle #preview - auto-open preview sheet only if has personalizations
+    if (urlHash === '#preview') {
+      const previewReadyItem = orderItems.find((item: OrderItem) => 
+        item.preview_status === 'preview_ready' &&
+        item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+      );
+      if (previewReadyItem) {
+        setPreviewOrderItem(previewReadyItem);
+        setIsPreviewSheetOpen(true);
+        // Clear hash after opening
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+    
+    // Swiggy 2025: Handle #upload - auto-open file upload sheet only if has personalizations
+    if (urlHash === '#upload') {
+      const pendingItem = orderItems.find((item: OrderItem) => 
+        item.preview_status === 'pending' &&
+        item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+      );
+      if (pendingItem) {
+        setSelectedOrderItemForUpload(pendingItem);
+        setIsFileUploadOpen(true);
+        // Clear hash after opening
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }, [orderItems]);
 
   // Build dynamic timeline based on actual order status
   const buildTimeline = useCallback((): TimelineStep[] => {
@@ -137,12 +272,19 @@ export const Track = () => {
       active: false,
     });
 
-    // Check if order has preview items
-    const hasPreviewItems = orderItems.some((item: any) => item.preview_status !== null && item.preview_status !== undefined);
+    // Swiggy 2025: Only show preview items if they have personalizations (customizations)
+    const hasPreviewItems = orderItems.some((item: OrderItem) => 
+      item.preview_status !== null && 
+      item.preview_status !== undefined &&
+      item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+    );
     
     if (hasPreviewItems) {
-      // Preview pending - waiting for files
-      const needsFiles = orderItems.some((item: any) => item.preview_status === 'pending');
+      // Swiggy 2025: Preview pending - only if item has personalizations
+      const needsFiles = orderItems.some((item: OrderItem) => 
+        item.preview_status === 'pending' &&
+        item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+      );
       if (needsFiles) {
         timeline.push({
           id: 'preview_pending',
@@ -153,10 +295,17 @@ export const Track = () => {
         });
       }
 
-      // Preview ready - waiting for approval
-      const previewReady = orderItems.some((item: any) => item.preview_status === 'preview_ready');
+      // Swiggy 2025: Preview ready - only if item has personalizations
+      const previewReady = orderItems.some((item: OrderItem) => 
+        item.preview_status === 'preview_ready' &&
+        item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+      );
       if (previewReady) {
-        const previewItem = orderItems.find((item: any) => item.preview_status === 'preview_ready');
+        // Swiggy 2025: Find preview item that also has personalizations
+        const previewItem = orderItems.find((item: OrderItem) => 
+          item.preview_status === 'preview_ready' &&
+          item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+        );
         timeline.push({
           id: 'preview_ready',
           label: 'Preview Ready for Review',
@@ -166,10 +315,17 @@ export const Track = () => {
         });
       }
 
-      // Revision requested
-      const hasRevision = orderItems.some((item: any) => item.preview_status === 'revision_requested');
+      // Swiggy 2025: Revision requested - only if item has personalizations
+      const hasRevision = orderItems.some((item: OrderItem) => 
+        item.preview_status === 'revision_requested' &&
+        item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+      );
       if (hasRevision) {
-        const revisionItem = orderItems.find((item: any) => item.preview_status === 'revision_requested');
+        // Swiggy 2025: Find revision item that also has personalizations
+        const revisionItem = orderItems.find((item: OrderItem) => 
+          item.preview_status === 'revision_requested' &&
+          item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+        );
         timeline.push({
           id: 'revision_requested',
           label: 'Revision in Progress',
@@ -179,10 +335,17 @@ export const Track = () => {
         });
       }
 
-      // Preview approved - production starts
-      const previewApproved = orderItems.some((item: any) => item.preview_status === 'preview_approved');
+      // Swiggy 2025: Preview approved - only if item has personalizations
+      const previewApproved = orderItems.some((item: OrderItem) => 
+        item.preview_status === 'preview_approved' &&
+        item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+      );
       if (previewApproved) {
-        const approvedItem = orderItems.find((item: any) => item.preview_status === 'preview_approved');
+        // Swiggy 2025: Find approved item that also has personalizations
+        const approvedItem = orderItems.find((item: OrderItem) => 
+          item.preview_status === 'preview_approved' &&
+          item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+        );
         timeline.push({
           id: 'preview_approved',
           label: 'Production Started',
@@ -258,131 +421,39 @@ export const Track = () => {
     return timeline;
   }, [orderStatus, orderItems]);
 
-  // Real-time order tracking with Supabase subscriptions
+  // Phase 1 Cleanup: Removed real-time subscriptions - use polling or manual refresh
+  // Timeline rebuild on order status or items change
   useEffect(() => {
-    if (!orderId || orderItems.length === 0) return;
-
-    setTimeline(buildTimeline());
-
-    // Subscribe to real-time order updates
-    const orderSubscription = supabase
-      .channel(`order-${orderId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${orderId}`,
-        },
-        async (payload) => {
-          const newStatus = payload.new.status;
-          setOrderStatus(newStatus);
-          
-          // Reload order items to get latest preview_status
-          const { data: items } = await supabase
-            .from('order_items')
-            .select('*')
-            .eq('order_id', orderId);
-          
-          if (items) {
-            setOrderItems(items);
-            setOrderData(items);
-          }
-          
-          // Rebuild timeline with new data
-          setTimeline(buildTimeline());
-
-          // Send push notification for specific status updates
-          if (['preview_ready', 'out_for_delivery', 'delivered'].includes(newStatus)) {
-            notificationService.sendOrderNotification(newStatus, orderId);
-          }
-
-          // Auto-open rating sheet when order is delivered
-          if (newStatus === 'delivered') {
-            setTimeout(() => {
-              setIsRatingSheetOpen(true);
-            }, 2000);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'order_items',
-          filter: `order_id=eq.${orderId}`,
-        },
-        async (payload) => {
-          // Reload order items when preview_status changes
-          const { data: items } = await supabase
-            .from('order_items')
-            .select('*')
-            .eq('order_id', orderId);
-          
-          if (items) {
-            setOrderItems(items);
-            setOrderData(items);
-            
-            // Preview ready notification is handled by PreviewNotificationBanner
-            // No need for redundant toast (Swiggy 2025: single notification system)
-            
-            // Rebuild timeline
-            setTimeline(buildTimeline());
-          }
-        }
-      )
-      .subscribe((status) => {
-        setIsRealtimeConnected(status === 'SUBSCRIBED');
-      });
-
-    // Cleanup subscription on unmount
-    return () => {
-      orderSubscription.unsubscribe();
-    };
-  }, [orderId, buildTimeline]);
+    if (orderItems.length > 0) {
+      setTimeline(buildTimeline());
+    }
+  }, [orderStatus, orderItems, buildTimeline]);
 
 
 
   const [orderDetails, setOrderDetails] = useState({
     id: orderId,
-    items: [
-      { name: 'Premium Gift Hamper', quantity: 2 },
-      { name: 'Artisan Chocolate Box', quantity: 1 },
-    ],
+    items: [] as Array<{ name: string; quantity: number }>,
     deliveryAddress: '123 MG Road, Bangalore, Karnataka - 560001',
     logisticsProvider: null as 'porter' | 'delhivery' | null,
     trackingNumber: null as string | null,
   });
 
-  // Fetch order details including logistics provider
+  // Update orderDetails when orderItems changes
   useEffect(() => {
-    const loadOrderDetails = async () => {
-      if (!user && !localStorage.getItem('mock_session')) return;
-      
-      try {
-        const { data: order, error } = await supabase
-          .from('orders')
-          .select('delivery_address, logistics_provider, tracking_number')
-          .eq('id', orderId)
-          .single();
+    if (orderItems && orderItems.length > 0) {
+      setOrderDetails(prev => ({
+        ...prev,
+        items: orderItems.map((item: OrderItem) => ({
+          name: item.item_name || 'Unknown Item',
+          quantity: item.quantity || 1,
+        })),
+      }));
+    }
+  }, [orderItems]);
 
-        if (order && !error) {
-          setOrderDetails(prev => ({
-            ...prev,
-            deliveryAddress: order.delivery_address?.full || order.delivery_address || prev.deliveryAddress,
-            logisticsProvider: order.logistics_provider || null,
-            trackingNumber: order.tracking_number || null,
-          }));
-        }
-      } catch (error) {
-        console.error('Error loading order details:', error);
-      }
-    };
-    
-    loadOrderDetails();
-  }, [orderId, user]);
+  // Phase 1 Cleanup: Order details loaded from mock order data
+  // Delivery address and logistics info come from mock order
 
   useEffect(() => {
     const loadETA = async () => {
@@ -403,12 +474,21 @@ export const Track = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background pb-20">
-      <CustomerMobileHeader showBackButton title="Track Order" />
+      return (
+        <>
+          <Helmet>
+            <title>
+              {orderItems.length > 0 && orderItems[0]?.orders?.order_number
+                ? `Order ${orderItems[0].orders.order_number} - Track Order | Wyshkit`
+                : 'Track Order | Wyshkit'}
+            </title>
+            <meta name="description" content="Track your order status and delivery updates" />
+          </Helmet>
+          <div className="min-h-screen bg-background pb-[112px]">
+            <CustomerMobileHeader showBackButton title="Track Order" />
 
       {/* Main Content */}
-      <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-4">
         {/* ETA Card - Prominent (Swiggy pattern) */}
         <Card className="bg-gradient-primary text-white border-0">
           <CardContent className="p-6 text-center">
@@ -452,17 +532,28 @@ export const Track = () => {
           </Button>
         </div>
 
-        {/* Preview Ready Card - Show when preview is ready for review */}
-        {orderItems.some((item: any) => item.preview_status === 'preview_ready') && (() => {
-          const previewItem = orderItems.find((item: any) => item.preview_status === 'preview_ready');
+        {/* Swiggy 2025: Preview Ready Card - Only show if item has personalizations */}
+        {orderItems.some((item: OrderItem) => 
+          item.preview_status === 'preview_ready' &&
+          item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+        ) && (() => {
+          // Swiggy 2025: Find preview item that also has personalizations
+          const previewItem = orderItems.find((item: OrderItem) => 
+            item.preview_status === 'preview_ready' &&
+            item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+          );
           const revisionCount = previewItem?.revision_count || 0;
           const freeRevisionsLeft = Math.max(0, 2 - revisionCount);
           const previewDeadline = previewItem?.preview_deadline ? new Date(previewItem.preview_deadline) : null;
           const now = new Date();
           const daysUntilAutoApprove = previewDeadline ? Math.ceil((previewDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
           
+          // Calculate hours/minutes for countdown
+          const hoursUntilDeadline = previewDeadline ? Math.ceil((previewDeadline.getTime() - now.getTime()) / (1000 * 60 * 60)) : null;
+          const minutesUntilDeadline = previewDeadline ? Math.ceil((previewDeadline.getTime() - now.getTime()) / (1000 * 60)) : null;
+          
           return (
-            <Card className="p-6 bg-primary/5 border-2 border-primary/20">
+            <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 shadow-lg animate-pulse">
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
@@ -474,15 +565,20 @@ export const Track = () => {
                 </div>
                 
                 {/* Preview Image */}
-                {previewItem?.preview_url && (
-                  <div className="rounded-lg overflow-hidden border border-border">
-                    <img 
-                      src={previewItem.preview_url} 
-                      alt="Design preview" 
-                      className="w-full h-auto"
-                    />
-                  </div>
-                )}
+                {previewItem?.preview_url && (() => {
+                  // Handle preview_url as string or string[]
+                  const previewUrl = previewItem.preview_url;
+                  const previewImageUrl = Array.isArray(previewUrl) ? previewUrl[0] : previewUrl;
+                  return previewImageUrl ? (
+                    <div className="rounded-lg overflow-hidden border border-border">
+                      <img 
+                        src={previewImageUrl} 
+                        alt="Design preview" 
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  ) : null;
+                })()}
                 
                 {/* Revision Count & Auto-approval */}
                 <div className="space-y-2">
@@ -493,12 +589,26 @@ export const Track = () => {
                     </span>
                   </div>
                   
-                  {previewDeadline && daysUntilAutoApprove !== null && daysUntilAutoApprove > 0 && (
+                  {/* Phase 2: Enhanced countdown timer */}
+                  {previewDeadline && hoursUntilDeadline !== null && hoursUntilDeadline > 0 && (
                     <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                      <Clock className="h-4 w-4 text-warning" />
-                      <p className="text-sm text-warning-foreground">
-                        Auto-approving in {daysUntilAutoApprove} {daysUntilAutoApprove === 1 ? 'day' : 'days'} if no response
-                      </p>
+                      <Clock className="h-5 w-5 text-warning animate-pulse" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-warning-foreground">
+                          {hoursUntilDeadline < 24 
+                            ? `${hoursUntilDeadline}h ${minutesUntilDeadline ? minutesUntilDeadline % 60 : 0}m left`
+                            : `${daysUntilAutoApprove}d ${hoursUntilDeadline % 24}h left`
+                          }
+                        </p>
+                        <p className="text-xs text-warning-foreground/70 mt-0.5">
+                          Auto-approving if no response by {previewDeadline.toLocaleDateString('en-IN', { 
+                            day: 'numeric', 
+                            month: 'short', 
+                            hour: 'numeric', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
+                      </div>
                     </div>
                   )}
                   
@@ -518,35 +628,46 @@ export const Track = () => {
                     setIsPreviewSheetOpen(true);
                   }}
                   variant="default"
-                  className="w-full"
+                  className="w-full h-12 text-base font-semibold shadow-lg"
                   size="lg"
                 >
-                  Review & Approve
+                  Review & Approve Now
                 </Button>
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  Click to view full preview and approve or request changes
+                </p>
               </div>
             </Card>
           );
         })()}
 
-        {/* File Upload Section - Vendor-defined uploads (Swiggy Model) */}
-        {orderItems.some((item: any) => item.preview_status === 'pending') && (() => {
-          const pendingItem = orderItems.find((item: any) => item.preview_status === 'pending');
-          const personalizationsNeedingUpload = pendingItem?.personalizations?.filter((p: any) => p.requiresPreview) || [];
+        {/* Swiggy 2025: File Upload Section - Only show if item has personalizations */}
+        {orderItems.some((item: OrderItem) => 
+          item.preview_status === 'pending' && 
+          item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+        ) && (() => {
+          // Swiggy 2025: Find pending item that also has personalizations
+          const pendingItem = orderItems.find((item: OrderItem) => 
+            item.preview_status === 'pending' &&
+            item.personalizations?.length > 0  // CRITICAL: Only if has personalizations
+          );
+          // All personalizations require upload (simplified rule)
+          const personalizationsNeedingUpload = pendingItem?.personalizations || [];
           const uploadCount = personalizationsNeedingUpload.length;
 
           if (uploadCount === 0) return null;
 
           return (
-            <Card className="p-6 bg-blue-50 border-2 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+            <Card className="p-6 bg-blue-50 border-2 border-blue-200 destructive destructive">
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <Upload className="h-6 w-6 text-blue-600 flex-shrink-0" />
                   <div className="flex-1">
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                    <h3 className="font-semibold text-blue-900 destructive">
                       Upload Your Design Files
                     </h3>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                      Upload {uploadCount} design file{uploadCount > 1 ? 's' : ''} for {pendingItem?.store_items?.name || 'your order'}. Our vendor will create a preview for your approval before production starts.
+                    <p className="text-sm text-blue-700 destructive mt-1">
+                      Upload {uploadCount} design file{uploadCount > 1 ? 's' : ''} for {pendingItem?.item_name || pendingItem?.store_items?.name || 'your order'}. Our vendor will create a preview for your approval before production starts.
                     </p>
                   </div>
                 </div>
@@ -565,6 +686,60 @@ export const Track = () => {
                 <p className="text-xs text-center text-muted-foreground">
                   2 free changes included. After submission, vendor will create a preview within 24-48 hours.
                 </p>
+                
+                {/* Dev Helper: Manual Preview Generation (Development Only) */}
+                {isDevelopment && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2 border-dashed"
+                    onClick={() => {
+                      if (pendingItem?.id) {
+                        generatePreview(pendingItem.id);
+                        // Refresh order data
+                        setTimeout(() => {
+                          const mockOrder = getOrderById(orderId);
+                          if (mockOrder) {
+                            setOrderStatus(mockOrder.status);
+                            const mappedItems: OrderItem[] = mockOrder.order_items.map((item: Order['order_items'][0]) => ({
+                              id: item.id,
+                              item_id: item.item_id,
+                              item_name: item.item_name,
+                              item_image_url: item.item_image_url,
+                              quantity: item.quantity,
+                              unit_price: item.unit_price,
+                              total_price: item.total_price,
+                              personalizations: item.personalizations || [],
+                              preview_status: item.preview_status,
+                              preview_url: item.preview_url,
+                              preview_generated_at: item.preview_generated_at,
+                              preview_approved_at: item.preview_approved_at,
+                              revision_count: item.revision_count,
+                              revision_notes: item.revision_notes,
+                              revision_requested_at: item.revision_requested_at,
+                              customization_files: item.customization_files,
+                              order_id: {
+                                id: mockOrder.id,
+                                order_number: mockOrder.order_number,
+                                status: mockOrder.status,
+                                created_at: mockOrder.created_at,
+                                scheduled_date: null,
+                              },
+                            }));
+                            setOrderItems(mappedItems);
+                            setOrderData(mockOrder.order_items);
+                            setHasCustomItems(mockOrder.order_items.some((item: Order['order_items'][0]) => 
+                              item.personalizations?.length > 0
+                            ));
+                            setTimeline(buildTimeline());
+                          }
+                        }, 100);
+                      }
+                    }}
+                  >
+                    🧪 Dev: Generate Preview Now (Mock Mode)
+                  </Button>
+                )}
               </div>
             </Card>
           );
@@ -622,6 +797,15 @@ export const Track = () => {
                 <Button
                   variant="outline"
                   className="h-12 gap-2 border-green-300 text-green-700 hover:bg-green-100"
+                  onClick={() => setIsRatingSheetOpen(true)}
+                >
+                  <Star className="h-4 w-4" />
+                  <span className="text-sm">Rate Order</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="h-12 gap-2 border-green-300 text-green-700 hover:bg-green-100"
                   onClick={() => setIsReorderOpen(true)}
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -632,25 +816,14 @@ export const Track = () => {
                   variant="outline"
                   className="h-12 gap-2 border-green-300 text-green-700 hover:bg-green-100"
                   onClick={() => {
-                    // Swiggy 2025: Silent operation - download happens without toast
-                    // TODO: Implement invoice download
+                    // Phase 7: Invoice download (Zomato 2025 pattern)
+                    downloadInvoice(orderId);
                   }}
                 >
                   <FileText className="h-4 w-4" />
                   <span className="text-sm">Invoice</span>
                 </Button>
                 
-                <Button
-                  variant="outline"
-                  className="h-12 gap-2 border-green-300 text-green-700 hover:bg-green-100"
-                  onClick={() => {
-                    // Swiggy 2025: Silent operation - chat opens without toast
-                    // TODO: Implement chat functionality
-                  }}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span className="text-sm">Chat</span>
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -669,7 +842,7 @@ export const Track = () => {
                 </div>
                 <Button
                   onClick={() => {
-                    const readyItem = orderItems.find((item: any) => item.preview_status === 'preview_ready');
+                    const readyItem = orderItems.find((item: OrderItem) => item.preview_status === 'preview_ready');
                     if (readyItem) {
                       setPreviewOrderItem(readyItem);
                       setIsPreviewSheetOpen(true);
@@ -743,7 +916,27 @@ export const Track = () => {
 
       <CustomerBottomNav />
 
-      {/* Rating Sheet - Auto-opens after delivery */}
+      {/* Delivery Completion Sheet - Phase 3: Auto-opens when order is delivered */}
+      <DeliveryCompletionSheet
+        isOpen={isDeliveryCompletionOpen}
+        onClose={() => {
+          setIsDeliveryCompletionOpen(false);
+          // Auto-trigger rating after closing delivery completion (Swiggy 2025 pattern)
+          setTimeout(() => {
+            if (orderStatus === 'delivered' && !isRatingSheetOpen) {
+              setIsRatingSheetOpen(true);
+            }
+          }, 500);
+        }}
+        orderId={orderId}
+        orderNumber={orderItems[0]?.order_id?.order_number}
+        deliveredAt={orderItems[0]?.order_id?.created_at}
+        onRateOrder={() => setIsRatingSheetOpen(true)}
+        onReorder={() => setIsReorderOpen(true)}
+        onViewDetails={() => setIsOrderDetailsOpen(true)}
+      />
+
+      {/* Rating Sheet - Phase 3: Auto-opens after delivery completion */}
       <RatingSheet
         isOpen={isRatingSheetOpen}
         onClose={() => setIsRatingSheetOpen(false)}
@@ -756,8 +949,9 @@ export const Track = () => {
         }))}
       />
 
-      {/* File Upload Sheet - Vendor-defined uploads (Swiggy Model) */}
-      {selectedOrderItemForUpload && (
+      {/* Swiggy 2025: File Upload Sheet - Only show if item has personalizations */}
+      {selectedOrderItemForUpload && 
+       selectedOrderItemForUpload.personalizations?.length > 0 && (
         <FileUploadSheet
           isOpen={isFileUploadOpen}
           onClose={() => {
@@ -765,19 +959,14 @@ export const Track = () => {
             setSelectedOrderItemForUpload(null);
           }}
           orderItemId={selectedOrderItemForUpload.id}
-          personalizations={selectedOrderItemForUpload?.personalizations || []}
+          personalizations={(selectedOrderItemForUpload?.personalizations || []).map(p => ({
+            id: p.id,
+            label: p.label || 'Customization'
+          }))}
           onUploadComplete={async () => {
-            // Refresh order data after upload
-            const { data: items } = await supabase
-              .from('order_items')
-              .select('*')
-              .eq('order_id', orderId);
-            
-            if (items) {
-              setOrderItems(items);
-              setTimeline(buildTimeline());
-            }
-            // Silent success - FileUploadSheet shows success state
+            // Phase 4: Simplified refresh using helper
+            refreshOrderData();
+            setTimeline(buildTimeline());
           }}
         />
       )}
@@ -789,32 +978,22 @@ export const Track = () => {
         orderId={orderId}
       />
 
-      {/* Preview Approval Sheet - Inline bottom sheet (Swiggy 2025 pattern) */}
-      {previewOrderItem && (
+      {/* Swiggy 2025: Preview Approval Sheet - Only show if item has personalizations */}
+      {previewOrderItem && 
+       previewOrderItem.personalizations?.length > 0 && (
         <PreviewApprovalSheet
           isOpen={isPreviewSheetOpen}
           onClose={() => {
             setIsPreviewSheetOpen(false);
             setPreviewOrderItem(null);
-            // Refresh order data after approval/revision
-            const refreshData = async () => {
-              const { data: items } = await supabase
-                .from('order_items')
-                .select('*')
-                .eq('order_id', orderId);
-              
-              if (items) {
-                setOrderItems(items);
-                setTimeline(buildTimeline());
-              }
-            };
-            refreshData();
+            // Phase 4: Simplified refresh using helper
+            refreshOrderData();
+            setTimeline(buildTimeline());
           }}
           orderId={orderId}
           orderItemId={previewOrderItem.id}
+          orderItem={previewOrderItem}
           deadline={previewOrderItem.preview_deadline ? new Date(previewOrderItem.preview_deadline) : undefined}
-          deliveryDate={orderItems[0]?.order_id?.scheduled_date ? new Date(orderItems[0].order_id.scheduled_date) : undefined}
-          freeRevisionsLeft={Math.max(0, 2 - (previewOrderItem.revision_count || 0))}
         />
       )}
 
@@ -824,7 +1003,8 @@ export const Track = () => {
         onClose={() => setIsOrderDetailsOpen(false)}
         orderId={orderId}
       />
-    </div>
+      </div>
+    </>
   );
 };
 
