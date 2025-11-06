@@ -234,9 +234,8 @@ export const PaymentMethods = () => {
         <CustomerMobileHeader title="Payment Methods" showBackButton />
 
         <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-4 md:space-y-6">
-          {
-            <>
-              {/* Payment Methods List */}
+          <>
+            {/* Payment Methods List */}
               <div className="space-y-3">
                 {paymentMethods.map((method) => (
                   <Card key={method.id}>
@@ -312,8 +311,7 @@ export const PaymentMethods = () => {
                 <Plus className="mr-2 h-4 w-4" />
                 Add Payment Method
               </Button>
-            </>
-          )}
+          </>
         </main>
         <CustomerBottomNav />
 

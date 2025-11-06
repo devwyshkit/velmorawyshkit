@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { Star, Edit, Trash2, Package } from "lucide-react";
+import { Star, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CustomerMobileHeader } from "@/components/customer/shared/CustomerMobileHeader";
 import { CustomerBottomNav } from "@/components/customer/shared/CustomerBottomNav";
@@ -36,15 +35,12 @@ interface Review {
   updated_at?: string;
 }
 
-export const MyReviews = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
 // Helper to load reviews synchronously (Swiggy 2025 pattern)
 const loadReviewsSync = (userId?: string): Review[] => {
   try {
     const stored = localStorage.getItem('wyshkit_reviews');
     if (stored) {
-      const allReviews = JSON.parse(stored);
+      const allReviews = safeJsonParse(stored, [] as Review[]);
       // Filter reviews for current user
       if (userId) {
         return allReviews.filter((r: Review) => 
@@ -75,7 +71,6 @@ const loadReviewsSync = (userId?: string): Review[] => {
 };
 
 export const MyReviews = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   // Swiggy 2025: Initialize reviews synchronously to prevent empty flash
@@ -165,11 +160,7 @@ export const MyReviews = () => {
         <CustomerMobileHeader title="My Reviews" showBackButton />
 
         <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-4 md:space-y-6">
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading reviews...</p>
-            </div>
-          ) : reviews.length === 0 ? (
+          {reviews.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center space-y-4">
                 <Star className="h-12 w-12 mx-auto text-muted-foreground" />

@@ -7,7 +7,7 @@
  * - Never throws exceptions
  */
 
-import { logger } from './logger';
+import { logger } from '../logger';
 
 /**
  * Safely parse JSON string with default fallback
