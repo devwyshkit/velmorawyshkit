@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // Hook for debouncing values
 export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = React.useState(value);
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -66,8 +66,8 @@ export function useExpensiveCalculation<T>(
 export function useIntersectionObserver(
   options: IntersectionObserverInit = {}
 ) {
-  const [isIntersecting, setIsIntersecting] = React.useState(false);
-  const [hasIntersected, setHasIntersected] = React.useState(false);
+  const [isIntersecting, setIsIntersecting] = useState(false);
+  const [hasIntersected, setHasIntersected] = useState(false);
   const elementRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export function useVirtualScroll<T>({
   containerHeight: number;
   overscan?: number;
 }) {
-  const [scrollTop, setScrollTop] = React.useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
 
   const visibleRange = useMemo(() => {
     const start = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
@@ -162,7 +162,7 @@ export function useVirtualScroll<T>({
 
   const totalHeight = items.length * itemHeight;
 
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = useCallback((e: { currentTarget: { scrollTop: number } }) => {
     setScrollTop(e.currentTarget.scrollTop);
   }, []);
 
@@ -173,6 +173,3 @@ export function useVirtualScroll<T>({
     visibleRange
   };
 }
-
-// React import fix
-import React from 'react';

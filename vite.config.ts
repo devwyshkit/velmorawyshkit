@@ -103,7 +103,8 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
+            // React and React DOM must be in the same chunk to avoid multiple instances
+            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
               return 'react-vendor';
             }
             if (id.includes('@radix-ui')) {
@@ -125,6 +126,11 @@ export default defineConfig(({ mode }) => ({
           }
         }
       }
+    },
+    // Ensure React is externalized correctly
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
     }
   }
 }));
