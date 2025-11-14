@@ -18,10 +18,7 @@ import {
 import { PartnerBottomNav } from "@/components/partner/PartnerBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/integrations/supabase-client";
 import { useToast } from "@/hooks/use-toast";
-import { SkeletonComponents } from "@/components/ui/skeleton-screen";
-import { logger } from "@/lib/logger";
 
 /**
  * Partner Dashboard Layout
@@ -36,33 +33,8 @@ export const PartnerLayout = () => {
   const isMobile = useIsMobile();
   const { user, loading } = useAuth();
 
-  // 🔒 CRITICAL: Authentication Guard
-  useEffect(() => {
-    // Wait for auth to load
-    if (loading) return;
-    
-    // Redirect if not authenticated
-    if (!user) {
-      navigate('/partner/login', { replace: true });
-      return;
-    }
-    
-    // Redirect if wrong role
-    if (user.role !== 'seller') {
-      navigate('/unauthorized', { replace: true });
-      return;
-    }
-  }, [user, loading, navigate]);
-
-  // Show loading while checking auth
-  if (loading) {
-    return <SkeletonComponents.Dashboard />;
-  }
-
-  // Don't render if not authenticated or wrong role
-  if (!user || user.role !== 'seller') {
-    return null;
-  }
+  // DISABLED AUTHENTICATION GUARD - No redirects, no checks
+  // Always allow access in mock mode
 
   // Partner navigation items - Swiggy 2025 pattern (only core features)
   const navItems = [
@@ -78,23 +50,12 @@ export const PartnerLayout = () => {
   ];
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      // 🔒 SECURITY: Clear sensitive data
-      sessionStorage.clear();
-      // Guest cart removed - authentication required (Swiggy 2025 pattern)
-      localStorage.removeItem('wyshkit_location');
-      
-      // 🔒 SECURITY: Use React Router replace to prevent back button from showing cached data
-      // Swiggy 2025: No direct window.history manipulation - use React Router
-      navigate("/partner/login", { replace: true });
-    } catch (error: unknown) {
-      // Silent error - logout should always succeed or redirect
-      logger.error('Logout error', error instanceof Error ? error : new Error(String(error)));
-      navigate("/partner/login", { replace: true });
-    }
+    // DISABLED AUTHENTICATION - Just navigate, no logout calls
+    toast({
+      title: "Logged out",
+      description: "You've been logged out",
+    });
+    navigate("/partner/login", { replace: true });
   };
 
   return (

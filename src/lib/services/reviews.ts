@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/integrations/supabase-client';
+// DISABLED AUTHENTICATION - All reviews functions now return mock data
 
 export interface ReviewPayload {
   reviewable_type: 'store' | 'product';
@@ -11,48 +11,30 @@ export interface ReviewPayload {
 }
 
 export const submitReview = async (payload: ReviewPayload) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const { data, error } = await supabase
-    .from('reviews')
-    .insert({
-      ...payload,
-      customer_id: user.id,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  // DISABLED AUTHENTICATION - Return mock success
+  // In mock mode, just return success without API calls
+  return {
+    id: 'mock-review-' + Date.now(),
+    ...payload,
+    customer_id: 'mock-user-123',
+    created_at: new Date().toISOString(),
+  };
 };
 
 export const fetchReviews = async (reviewableType: 'store' | 'product', reviewableId: string) => {
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('*')
-    .eq('reviewable_type', reviewableType)
-    .eq('reviewable_id', reviewableId)
-    .eq('is_approved', true)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
+  // DISABLED AUTHENTICATION - Return empty array, no API calls
+  // In mock mode, reviews are not critical for demo flow
+  return [];
 };
 
 export const updateReview = async (reviewId: string, payload: Partial<ReviewPayload>) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const { data, error } = await supabase
-    .from('reviews')
-    .update(payload)
-    .eq('id', reviewId)
-    .eq('customer_id', user.id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  // DISABLED AUTHENTICATION - Return mock success
+  // In mock mode, just return success without API calls
+  return {
+    id: reviewId,
+    ...payload,
+    customer_id: 'mock-user-123',
+    updated_at: new Date().toISOString(),
+  };
 };
 

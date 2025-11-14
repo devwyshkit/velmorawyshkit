@@ -50,44 +50,9 @@ export const isSupabaseConfigured = (): boolean => {
 };
 
 // Check if user is authenticated
+// DISABLED AUTHENTICATION - Always return true in mock mode
 export const isAuthenticated = async () => {
-  // Check mock mode first - if enabled, mock user always exists
-  try {
-    const { isMockModeEnabled } = await import('@/lib/mock-mode');
-    if (isMockModeEnabled()) {
-      return true; // Mock mode always has a user
-    }
-  } catch {
-    // Mock mode module not available, continue with Supabase check
-  }
-  
-  // If no real Supabase credentials, always return false (guest mode)
-  if (!hasRealCredentials) {
-    return false;
-  }
-  
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    // Handle network errors gracefully
-    if (error) {
-      // Check if it's a network/connection error
-      if (error.message.includes('Failed to fetch') || 
-          error.message.includes('ERR_NAME_NOT_RESOLVED') ||
-          error.message.includes('NetworkError')) {
-        return false; // Silent fail for network errors
-      }
-      // Silent error handling (Swiggy 2025 pattern)
-      return false;
-    }
-    return !!session;
-  } catch (error: any) {
-    // Handle error silently in production
-    // Don't log network errors as they're expected when Supabase is unavailable
-    if (error?.message && 
-        !error.message.includes('Failed to fetch') && 
-        !error.message.includes('ERR_NAME_NOT_RESOLVED')) {
-      // Silent error handling (Swiggy 2025 pattern)
-    }
-    return false;
-  }
+  // Always return true - authentication is disabled
+  // No Supabase calls, no session checks, no network requests
+  return true;
 };

@@ -121,6 +121,13 @@ export const groupStoresByDelivery = (stores: Store[], selectedDate: Date) => {
 // Data fetching functions
 export const fetchStores = async (location?: string): Promise<Store[]> => {
   try {
+    // Check mock mode first
+    const { isMockModeEnabled } = await import('@/lib/mock-mode');
+    if (isMockModeEnabled()) {
+      const { getMockStores } = await import('@/lib/mock-catalog');
+      return getMockStores();
+    }
+
     // Swiggy 2025: Only show approved, active stores
     // 2025 Pattern: Parallelize stores and items queries for performance
     const [storesResult, itemsResult] = await Promise.all([
@@ -192,6 +199,13 @@ export const fetchStores = async (location?: string): Promise<Store[]> => {
 
 export const fetchStoreById = async (id: string): Promise<Store | null> => {
   try {
+    // Check mock mode first
+    const { isMockModeEnabled } = await import('@/lib/mock-mode');
+    if (isMockModeEnabled()) {
+      const { getMockStoreById } = await import('@/lib/mock-catalog');
+      return getMockStoreById(id);
+    }
+
     const { data, error } = await supabase
       .from('stores')
       .select('*')
@@ -218,6 +232,13 @@ export const fetchStoreById = async (id: string): Promise<Store | null> => {
 
 export const fetchItemsByStore = async (storeId: string): Promise<Item[]> => {
   try {
+    // Check mock mode first
+    const { isMockModeEnabled } = await import('@/lib/mock-mode');
+    if (isMockModeEnabled()) {
+      const { getMockItemsByStore } = await import('@/lib/mock-catalog');
+      return getMockItemsByStore(storeId);
+    }
+
     // Swiggy 2025: Only show approved, active items
     const { data, error } = await supabase
       .from('store_items')
@@ -242,6 +263,13 @@ export const fetchItemsByStore = async (storeId: string): Promise<Item[]> => {
 
 export const fetchItemById = async (id: string): Promise<Item | null> => {
   try {
+    // Check mock mode first
+    const { isMockModeEnabled } = await import('@/lib/mock-mode');
+    if (isMockModeEnabled()) {
+      const { getMockItemById } = await import('@/lib/mock-catalog');
+      return getMockItemById(id);
+    }
+
     const { data, error } = await supabase
       .from('store_items')
       .select('*')
@@ -258,217 +286,37 @@ export const fetchItemById = async (id: string): Promise<Item | null> => {
 };
 
 export const fetchCartItems = async (): Promise<CartItemData[]> => {
-  // Mock mode: Use localStorage cart
-  const { isMockModeEnabled } = await import('@/lib/mock-mode');
-    const { getCartItems } = await import('@/lib/mock-cart');
-  
-  if (isMockModeEnabled()) {
-    const mockItems = getCartItems();
-    return mockItems.map(item => ({
-      id: item.id,
-      item_id: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image,
-      addOns: item.personalizations || [],
-      store_id: item.store_id,
-    }));
-  }
-
-  // Backend only - require authentication
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    return []; // Empty cart for unauthenticated users
-  }
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('cart_items')
-      .select(`
-        id,
-        item_id,
-        store_id,
-        quantity,
-        unit_price,
-        personalizations,
-        store_items (
-          name,
-          image_url,
-          images,
-          price,
-          customization_options
-        )
-      `)
-      .eq('user_id', user.id);
-
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      return data.map(item => ({
-        id: item.id, // cart_item.id
-        item_id: item.item_id, // product item_id (for matching)
-        name: item.store_items?.name || 'Product',
-        price: item.unit_price || 0,
-        quantity: item.quantity || 1,
-        image: item.store_items?.image_url || item.store_items?.images?.[0] || '/placeholder.svg',
-        addOns: item.personalizations || [],
-        store_id: item.store_id,
-      }));
-    }
-    
-    return [];
-  } catch (error) {
-    // Silent error handling - return empty array (Swiggy 2025 pattern)
-    return [];
-  }
+  // DISABLED AUTHENTICATION - Always use mock cart
+  const { getCartItems } = await import('@/lib/mock-cart');
+  const mockItems = getCartItems();
+  return mockItems.map(item => ({
+    id: item.id,
+    item_id: item.id,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    image: item.image,
+    addOns: item.personalizations || [],
+    store_id: item.store_id,
+  }));
 };
 
 export const addToCartSupabase = async (item: CartItemData): Promise<boolean> => {
-  // Mock mode: Use localStorage cart
-  const { isMockModeEnabled } = await import('@/lib/mock-mode');
-  const { addToMockCart } = await import('@/lib/mock-cart');
-  
-  if (isMockModeEnabled()) {
-    return addToMockCart(item);
-  }
-
-  // Backend only - require authentication
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    throw new Error('Please login to add items to cart');
-  }
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    const unitPrice = item.price;
-    const totalPrice = unitPrice * (item.quantity || 1);
-
-    // Check if item already exists in cart
-    const { data: existingItem } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('user_id', user.id)
-      .eq('item_id', item.id)
-      .eq('store_id', item.store_id!)
-      .single();
-
-    if (existingItem) {
-      // Update quantity
-      const newQuantity = existingItem.quantity + (item.quantity || 1);
-      const newTotalPrice = unitPrice * newQuantity;
-      
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ 
-          quantity: newQuantity,
-          total_price: newTotalPrice 
-        })
-        .eq('id', existingItem.id);
-
-      if (error) throw error;
-    } else {
-      // Insert new item
-      const { error } = await supabase
-        .from('cart_items')
-        .insert({
-          user_id: user.id,
-          item_id: item.id,
-          store_id: item.store_id!,
-          quantity: item.quantity || 1,
-          personalizations: item.addOns || [],
-          unit_price: unitPrice,
-          total_price: totalPrice,
-        });
-
-      if (error) throw error;
-    }
-
-    return true;
-  } catch (error) {
-    // Re-throw error for caller to handle (Swiggy 2025 pattern: silent at low level)
-    throw error;
-  }
+  // DISABLED AUTHENTICATION - Always use mock cart
+  const { addToCart } = await import('@/lib/mock-cart');
+  return addToCart(item);
 };
 
 export const updateCartItemSupabase = async (itemId: string, quantity: number): Promise<boolean> => {
-  // Mock mode: Use localStorage cart
-  const { isMockModeEnabled } = await import('@/lib/mock-mode');
-  const { updateMockCartQuantity } = await import('@/lib/mock-cart');
-  
-  if (isMockModeEnabled()) {
-    return updateMockCartQuantity(itemId, quantity);
-  }
-
-  // Backend only - require authentication
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    throw new Error('Please login to update cart');
-  }
-
-  try {
-    // Fetch current unit_price to recalculate total_price
-    const { data: cartItem } = await supabase
-      .from('cart_items')
-      .select('unit_price')
-      .eq('id', itemId)
-      .single();
-
-    if (!cartItem) {
-      throw new Error('Cart item not found');
-    }
-
-    const totalPrice = cartItem.unit_price * quantity;
-
-    const { error } = await supabase
-      .from('cart_items')
-      .update({ quantity, total_price: totalPrice })
-      .eq('id', itemId);
-
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    // Re-throw error for caller to handle (Swiggy 2025 pattern: silent at low level)
-    throw error;
-  }
+  // DISABLED AUTHENTICATION - Always use mock cart
+  const { updateCartQuantity } = await import('@/lib/mock-cart');
+  return updateCartQuantity(itemId, quantity);
 };
 
 export const removeCartItemSupabase = async (itemId: string): Promise<boolean> => {
-  // Mock mode: Use localStorage cart
-  const { isMockModeEnabled } = await import('@/lib/mock-mode');
-  const { removeFromMockCart } = await import('@/lib/mock-cart');
-  
-  if (isMockModeEnabled()) {
-    return removeFromMockCart(itemId);
-  }
-
-  // Backend only - require authentication
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    throw new Error('Please login to remove cart item');
-  }
-
-  try {
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('id', itemId);
-
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    // Re-throw error for caller to handle (Swiggy 2025 pattern: silent at low level)
-    throw error;
-  }
+  // DISABLED AUTHENTICATION - Always use mock cart
+  const { removeFromCart } = await import('@/lib/mock-cart');
+  return removeFromCart(itemId);
 };
 
 // Alias for consistency with other naming patterns
@@ -476,45 +324,16 @@ export const removeFromCartSupabase = removeCartItemSupabase;
 
 // Helper function to remove cart item by product ID and store ID (Swiggy 2025 pattern)
 export const removeCartItemByProductId = async (itemId: string, storeId: string): Promise<boolean> => {
-  // Backend only - require authentication
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    throw new Error('Please login to remove cart item');
+  // DISABLED AUTHENTICATION - Always use mock cart
+  const { getCartItems, removeFromCart } = await import('@/lib/mock-cart');
+  const cartItems = getCartItems();
+  const cartItem = cartItems.find(item => 
+    (item.item_id === itemId || item.id === itemId) && item.store_id === storeId
+  );
+  if (cartItem) {
+    return removeFromCart(cartItem.id);
   }
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Find cart item by item_id and store_id
-    const { data: cartItem, error: findError } = await supabase
-      .from('cart_items')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('item_id', itemId)
-      .eq('store_id', storeId)
-      .single();
-
-    if (findError) {
-      // Item not in cart - not an error, return success
-      if (findError.code === 'PGRST116') {
-        return true;
-      }
-      throw findError;
-    }
-
-    if (!cartItem) {
-      return true; // Item not found - already removed
-    }
-
-    // Remove by cart_item ID
-    return await removeCartItemSupabase(cartItem.id);
-  } catch (error) {
-    // Re-throw error for caller to handle
-    throw error;
-  }
+  return true; // Item not found - already removed
 };
 
 // Note: fetchSavedItems, addToSavedItemsSupabase, removeFromSavedItemsSupabase
@@ -532,6 +351,36 @@ export const getSearchSuggestions = async (
   type: 'recent' | 'trending' | 'product' | 'category';
   count?: number;
 }>> => {
+  // Check mock mode first - NO API calls in mock mode
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    if (!query || query.trim().length < 1) {
+      // Return mock trending when no query
+      return [
+        { id: '1', text: 'Birthday', type: 'trending' as const },
+        { id: '2', text: 'Anniversary', type: 'trending' as const },
+        { id: '3', text: 'Wedding', type: 'trending' as const },
+        { id: '4', text: 'Corporate', type: 'trending' as const },
+        { id: '5', text: 'Gifts', type: 'trending' as const }
+      ];
+    }
+    
+    // Return mock suggestions based on query
+    const { getMockItemsByStore } = await import('@/lib/mock-catalog');
+    const mockItems = getMockItemsByStore('mock-store-1');
+    const lowerQuery = query.toLowerCase();
+    const matchingItems = mockItems.filter(item => 
+      item.name.toLowerCase().includes(lowerQuery) ||
+      item.description?.toLowerCase().includes(lowerQuery)
+    );
+    
+    return matchingItems.slice(0, 10).map((item, idx) => ({
+      id: `suggestion-${idx}`,
+      text: item.name,
+      type: 'product' as const
+    }));
+  }
+
   if (!query || query.trim().length < 1) {
     // Return recent + trending when no query
     try {
@@ -600,6 +449,26 @@ export const saveSearchHistory = async (
 ): Promise<void> => {
   if (!query || !query.trim()) return;
 
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    // In mock mode, save to localStorage
+    try {
+      const stored = localStorage.getItem('wyshkit_search_history');
+      const history = stored ? JSON.parse(stored) : [];
+      history.unshift({
+        query: query.trim(),
+        timestamp: new Date().toISOString(),
+        ...metadata
+      });
+      // Keep only last 50 searches
+      localStorage.setItem('wyshkit_search_history', JSON.stringify(history.slice(0, 50)));
+    } catch (error) {
+      // Silent fail
+    }
+    return;
+  }
+
   try {
     const { error } = await supabase.from('search_history').insert({
       user_id: userId || null,
@@ -620,6 +489,13 @@ export const saveSearchHistory = async (
 
 // Get trending searches from backend - Swiggy 2025 pattern (real data, not fake)
 export const getTrendingSearches = async (limit: number = 10): Promise<string[]> => {
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    // Return mock trending searches
+    return ['Birthday', 'Anniversary', 'Wedding', 'Corporate', 'Festival', 'Gifts'];
+  }
+
   try {
     const { data, error } = await supabase.rpc('get_trending_searches', {
       p_limit: limit,
@@ -637,6 +513,19 @@ export const getTrendingSearches = async (limit: number = 10): Promise<string[]>
 export const searchItems = async (query: string): Promise<Item[]> => {
   if (!query || query.trim().length < 1) {
     return [];
+  }
+
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    const { getMockItemsByStore } = await import('@/lib/mock-catalog');
+    const mockItems = getMockItemsByStore('mock-store-1');
+    const lowerQuery = query.toLowerCase();
+    return mockItems.filter(item => 
+      item.name.toLowerCase().includes(lowerQuery) ||
+      item.description?.toLowerCase().includes(lowerQuery) ||
+      item.shortDesc?.toLowerCase().includes(lowerQuery)
+    );
   }
 
   const maxRetries = 2;
@@ -693,6 +582,19 @@ export const searchItems = async (query: string): Promise<Item[]> => {
 export const searchStores = async (query: string): Promise<Store[]> => {
   if (!query || query.trim().length < 1) {
     return [];
+  }
+
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    const { getMockStores } = await import('@/lib/mock-catalog');
+    const mockStores = getMockStores();
+    const lowerQuery = query.toLowerCase();
+    return mockStores.filter(store => 
+      store.name.toLowerCase().includes(lowerQuery) ||
+      store.category?.toLowerCase().includes(lowerQuery) ||
+      store.tagline?.toLowerCase().includes(lowerQuery)
+    );
   }
 
   const maxRetries = 2;

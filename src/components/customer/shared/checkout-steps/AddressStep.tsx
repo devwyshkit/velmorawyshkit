@@ -69,6 +69,7 @@ export const AddressStep = ({ onConfirm, cartItems, cartTotal }: AddressStepProp
   const [isGeneratingEstimate, setIsGeneratingEstimate] = useState(false);
 
   const addressInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     prePopulateAddresses();
@@ -94,7 +95,11 @@ export const AddressStep = ({ onConfirm, cartItems, cartTotal }: AddressStepProp
   }, [isAddingNew]);
 
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
       if (gstin.length === 15 && isBusinessOrder) {
         verifyGstin(gstin);
       } else {

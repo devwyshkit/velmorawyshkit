@@ -35,9 +35,7 @@ import {
 import { AdminMobileNav } from "./AdminMobileNav";
 import { AdminBottomNav } from "./AdminBottomNav";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/integrations/supabase-client";
 import { useAuth } from "@/contexts/AuthContext";
-import { SkeletonComponents } from "@/components/ui/skeleton-screen";
 
 /**
  * Admin Layout
@@ -51,33 +49,8 @@ export const AdminLayout = () => {
   const { toast } = useToast();
   const { user, loading } = useAuth();
 
-  // 🔒 CRITICAL: Authentication Guard
-  useEffect(() => {
-    // Wait for auth to load
-    if (loading) return;
-    
-    // Redirect if not authenticated
-    if (!user) {
-      navigate('/admin/login', { replace: true });
-      return;
-    }
-    
-    // Redirect if wrong role
-    if (user.role !== 'admin') {
-      navigate('/unauthorized', { replace: true });
-      return;
-    }
-  }, [user, loading, navigate]);
-
-  // Show loading while checking auth
-  if (loading) {
-    return <SkeletonComponents.Dashboard />;
-  }
-
-  // Don't render if not authenticated or wrong role
-  if (!user || user.role !== 'admin') {
-    return null;
-  }
+  // DISABLED AUTHENTICATION GUARD - No redirects, no checks
+  // Always allow access in mock mode
 
   // Admin navigation items (horizontal top nav)
   const navItems = [
@@ -101,34 +74,12 @@ export const AdminLayout = () => {
   ];
 
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      // 🔒 SECURITY: Clear sensitive data
-      sessionStorage.clear();
-      // Guest cart removed - authentication required (Swiggy 2025 pattern)
-      localStorage.removeItem('wyshkit_location');
-      
-      // 🔒 SECURITY: Prevent back button from showing cached data
-      window.history.pushState(null, '', window.location.href);
-      window.addEventListener('popstate', () => {
-        window.history.pushState(null, '', window.location.href);
-      });
-
-      toast({
-        title: "Logged out",
-        description: "You've been logged out of admin console",
-      });
-
-      navigate("/admin/login", { replace: true });
-    } catch (error: any) {
-      toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    // DISABLED AUTHENTICATION - Just navigate, no logout calls
+    toast({
+      title: "Logged out",
+      description: "You've been logged out of admin console",
+    });
+    navigate("/admin/login", { replace: true });
   };
 
   return (

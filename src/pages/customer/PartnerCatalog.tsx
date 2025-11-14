@@ -20,6 +20,8 @@ import { RouteMap } from "@/routes";
 import { supabase } from "@/lib/integrations/supabase-client";
 import { fetchStoreById, fetchItemsByStore, removeCartItemByProductId, CartItemData } from "@/lib/integrations/supabase-data";
 import { isAuthenticated } from "@/lib/integrations/supabase-client";
+import { isMockModeEnabled } from "@/lib/mock-mode";
+import { getMockStoreById, getMockItemsByStore } from "@/lib/mock-catalog";
 // Swiggy 2025: Removed toast - using ONLY StickyCartBar for feedback
 import { OptimizedImage } from "@/components/ui/skeleton-screen";
 import { EmptyStates } from "@/components/ui/empty-state";
@@ -74,66 +76,78 @@ export const PartnerCatalog = () => {
 
       setLoading(true);
       try {
-        // 2025 Pattern: Parallelize store and items queries for performance
-        const [storeResult, itemsResult] = await Promise.all([
-          fetchStoreById(storeId),
-          supabase
-            .from('store_items')
-            .select('id, name, description, price, images, is_customizable, customization_options, category, tags, is_active, created_at, image_url, short_desc')
-            .eq('store_id', storeId)
-            .eq('is_active', true)
-            .eq('status', 'approved')
-            .order('created_at', { ascending: false }),
-        ]);
-        
-        // Process store
-        if (storeResult) {
-          setStore(storeResult);
+        const mockMode = isMockModeEnabled();
+        if (mockMode) {
+          const mockStore = getMockStoreById(storeId);
+          const mockItems = getMockItemsByStore(storeId);
+          setStore(mockStore);
+          setItems(mockItems);
         } else {
-          setStore(null);
-        }
-        
-        // Process items - map database response to Item interface (Swiggy 2025 pattern)
-        const { data: itemsData, error } = itemsResult;
-        if (!error && itemsData && itemsData.length > 0) {
-          // Map database fields to Item interface (camelCase conversion)
-          const mappedItems: Item[] = itemsData.map((dbItem: {
-            id: string;
-            name: string;
-            description?: string;
-            image_url?: string;
-            images?: string[];
-            price: number;
-            short_desc?: string;
-            is_customizable?: boolean;
-            customization_options?: any[];
-            category?: string;
-            tags?: string[];
-          }) => ({
-            id: dbItem.id,
-            name: dbItem.name,
-            description: dbItem.description || '',
-            image: dbItem.image_url || dbItem.images?.[0] || '/placeholder.svg',
-            images: dbItem.images || [],
-            price: dbItem.price || 0,
-            rating: 0, // Default - can be fetched separately if needed
-            store_id: storeId, // Use storeId from params
-            shortDesc: dbItem.short_desc || '',
-            isCustomizable: dbItem.is_customizable || false, // Convert snake_case to camelCase
-            personalizations: dbItem.customization_options || [],
-            category: dbItem.category || '',
-            tags: dbItem.tags || [],
-          }));
-          setItems(mappedItems);
-        } else {
-          // No items found - show empty state
-          setItems([]);
+          // 2025 Pattern: Parallelize store and items queries for performance
+          const [storeResult, itemsResult] = await Promise.all([
+            fetchStoreById(storeId),
+            supabase
+              .from('store_items')
+              .select('id, name, description, price, images, is_customizable, customization_options, category, tags, is_active, created_at, image_url, short_desc')
+              .eq('store_id', storeId)
+              .eq('is_active', true)
+              .eq('status', 'approved')
+              .order('created_at', { ascending: false }),
+          ]);
+          
+          // Process store
+          if (storeResult) {
+            setStore(storeResult);
+          } else {
+            setStore(null);
+          }
+          
+          // Process items - map database response to Item interface (Swiggy 2025 pattern)
+          const { data: itemsData, error } = itemsResult;
+          if (!error && itemsData && itemsData.length > 0) {
+            // Map database fields to Item interface (camelCase conversion)
+            const mappedItems: Item[] = itemsData.map((dbItem: {
+              id: string;
+              name: string;
+              description?: string;
+              image_url?: string;
+              images?: string[];
+              price: number;
+              short_desc?: string;
+              is_customizable?: boolean;
+              customization_options?: any[];
+              category?: string;
+              tags?: string[];
+            }) => ({
+              id: dbItem.id,
+              name: dbItem.name,
+              description: dbItem.description || '',
+              image: dbItem.image_url || dbItem.images?.[0] || '/placeholder.svg',
+              images: dbItem.images || [],
+              price: dbItem.price || 0,
+              rating: 0,
+              store_id: storeId,
+              shortDesc: dbItem.short_desc || '',
+              isCustomizable: dbItem.is_customizable || false,
+              personalizations: dbItem.customization_options || [],
+              category: dbItem.category || '',
+              tags: dbItem.tags || [],
+            }));
+            setItems(mappedItems);
+          } else {
+            // No items found - fallback to mock for demo
+            const mockStore = getMockStoreById(storeId);
+            const mockItems = getMockItemsByStore(storeId);
+            setStore(mockStore);
+            setItems(mockItems);
+          }
         }
       } catch (error) {
-        // Silent error handling - show empty state (Swiggy 2025 pattern)
-        // Swiggy 2025: Silent error - show empty state instead of toast
-        setItems([]);
-        setStore(null);
+        // Silent error handling - fallback to mock for demo flow
+        const mockStore = getMockStoreById(storeId);
+        const mockItems = getMockItemsByStore(storeId);
+        setStore(mockStore);
+        setItems(mockItems);
       } finally {
         setLoading(false);
       }
@@ -148,12 +162,8 @@ export const PartnerCatalog = () => {
 
   // Quick add to cart handler (Swiggy 2025 pattern - for non-customizable items)
   const handleQuickAddToCart = async (itemId: string, quantity: number, storeId: string) => {
-    // Check authentication
-    const authenticated = await isAuthenticated();
-    if (!authenticated) {
-      setShowLoginPrompt(true);
-      return;
-    }
+    // DISABLED AUTHENTICATION - Always allow add to cart
+    // No auth checks, no login prompts
 
     // Find item details
     const item = items.find(i => i.id === itemId);

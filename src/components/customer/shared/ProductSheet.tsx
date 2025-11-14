@@ -36,6 +36,8 @@ import {
   type Item,
   type Store,
 } from "@/lib/integrations/supabase-data";
+import { isMockModeEnabled } from "@/lib/mock-mode";
+import { getMockItemById, getMockStoreById } from "@/lib/mock-catalog";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -75,7 +77,8 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   useEffect(() => {
     const loadItem = async () => {
       try {
-        const itemData = await fetchItemById(itemId);
+        const mockMode = isMockModeEnabled();
+        const itemData = mockMode ? getMockItemById(itemId) : await fetchItemById(itemId);
         if (itemData) {
           setItem({
             ...itemData,
@@ -88,7 +91,7 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
 
           // Load store data
           if (itemData.store_id) {
-            const storeData = await fetchStoreById(itemData.store_id);
+            const storeData = mockMode ? getMockStoreById(itemData.store_id) : await fetchStoreById(itemData.store_id);
             if (storeData) {
               setStore(storeData);
             }
@@ -102,10 +105,15 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
         const savedItems = await fetchSavedItems();
         setIsFavourited(savedItems.some((w) => w.id === itemId));
 
-        // Load reviews for this item
+        // Load reviews for this item (skip network in mock mode)
         try {
-          const reviewsData = await fetchReviews('product', itemId);
-          setReviews(reviewsData);
+          const mockModeForReviews = isMockModeEnabled();
+          if (!mockModeForReviews) {
+            const reviewsData = await fetchReviews('product', itemId);
+            setReviews(reviewsData);
+          } else {
+            setReviews([]);
+          }
         } catch (reviewError) {
           // Reviews are non-critical, continue silently (Swiggy 2025 pattern)
         }
@@ -168,8 +176,9 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
     // Check if adding item from different store
     if (currentStoreId && currentStoreId !== item.store_id) {
       // Fetch store names for modal
-      const currentStore = await fetchStoreById(currentStoreId);
-      const newStore = await fetchStoreById(item.store_id);
+      const mockMode = isMockModeEnabled();
+      const currentStore = mockMode ? getMockStoreById(currentStoreId) : await fetchStoreById(currentStoreId);
+      const newStore = mockMode ? getMockStoreById(item.store_id) : await fetchStoreById(item.store_id);
 
       setCurrentStoreName(currentStore?.name || "Current Store");
       setNewStoreName(newStore?.name || "New Store");
@@ -182,12 +191,8 @@ export const ProductSheet = ({ itemId, onClose }: ProductSheetProps) => {
   };
 
   const proceedWithAddToCart = async () => {
-    // Check authentication before allowing add to cart (Swiggy 2025 pattern)
-    // Use AuthContext which properly handles mock mode
-    if (!isAuthenticated) {
-      setShowLoginPrompt(true);
-      return;
-    }
+    // DISABLED AUTHENTICATION - Always allow add to cart
+    // No auth checks, no login prompts
 
     setIsAddingToCart(true);
     setAddToCartError(null);

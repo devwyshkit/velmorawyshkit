@@ -24,6 +24,8 @@ import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { fetchStores, type Store } from "@/lib/integrations/supabase-data";
 import { supabase } from "@/lib/integrations/supabase-client";
+import { isMockModeEnabled } from "@/lib/mock-mode";
+import { getMockBanners, getMockOccasions, getMockOffers } from "@/lib/mock-catalog";
 import { useDelivery } from "@/contexts/DeliveryContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmptyStates } from "@/components/ui/empty-state";
@@ -104,73 +106,21 @@ export const CustomerHome = () => {
   const loadData = useCallback(async () => {
       setLoading(true);
       try {
-        // Parallelize all independent queries (2025 pattern - Swiggy/Fiverr)
-        const [bannersResult, occasionsResult, storesResult, offersResult] = await Promise.all([
-          // Banners query with graceful error handling
-          supabase
-            .from("banners")
-            .select("id, title, image_url, cta_link, link, store_id, subtitle, description, cta_text, is_active, position")
-            .eq("is_active", true)
-            .order("position", { ascending: true })
-            .limit(10)
-            .then(({ data, error }) => {
-              // Handle table not existing or any error gracefully (Swiggy 2025 pattern)
-              if (error) {
-                return { data: [], error: null }; // Return empty array on any error
-              }
-              return { data: data || [], error: null };
-            })
-            .catch(() => ({ data: [], error: null })), // Silent error handling
-          
-          // Occasions query with graceful error handling
-          supabase
-            .from("occasions")
-            .select("id, name, image_url, icon_emoji, slug, is_active, position")
-            .eq("is_active", true)
-            .order("position", { ascending: true })
-            .limit(20)
-            .then(({ data, error }) => {
-              // Handle table not existing or any error gracefully (Swiggy 2025 pattern)
-              if (error) {
-                return { data: [], error: null }; // Return empty array on any error
-              }
-              return { data: data || [], error: null };
-            })
-            .catch(() => ({ data: [], error: null })), // Silent error handling
-          
-          // Stores query (fetchStores handles its own parallelization)
-          fetchStores(location),
-          
-          // Offers query with graceful error handling
-          supabase
-            .from("promotional_offers")
-            .select("id, title, discount_type, discount_value, description, end_date, created_at")
-            .eq("status", "active")
-            .eq("is_active", true)
-            .gte("end_date", new Date().toISOString())
-            .order("created_at", { ascending: false })
-            .limit(5)
-            .then(({ data, error }) => {
-              // Handle table not existing or any error gracefully (Swiggy 2025 pattern)
-              if (error) {
-                return { data: [], error: null }; // Return empty array on any error
-              }
-              return { data: data || [], error: null };
-            })
-            .catch(() => ({ data: [], error: null })), // Silent error handling
-        ]);
+        const mockMode = isMockModeEnabled();
         
-        // Process banners
-        if (bannersResult.data && bannersResult.data.length > 0) {
-          setBanners(bannersResult.data);
-        } else {
-          setBanners([]); // Empty state - no fallbacks
-        }
-
-        // Process occasions
-        if (occasionsResult.data && occasionsResult.data.length > 0) {
+        if (mockMode) {
+          // MOCK MODE: Use mock data - NO Supabase calls
+          const mockBanners = getMockBanners();
+          const mockOccasions = getMockOccasions();
+          const mockStores = await fetchStores(location); // fetchStores already handles mock mode
+          const mockOffers = getMockOffers();
+          
+          // Process banners
+          setBanners(mockBanners);
+          
+          // Process occasions
           setOccasions(
-            occasionsResult.data.map((occ) => ({
+            mockOccasions.map((occ) => ({
               id: occ.id,
               name: occ.name,
               image: occ.image_url,
@@ -178,54 +128,38 @@ export const CustomerHome = () => {
               slug: occ.slug,
             })),
           );
-        } else {
-          // Fallback mock data for development (Swiggy 2025 pattern)
-          setOccasions([
-            { id: '1', name: 'Birthday', image: '', icon: '🎂', slug: 'birthday' },
-            { id: '2', name: 'Anniversary', image: '', icon: '💍', slug: 'anniversary' },
-            { id: '3', name: 'Wedding', image: '', icon: '💒', slug: 'wedding' },
-            { id: '4', name: 'Corporate', image: '', icon: '💼', slug: 'corporate' },
-            { id: '5', name: 'Festival', image: '', icon: '🎉', slug: 'festival' },
-            { id: '6', name: 'Thank You', image: '', icon: '🙏', slug: 'thank-you' },
-          ]);
-        }
+          
+          // Process stores
+          let sortedStores: Store[] = [];
+          if (mockStores && mockStores.length > 0) {
+            sortedStores = [...mockStores].sort(
+              (a, b) => (b.rating || 0) - (a.rating || 0),
+            );
+            setStores(sortedStores);
+          } else {
+            setStores([]);
+            sortedStores = [];
+          }
+          
+          // Initialize displayed stores for infinite scroll
+          setDisplayedStores(sortedStores.slice(0, STORES_PER_PAGE));
+          setHasMoreStores(sortedStores.length > STORES_PER_PAGE);
+          setFilteredAndSortedStores(sortedStores);
 
-        // Process stores
-        let sortedStores: Store[] = [];
-        if (storesResult && storesResult.length > 0) {
-          // Sort by rating descending (Swiggy pattern: Top Rated)
-          sortedStores = [...storesResult].sort(
-            (a, b) => (b.rating || 0) - (a.rating || 0),
-          );
-          setStores(sortedStores);
-        } else {
-          // No stores - empty state
-          setStores([]);
-          sortedStores = [];
-        }
-        
-        // Initialize displayed stores for infinite scroll
-        // Filtering and sorting will be applied in useEffect
-        setDisplayedStores(sortedStores.slice(0, STORES_PER_PAGE));
-        setHasMoreStores(sortedStores.length > STORES_PER_PAGE);
-        setFilteredAndSortedStores(sortedStores);
+          // Filter trending stores
+          const trending = sortedStores
+            .filter((s) => s.badge === "trending" || (s.ratingCount || 0) > 100)
+            .slice(0, 8);
+          setTrendingStores(trending);
 
-        // Filter trending stores (badge === 'trending' OR high engagement)
-        const trending = sortedStores
-          .filter((s) => s.badge === "trending" || (s.ratingCount || 0) > 100)
-          .slice(0, 8);
-        setTrendingStores(trending);
+          // Filter new launches
+          const newOnes = sortedStores
+            .filter((s) => (s.ratingCount || 0) < 50)
+            .slice(0, 8);
+          setNewLaunches(newOnes);
 
-        // Filter new launches (ratingCount < 50 - indicates newer stores)
-        const newOnes = sortedStores
-          .filter((s) => (s.ratingCount || 0) < 50)
-          .slice(0, 8);
-        // Set new launches (empty if no stores match)
-        setNewLaunches(newOnes);
-
-        // Process offers
-        if (offersResult.data && offersResult.data.length > 0) {
-          const transformedOffers: Offer[] = offersResult.data.map((offer) => ({
+          // Process offers
+          const transformedOffers: Offer[] = mockOffers.map((offer) => ({
             id: offer.id,
             title: offer.title,
             discount: offer.discount_type === 'percentage' 
@@ -239,12 +173,129 @@ export const CustomerHome = () => {
           }));
           setOffers(transformedOffers);
         } else {
-          setOffers([]); // Empty state - no fallbacks
+          // REAL MODE: Use Supabase (only if not in mock mode)
+          // Parallelize all independent queries (2025 pattern - Swiggy/Fiverr)
+          const [bannersResult, occasionsResult, storesResult, offersResult] = await Promise.all([
+            // Banners query with graceful error handling
+            supabase
+              .from("banners")
+              .select("id, title, image_url, cta_link, link, store_id, subtitle, description, cta_text, is_active, position")
+              .eq("is_active", true)
+              .order("position", { ascending: true })
+              .limit(10)
+              .then(({ data, error }) => {
+                if (error) {
+                  return { data: [], error: null };
+                }
+                return { data: data || [], error: null };
+              })
+              .catch(() => ({ data: [], error: null })),
+            
+            // Occasions query with graceful error handling
+            supabase
+              .from("occasions")
+              .select("id, name, image_url, icon_emoji, slug, is_active, position")
+              .eq("is_active", true)
+              .order("position", { ascending: true })
+              .limit(20)
+              .then(({ data, error }) => {
+                if (error) {
+                  return { data: [], error: null };
+                }
+                return { data: data || [], error: null };
+              })
+              .catch(() => ({ data: [], error: null })),
+            
+            // Stores query (fetchStores handles its own parallelization)
+            fetchStores(location),
+            
+            // Offers query with graceful error handling
+            supabase
+              .from("promotional_offers")
+              .select("id, title, discount_type, discount_value, description, end_date, created_at")
+              .eq("status", "active")
+              .eq("is_active", true)
+              .gte("end_date", new Date().toISOString())
+              .order("created_at", { ascending: false })
+              .limit(5)
+              .then(({ data, error }) => {
+                if (error) {
+                  return { data: [], error: null };
+                }
+                return { data: data || [], error: null };
+              })
+              .catch(() => ({ data: [], error: null })),
+          ]);
+          
+          // Process banners
+          if (bannersResult.data && bannersResult.data.length > 0) {
+            setBanners(bannersResult.data);
+          } else {
+            setBanners([]);
+          }
+
+          // Process occasions
+          if (occasionsResult.data && occasionsResult.data.length > 0) {
+            setOccasions(
+              occasionsResult.data.map((occ) => ({
+                id: occ.id,
+                name: occ.name,
+                image: occ.image_url,
+                icon: occ.icon_emoji,
+                slug: occ.slug,
+              })),
+            );
+          } else {
+            setOccasions([]);
+          }
+
+          // Process stores
+          let sortedStores: Store[] = [];
+          if (storesResult && storesResult.length > 0) {
+            sortedStores = [...storesResult].sort(
+              (a, b) => (b.rating || 0) - (a.rating || 0),
+            );
+            setStores(sortedStores);
+          } else {
+            setStores([]);
+            sortedStores = [];
+          }
+          
+          setDisplayedStores(sortedStores.slice(0, STORES_PER_PAGE));
+          setHasMoreStores(sortedStores.length > STORES_PER_PAGE);
+          setFilteredAndSortedStores(sortedStores);
+
+          const trending = sortedStores
+            .filter((s) => s.badge === "trending" || (s.ratingCount || 0) > 100)
+            .slice(0, 8);
+          setTrendingStores(trending);
+
+          const newOnes = sortedStores
+            .filter((s) => (s.ratingCount || 0) < 50)
+            .slice(0, 8);
+          setNewLaunches(newOnes);
+
+          // Process offers
+          if (offersResult.data && offersResult.data.length > 0) {
+            const transformedOffers: Offer[] = offersResult.data.map((offer) => ({
+              id: offer.id,
+              title: offer.title,
+              discount: offer.discount_type === 'percentage' 
+                ? `${offer.discount_value}% OFF`
+                : offer.discount_type === 'fixed'
+                ? `₹${offer.discount_value / 100} OFF`
+                : 'FREE DELIVERY',
+              validUntil: `Valid till ${new Date(offer.end_date).toLocaleDateString()}`,
+              ctaLink: "/search",
+              description: offer.description || offer.title,
+            }));
+            setOffers(transformedOffers);
+          } else {
+            setOffers([]);
+          }
         }
       } catch (error) {
         // Silent error handling - show empty states (Swiggy 2025 pattern)
-        // Swiggy 2025: Silent error - empty states will show if data is missing
-        // Set empty arrays on error
         setBanners([]);
         setOccasions([]);
         setStores([]);

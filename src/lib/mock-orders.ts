@@ -56,7 +56,7 @@ export interface Order {
   }>;
 }
 
-import { generateOrderId } from './utils/id-generator';
+import { generateOrderId, generateId } from './utils/id-generator';
 
 /**
  * Generate a mock order ID

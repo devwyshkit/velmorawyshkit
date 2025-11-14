@@ -7,7 +7,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/integrations/supabase-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddressBookSheet } from "./AddressBookSheet";
 
@@ -29,10 +28,8 @@ export const AccountSheet = ({ isOpen, onClose }: AccountSheetProps) => {
     avatar: user?.avatar || '',
   };
 
-    const handleLogout = async () => {
-    await supabase.auth.signOut();
-    
-    // Swiggy 2025: Silent operation - navigation confirms logout
+  const handleLogout = async () => {
+    // DISABLED AUTHENTICATION - Just navigate, no logout calls
     onClose();
     navigate(RouteMap.login());
   };

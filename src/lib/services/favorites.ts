@@ -55,48 +55,71 @@ export interface FavoriteProduct {
  * Fetch all favorites for current user
  */
 export async function fetchFavorites(): Promise<Favorite[]> {
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return [];
-
-  try {
-    const { data, error } = await supabase
-      .from('favorites')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Failed to fetch favorites:', error);
-    return [];
+  // DISABLED AUTHENTICATION - Always use mock data
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    try {
+      const stored = localStorage.getItem('wyshkit_favorites');
+      if (stored) {
+        const favorites = JSON.parse(stored);
+        return favorites.map((fav: any) => ({
+          id: fav.id,
+          user_id: 'mock-user-123',
+          favoritable_type: 'product' as FavoritableType,
+          favoritable_id: fav.id,
+          created_at: fav.favorited_at || new Date().toISOString(),
+        }));
+      }
+      return [];
+    } catch (error) {
+      return [];
+    }
   }
+  return [];
 }
 
 /**
  * Fetch favorite stores
  */
 export async function fetchFavoriteStores(): Promise<FavoriteStore[]> {
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return [];
-
-  try {
-    const { data, error } = await supabase
-      .from('favorite_stores')
-      .select('*')
-      .order('favorited_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Failed to fetch favorite stores:', error);
-    return [];
-  }
+  // DISABLED AUTHENTICATION - Always return empty array in mock mode
+  // Stores favorites not critical for demo flow
+  return [];
 }
 
 /**
  * Fetch favorite products
  */
 export async function fetchFavoriteProducts(): Promise<FavoriteProduct[]> {
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    // In mock mode, use localStorage for favorites
+    try {
+      const stored = localStorage.getItem('wyshkit_favorites');
+      if (stored) {
+        const favorites = JSON.parse(stored);
+        return favorites.map((fav: any) => ({
+          favorite_id: fav.id,
+          user_id: 'mock-user-123',
+          favorited_at: fav.favorited_at || new Date().toISOString(),
+          id: fav.id,
+          name: fav.name,
+          image: fav.image,
+          price: fav.price,
+          rating: fav.rating || 0,
+          badge: fav.badge,
+          ratingCount: fav.ratingCount,
+          sponsored: fav.sponsored
+        }));
+      }
+      return [];
+    } catch (error) {
+      return [];
+    }
+  }
+
   const authenticated = await isAuthenticated();
   if (!authenticated) return [];
 
@@ -121,6 +144,26 @@ export async function addToFavorites(
   type: FavoritableType,
   id: string
 ): Promise<boolean> {
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    // In mock mode, use localStorage
+    try {
+      const stored = localStorage.getItem('wyshkit_favorites');
+      const favorites = stored ? JSON.parse(stored) : [];
+      if (!favorites.find((f: any) => f.id === id)) {
+        favorites.push({
+          id,
+          favorited_at: new Date().toISOString()
+        });
+        localStorage.setItem('wyshkit_favorites', JSON.stringify(favorites));
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   const authenticated = await isAuthenticated();
   if (!authenticated) return false;
 
@@ -146,6 +189,22 @@ export async function removeFromFavorites(
   type: FavoritableType,
   id: string
 ): Promise<boolean> {
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    // In mock mode, use localStorage
+    try {
+      const stored = localStorage.getItem('wyshkit_favorites');
+      if (stored) {
+        const favorites = JSON.parse(stored).filter((f: any) => f.id !== id);
+        localStorage.setItem('wyshkit_favorites', JSON.stringify(favorites));
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   const authenticated = await isAuthenticated();
   if (!authenticated) return false;
 
@@ -172,23 +231,22 @@ export async function isFavorited(
   type: FavoritableType,
   id: string
 ): Promise<boolean> {
-  const authenticated = await isAuthenticated();
-  if (!authenticated) return false;
-
-  try {
-    const { data, error } = await supabase
-      .from('favorites')
-      .select('id')
-      .match({
-        favoritable_type: type,
-        favoritable_id: id,
-      })
-      .single();
-
-    return !error && !!data;
-  } catch (error) {
-    return false;
+  // DISABLED AUTHENTICATION - Always use mock data
+  // Check mock mode first
+  const { isMockModeEnabled } = await import('@/lib/mock-mode');
+  if (isMockModeEnabled()) {
+    try {
+      const stored = localStorage.getItem('wyshkit_favorites');
+      if (stored) {
+        const favorites = JSON.parse(stored);
+        return favorites.some((f: any) => f.id === id);
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
   }
+  return false;
 }
 
 /**
