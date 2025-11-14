@@ -23,7 +23,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "react/jsx-runtime": ["./src/shims/react-jsx-runtime.ts"]
     }
   },
   "include": ["src"]

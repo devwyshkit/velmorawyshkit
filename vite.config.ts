@@ -55,9 +55,13 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      {
+        find: /react\/jsx-runtime$/,
+        replacement: path.resolve(__dirname, "./src/shims/react-jsx-runtime.ts"),
+      },
+    ],
     dedupe: ["react", "react-dom", "scheduler"],
   },
   optimizeDeps: {
